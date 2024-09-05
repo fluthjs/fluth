@@ -1,0 +1,23 @@
+{
+  "name": "fluth",
+  "version": "0.0.0",
+  "description": "A promise stream library",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc --declaration",
+    "test": "vitest run",
+    "check": "tsc --noEmit",
+    "lint": "eslint --cache --fix"
+  },
+  "lint-staged": {
+    "*.{ts}": [
+      "tsc --skipLibCheck --noEmit",
+      "prettier --write",
+      "eslint --cache --fix"
+    ]
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {}
+}

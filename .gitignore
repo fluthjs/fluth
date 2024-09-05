@@ -1,0 +1,7 @@
+.eslintcache
+
+# files
+dist/
+coverage/
+node_modules/
+
