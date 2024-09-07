@@ -11,6 +11,6 @@ export default tseslint.config(
     },
   },
   {
-    ignores: ['**/dist/', '.idea/', '**/.lintstagedrc.cjs'],
+    ignores: ['**/dist/', '**/docs/', '.idea/', '**/.lintstagedrc.cjs'],
   },
 )

@@ -13,14 +13,33 @@ const useUnsubscribeCallback = (stream$: Stream, length: number) => {
 }
 
 /**
+ * fork takes a stream or subjection, and returns a stream that emits the same value as the input stream.
+ * The output stream will finish when the input stream finish.
+ * when the input stream unsubscribe, the output stream will also unsubscribe
+ * @param {Stream|Subjection} arg$ the input stream or subjection
+ * @returns {Stream} a stream that emits the same value as the input stream
+ */
+export const fork = (arg$: Stream | Subjection) => {
+  const stream$ = new Stream()
+  let finishFlag = false
+  arg$.then(
+    (data) => stream$.next(Promise.resolve(data), finishFlag),
+    (data) => stream$.next(Promise.reject(data), finishFlag),
+  )
+  arg$.setUnsubscribeCallback(() => stream$.unsubscribe())
+  arg$.finish.finally(() => (finishFlag = true))
+  return stream$
+}
+
+/**
  * @description
- * last takes multiple streams or subjections, and returns a stream that emits the last values of all the input streams.
+ * last takes multiple streams or subjections, and returns a stream that emits the finish values of all the input streams.
  * The output stream will finish when all the input streams finish.
  * when all input streams unsubscribe, the output stream will also unsubscribe
  * @param {...Stream|Subjection} args
  * @returns {Stream}
  */
-export const last = (...args: (Stream | Subjection)[]) => {
+export const finish = (...args: (Stream | Subjection)[]) => {
   const stream$ = new Stream()
   const payload: any[] = []
   let finishCount = 0
@@ -168,6 +187,17 @@ export const merge = (...args: (Stream | Subjection)[]) => {
   return stream$
 }
 
+/**
+ * partition takes a stream or subjection, and a predicate function that takes value and index as arguments.
+ * It returns two streams, the first stream emits values when the predicate return true,
+ * and the second stream emits values when the predicate return false.
+ * The output streams will finish when the input stream finish.
+ * when the input stream unsubscribe, the output streams will also unsubscribe.
+ * @param {Stream|Subjection} stream$ the input stream or subjection
+ * @param {(this: any, value: any, index: number) => boolean} predicate the predicate function
+ * @param {any} [thisArg] the this of the predicate function
+ * @returns {[Stream, Stream]} an array of two streams
+ */
 export const partition = (
   stream$: Stream | Subjection,
   predicate: (this: any, value: any, index: number) => boolean,
@@ -223,6 +253,13 @@ export const partition = (
   return [selectedStream$, unselectedStream$]
 }
 
+/**
+ * race takes multiple streams or subjections, and returns a stream that emits the first value of all the input streams.
+ * The output stream will finish when all the input streams finish.
+ * when all input streams unsubscribe, the output stream will also unsubscribe
+ * @param {...Stream|Subjection} args
+ * @returns {Stream}
+ */
 export const race = (...args: (Stream | Subjection)[]) => {
   const stream$ = new Stream()
   let finishFlag = false
