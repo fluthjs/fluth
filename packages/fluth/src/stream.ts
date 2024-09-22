@@ -1,9 +1,9 @@
-import { PromiseStream } from './promiseStream'
+import { RootObserver } from './rootObserver'
 /**
  * package Stream
  */
 export class Stream {
-  #stream = new PromiseStream()
+  #stream = new RootObserver()
   get plugin() {
     return this.#stream.plugin
   }

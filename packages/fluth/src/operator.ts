@@ -1,4 +1,4 @@
-import { Subjection } from '.'
+import { Subjection } from './observer'
 import { Stream } from './stream'
 
 const useUnsubscribeCallback = (stream$: Stream, length: number) => {

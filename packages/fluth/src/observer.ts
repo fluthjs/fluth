@@ -1,11 +1,18 @@
-import {
-  OnFinally,
-  OnFulfilled,
-  OnRejected,
-  executePlugin,
-  Subjection,
-} from '.'
-import { PromiseStream } from './promiseStream'
+import { RootObserver, executePlugin } from './rootObserver'
+
+export type OnFulfilled<T> = Parameters<Promise<T>['then']>[0]
+export type OnRejected<T> = Parameters<Promise<T>['catch']>[0]
+export type OnFinally<T> = Parameters<Promise<T>['finally']>[0]
+
+export type Subjection = Pick<
+  Observer,
+  | 'then'
+  | 'thenOnce'
+  | 'catch'
+  | 'finally'
+  | 'unsubscribe'
+  | 'setUnsubscribeCallback'
+> & { finish: Promise<any>; execute: () => void }
 
 const promiseWithResolvers = () => {
   let resolve: OnFulfilled<any>
@@ -25,25 +32,27 @@ export class Observer {
   unsubscribeCallback?: () => void
   children: Observer[] = []
 
-  parent: Observer | null
-  stream: PromiseStream
+  parent: Observer | null = null
+  root: RootObserver | null = null
 
   promise: Promise<any> | null = null
-  rootPromise: Promise<any> | null = null
-  finish: ReturnType<typeof promiseWithResolvers> = promiseWithResolvers()
+  cacheRootPromise: Promise<any> | null = null
+  finishResolver: ReturnType<typeof promiseWithResolvers> =
+    promiseWithResolvers()
 
   executePlugins: executePlugin[] = []
   executeStatus: 'pending' | 'resolved' | 'rejected' | null = null
 
   once = false
 
-  constructor(streamOrParent: PromiseStream | Observer) {
+  constructor(streamOrParent?: RootObserver | Observer) {
+    if (!streamOrParent) return
     if (streamOrParent instanceof Observer) {
       this.parent = streamOrParent
-      this.stream = this.parent.stream
+      this.root = this.parent.root
     } else {
       this.parent = null
-      this.stream = streamOrParent
+      this.root = streamOrParent
     }
   }
 
@@ -55,8 +64,8 @@ export class Observer {
       finally: observer.finally.bind(observer),
       unsubscribe: observer.unsubscribe.bind(observer),
       setUnsubscribeCallback: observer.setUnsubscribeCallback.bind(observer),
-      execute: observer.execute.bind(observer),
-      finish: observer.finish.promise,
+      execute: () => observer.executeObserver.call(observer),
+      finish: observer.finishResolver.promise,
     }
   }
 
@@ -87,15 +96,13 @@ export class Observer {
   }
 
   runThenPlugin(observer: Observer) {
-    if (this.stream.plugin.then.length) {
-      this.stream.plugin.then.forEach((fn) => {
-        try {
-          fn(() => observer.unsubscribe())
-        } catch (e) {
-          console.error(e)
-        }
-      })
-    }
+    this.root?.plugin.then.forEach((fn) => {
+      try {
+        fn(() => observer.unsubscribe())
+      } catch (e) {
+        console.error(e)
+      }
+    })
   }
 
   thenObserver<T>(
@@ -106,7 +113,7 @@ export class Observer {
     const observer = new Observer(this)
     observer.resolve = onFulfilled
     observer.reject = onRejected
-    if (!this.stream.finishFlag) {
+    if (!this.root?.finishFlag) {
       this.children.push(observer)
     }
     this.runThenPlugin(observer)
@@ -115,7 +122,7 @@ export class Observer {
       this.executeStatus === 'resolved' ||
       this.executeStatus === 'rejected'
     ) {
-      observer.execute.call(observer, this.rootPromise)
+      observer.executeObserver.call(observer, this.cacheRootPromise)
     }
 
     return this.chain(observer)
@@ -171,7 +178,7 @@ export class Observer {
   runExecutePlugin() {
     if (this.once) this.unsubscribe()
 
-    this.stream.plugin.execute.forEach((fn) => {
+    this.root?.plugin.execute.forEach((fn) => {
       if (this.executePlugins.includes(fn)) return
       this.executePlugins.push(fn)
       try {
@@ -183,14 +190,19 @@ export class Observer {
     })
     // clean unused plugin
     this.executePlugins.forEach((fn) => {
-      if (!this.stream.plugin.execute.includes(fn)) {
+      if (!this.root?.plugin.execute.includes(fn)) {
         this.executePlugins.splice(this.executePlugins.indexOf(fn), 1)
       }
     })
   }
 
-  executeObserver(data: any, promiseStatus: 'resolve' | 'reject') {
+  executeAfter(
+    data: any,
+    promiseStatus: 'resolve' | 'reject',
+    rootPromise: Promise<any>,
+  ) {
     this.executeStatus = promiseStatus === 'resolve' ? 'resolved' : 'rejected'
+    this.cacheRootPromise = rootPromise
     this.promise = Promise[promiseStatus](data)
     this.runExecutePlugin()
 
@@ -199,9 +211,9 @@ export class Observer {
     if (this.finallyHandler)
       this.promise = this.promise.finally(this.finallyHandler)
 
-    if (this.stream.finishFlag) {
-      this.finish[promiseStatus]?.(data)
-      this.finish.promise.finally(() => {
+    if (this.root?.finishFlag) {
+      this.finishResolver[promiseStatus]?.(data)
+      this.finishResolver.promise.finally(() => {
         // after all finish promise execute
         setTimeout(() => this.unsubscribe())
       })
@@ -209,7 +221,7 @@ export class Observer {
 
     this.promise.finally(() => {
       if (this.children?.length) {
-        this.children.forEach((child) => child.execute(this.rootPromise))
+        this.children.forEach((child) => child.executeObserver(rootPromise))
       }
     })
   }
@@ -217,19 +229,18 @@ export class Observer {
   /**
    *  execute all observer with then timing sequence
    */
-  execute(rootPromise = this.rootPromise) {
-    this.rootPromise = rootPromise
+  executeObserver(rootPromise: Promise<any> | null = this.cacheRootPromise) {
     if (
-      !this.rootPromise ||
-      this.stream.pauseFlag ||
-      rootPromise !== this.stream.promise
+      !rootPromise ||
+      this.root?.pauseFlag ||
+      rootPromise !== this.root?.rootPromise
     )
       return
     this.executeStatus = 'pending'
     const parentPromise = this.parent ? this.parent.promise : rootPromise
     parentPromise?.then(this.resolve, this.reject).then(
-      (data) => this.executeObserver(data, 'resolve'),
-      (data) => this.executeObserver(data, 'reject'),
+      (data) => this.executeAfter(data, 'resolve', rootPromise),
+      (data) => this.executeAfter(data, 'reject', rootPromise),
     )
   }
 }

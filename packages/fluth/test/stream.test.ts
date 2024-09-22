@@ -313,6 +313,7 @@ describe('observer test', async () => {
 
   test('test observer execute by operator', async () => {
     const promise$ = new Stream()
+
     const observer1 = () => promiseConsoleFactory(100, 'observer1')
     const observer2 = () => promiseConsoleFactory(100, 'observer2')
     const observer3 = () => promiseConsoleFactory(100, 'observer3')
