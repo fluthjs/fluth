@@ -2,6 +2,7 @@
 
 # files
 dist/
+cache/
 coverage/
 node_modules/
 
