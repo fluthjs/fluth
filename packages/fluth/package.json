@@ -10,13 +10,6 @@
     "lint": "eslint --cache --fix",
     "coverage": "vitest run --coverage"
   },
-  "lint-staged": {
-    "*.{ts}": [
-      "tsc --skipLibCheck --noEmit",
-      "prettier --write",
-      "eslint --cache --fix"
-    ]
-  },
   "keywords": [],
   "author": "",
   "license": "ISC",
