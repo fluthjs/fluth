@@ -6,7 +6,9 @@
     "strict": true,
     "declaration": true,
     "esModuleInterop": true,
-    "moduleResolution": "node"
+    "moduleResolution": "node",
+    "outDir": "./dist"
   },
+  "include": ["index.ts"],
   "exclude": ["node_modules"]
 }

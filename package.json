@@ -1,16 +1,27 @@
 {
-  "name": "@fluth/fluth-monorepo",
-  "private": true,
-  "version": "1.0.0",
-  "description": "",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "prepare": "husky"
-  },
-  "keywords": [],
-  "author": "",
+  "name": "fluth",
+  "version": "0.0.0",
+  "description": "A promise stream library",
+  "author": "yiludege <https://github.com/yiludege>",
+  "repository": "https://github.com/fluthjs/fluth",
+  "homepage": "https://github.com/fluthjs/fluth#readme",
+  "main": "/dist/index.js",
+  "module": "/dist/index.js",
+  "types": "/dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
   "license": "MIT",
+  "scripts": {
+    "build": "tsc --declaration",
+    "test": "vitest run",
+    "check": "tsc --noEmit",
+    "lint": "eslint --cache --fix",
+    "coverage": "vitest run --coverage"
+  },
   "devDependencies": {
+    "@vitest/coverage-v8": "^2.0.5",
     "@commitlint/cli": "^19.4.0",
     "@commitlint/config-conventional": "^19.2.2",
     "@eslint/js": "^9.9.0",
