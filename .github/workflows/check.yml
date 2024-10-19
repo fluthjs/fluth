@@ -9,7 +9,7 @@ on:
 
 jobs:
   build:
-    name: Create Release
+    name: check and test
     runs-on: ubuntu-latest
     permissions:
       contents: write
