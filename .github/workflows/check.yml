@@ -19,6 +19,6 @@ jobs:
         with:
           node-version: 20
           registry-url: 'https://registry.npmjs.org'
-      - run: npm ci
+      - run: pnpm install --frozen-lockfile
       - run: pnpm run check
       - run: pnpm run test
