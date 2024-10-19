@@ -1,4 +1,4 @@
-name: Create Release Tag
+name: Check
 
 on:
   push:
@@ -23,6 +23,6 @@ jobs:
         with:
           node-version: '20'
           cache: 'pnpm'
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install
       - run: pnpm run check
       - run: pnpm run test
