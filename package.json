@@ -1,6 +1,6 @@
 {
   "name": "fluth",
-  "version": "0.0.1",
+  "version": "0.0.0",
   "description": "A promise stream library",
   "author": "yiludege <https://github.com/yiludege>",
   "repository": "https://github.com/fluthjs/fluth",
@@ -18,7 +18,11 @@
     "test": "vitest run",
     "check": "tsc --noEmit",
     "lint": "eslint --cache --fix",
-    "coverage": "vitest run --coverage"
+    "coverage": "vitest run --coverage",
+    "release": "standard-version",
+    "release-major": "standard-version --release-as major",
+    "release-minor": "standard-version --release-as minor",
+    "release-patch": "standard-version --release-as patch"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^2.0.5",
