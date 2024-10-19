@@ -25,6 +25,7 @@ jobs:
       - run: pnpm publish --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+          NPM_CONFIG_PROVENANCE: true
       - name: Checkout code
         uses: actions/checkout@v4
 
