@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.4](https://github.com/fluthjs/fluth/compare/v0.0.3...v0.0.4) (2024-11-18)
+
+
+### Features
+
+* support cjs and mjs ([431ba61](https://github.com/fluthjs/fluth/commit/431ba61954f7e0fe71b5cb4ee7ecbf027b5817d0))
+
 ### [0.0.3](https://github.com/fluthjs/fluth/compare/v0.0.2...v0.0.3) (2024-11-18)
 
 ### Bug Fixes
