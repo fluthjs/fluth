@@ -12,6 +12,13 @@ const useUnsubscribeCallback = (stream$: Stream, length: number) => {
   return { unsubscribeCallback }
 }
 
+export const pipe = (arg$: Stream | Subjection) => {
+  return arg$.then(
+    (data) => Promise.resolve(data),
+    (data) => Promise.reject(data),
+  )
+}
+
 /**
  * fork takes a stream or subjection, and returns a stream that emits the same value as the input stream.
  * The output stream will finish when the input stream finish.
