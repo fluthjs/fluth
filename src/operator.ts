@@ -12,6 +12,11 @@ const useUnsubscribeCallback = (stream$: Stream, length: number) => {
   return { unsubscribeCallback }
 }
 
+/**
+ * Processes a stream or subjection, returning a subjection
+ * @param arg$ - The Input stream or subjection
+ * @returns {Subjection} a subjection that emits the same value as the input stream
+ */
 export const pipe = (arg$: Stream | Subjection) => {
   return arg$.then(
     (data) => Promise.resolve(data),
