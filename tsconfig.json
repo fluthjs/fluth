@@ -2,12 +2,10 @@
   "compilerOptions": {
     "target": "es6",
     "lib": ["esnext", "dom"],
-    "module": "umd",
     "strict": true,
     "declaration": true,
     "esModuleInterop": true,
-    "moduleResolution": "node",
-    "outDir": "./dist"
+    "moduleResolution": "node"
   },
   "include": ["index.ts"],
   "exclude": ["node_modules"]
