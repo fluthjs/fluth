@@ -4,6 +4,11 @@ import { RootObserver } from './rootObserver'
  */
 export class Stream {
   #stream = new RootObserver()
+
+  constructor() {
+    Object.freeze(this)
+  }
+
   get plugin() {
     return this.#stream.plugin
   }
