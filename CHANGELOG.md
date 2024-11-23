@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.6](https://github.com/fluthjs/fluth/compare/v0.0.5...v0.0.6) (2024-11-23)
+
+
+### Features
+
+* add thenImmediate api ([8924d91](https://github.com/fluthjs/fluth/commit/8924d9199fcaf97096afb0ae1b859ec8bbc5bf7e))
+
 ### [0.0.5](https://github.com/fluthjs/fluth/compare/v0.0.4...v0.0.5) (2024-11-19)
 
 

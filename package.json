@@ -1,6 +1,6 @@
 {
   "name": "fluth",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "A promise stream library",
   "author": "yiludege <https://github.com/yiludege>",
   "repository": "https://github.com/fluthjs/fluth",
