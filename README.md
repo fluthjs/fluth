@@ -1,1 +1,1 @@
-A javascript promise stream library
+A Promise-based asynchronous flow control library
