@@ -8,6 +8,7 @@ export type Subjection = Pick<
   Observer,
   | 'then'
   | 'thenOnce'
+  | 'thenImmediate'
   | 'catch'
   | 'finally'
   | 'unsubscribe'
@@ -60,6 +61,7 @@ export class Observer {
     return {
       then: observer.then.bind(observer),
       thenOnce: observer.thenOnce.bind(observer),
+      thenImmediate: observer.thenImmediate.bind(observer),
       catch: observer.catch.bind(observer),
       finally: observer.finally.bind(observer),
       unsubscribe: observer.unsubscribe.bind(observer),
@@ -107,6 +109,7 @@ export class Observer {
 
   thenObserver<T>(
     once: boolean,
+    immediate: boolean,
     onFulfilled: OnFulfilled<T>,
     onRejected?: OnRejected<T>,
   ): Subjection {
@@ -119,13 +122,26 @@ export class Observer {
     this.runThenPlugin(observer)
     if (once) observer.once = true
     if (
-      this.executeStatus === 'resolved' ||
-      this.executeStatus === 'rejected'
+      immediate &&
+      (this.executeStatus === 'resolved' || this.executeStatus === 'rejected')
     ) {
       observer.executeObserver.call(observer, this.cacheRootPromise)
     }
 
     return this.chain(observer)
+  }
+
+  /**
+   * thenImmediate is like then, but will execute observer immediately if previous then or catch has been resolved or rejected
+   * @param onFulfilled resolve function
+   * @param onRejected reject function
+   * @returns Subjection
+   */
+  thenImmediate<T>(
+    onFulfilled: OnFulfilled<T>,
+    onRejected?: OnRejected<T>,
+  ): Subjection {
+    return this.thenObserver<T>(false, true, onFulfilled, onRejected)
   }
 
   /**
@@ -138,7 +154,7 @@ export class Observer {
     onFulfilled: OnFulfilled<T>,
     onRejected?: OnRejected<unknown>,
   ): Subjection {
-    return this.thenObserver<T>(false, onFulfilled, onRejected)
+    return this.thenObserver<T>(false, false, onFulfilled, onRejected)
   }
 
   /**
@@ -172,7 +188,7 @@ export class Observer {
     onFulfilled: OnFulfilled<T>,
     onRejected?: OnFulfilled<T>,
   ): Subjection {
-    return this.thenObserver(true, onFulfilled, onRejected)
+    return this.thenObserver(true, false, onFulfilled, onRejected)
   }
 
   runExecutePlugin() {

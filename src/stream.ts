@@ -34,6 +34,16 @@ export class Stream {
   }
 
   /**
+   * thenImmediate is like then, but will execute observer immediately if previous then or catch has been resolved or rejected
+   * @param onFulfilled resolve function
+   * @param onRejected reject function
+   * @returns Subjection
+   */
+  get thenImmediate() {
+    return this.#stream.thenImmediate.bind(this.#stream)
+  }
+
+  /**
    * execute all observer with then timing sequence
    */
   get execute() {

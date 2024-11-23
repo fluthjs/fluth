@@ -241,16 +241,6 @@ describe('observer test', async () => {
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'reject')
   })
 
-  test('test observer then should be executed when dynamic add', async () => {
-    const promise$ = new Stream()
-    const promise1$ = promise$.then((data) => Promise.resolve(data))
-    promise$.next(Promise.resolve('1'))
-    await sleep(10)
-    promise1$.then((data) => console.log(data))
-    await sleep(10)
-    expect(consoleSpy).toHaveBeenNthCalledWith(1, '1')
-  })
-
   test('test observer unsubscribe', async () => {
     const promise$ = new Stream()
     const observer1 = () => promiseConsoleFactory(100, 'observer1')
@@ -285,12 +275,12 @@ describe('observer test', async () => {
     expect(consoleSpy).toBeCalledTimes(0)
   })
 
-  test('test resolve observer then will execute immediate', async () => {
+  test('test resolved observer thenImmediate will execute immediate', async () => {
     const promise$ = new Stream()
     const subjection$ = promise$.then((data) => Promise.resolve(data))
     promise$.next(Promise.resolve('1'))
     await sleep(1)
-    subjection$.then((data) => console.log(data))
+    subjection$.thenImmediate((data) => console.log(data))
     await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(1, '1')
   })
