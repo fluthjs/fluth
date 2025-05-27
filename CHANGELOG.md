@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.1.0](https://github.com/fluthjs/fluth/compare/v0.0.6...v0.1.0) (2025-05-27)
+
+
+### Features
+
+* add plugin ability ([d94bd84](https://github.com/fluthjs/fluth/commit/d94bd84c2498521cfb9997df480b0b5c9531f6ca))
+
 ### [0.0.6](https://github.com/fluthjs/fluth/compare/v0.0.5...v0.0.6) (2024-11-23)
 
 
