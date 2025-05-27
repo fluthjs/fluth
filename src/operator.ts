@@ -1,4 +1,4 @@
-import { Subjection } from './observer'
+import { Observable } from './observable'
 import { Stream } from './stream'
 
 const useUnsubscribeCallback = (stream$: Stream, length: number) => {
@@ -6,96 +6,93 @@ const useUnsubscribeCallback = (stream$: Stream, length: number) => {
   const unsubscribeCallback = () => {
     unsubscribeCount += 1
     if (unsubscribeCount === length) {
-      stream$.unsubscribe()
+      setTimeout(() => {
+        stream$.unsubscribe()
+      })
     }
   }
   return { unsubscribeCallback }
 }
 
-/**
- * Processes a stream or subjection, returning a subjection
- * @param arg$ - The Input stream or subjection
- * @returns {Subjection} a subjection that emits the same value as the input stream
- */
-export const pipe = (arg$: Stream | Subjection) => {
-  return arg$.then(
-    (data) => Promise.resolve(data),
-    (data) => Promise.reject(data),
-  )
+export type StreamTupleValues<T extends (Stream | Observable)[]> = {
+  [K in keyof T]: T[K] extends Stream<infer U> | Observable<infer U> ? U : never
 }
 
 /**
- * fork takes a stream or subjection, and returns a stream that emits the same value as the input stream.
+ * fork takes a stream or Observable, and returns a stream that emits the same value as the input stream.
  * The output stream will finish when the input stream finish.
  * when the input stream unsubscribe, the output stream will also unsubscribe
- * @param {Stream|Subjection} arg$ the input stream or subjection
+ * @param {Stream|Observable} arg$ the input stream or Observable
  * @returns {Stream} a stream that emits the same value as the input stream
  */
-export const fork = (arg$: Stream | Subjection) => {
-  const stream$ = new Stream()
+export const fork = <T>(arg$: Stream<T> | Observable<T>): Stream<T> => {
+  const stream$ = new Stream<T>()
   let finishFlag = false
-  arg$.then(
-    (data) => stream$.next(Promise.resolve(data), finishFlag),
-    (data) => stream$.next(Promise.reject(data), finishFlag),
+  arg$.thenImmediate(
+    (value) => stream$.next(value, finishFlag),
+    (value) => stream$.next(Promise.reject(value), finishFlag),
   )
-  arg$.setUnsubscribeCallback(() => stream$.unsubscribe())
-  arg$.finish.finally(() => (finishFlag = true))
+  arg$.afterUnsubscribe(() =>
+    setTimeout(() => {
+      stream$.unsubscribe()
+    }),
+  )
+  arg$.complete(() => (finishFlag = true))
   return stream$
 }
 
 /**
  * @description
- * last takes multiple streams or subjections, and returns a stream that emits the finish values of all the input streams.
+ * last takes multiple streams or Observable, and returns a stream that emits the finish values of all the input streams.
  * The output stream will finish when all the input streams finish.
  * when all input streams unsubscribe, the output stream will also unsubscribe
- * @param {...Stream|Subjection} args
+ * @param {...Stream|Observable} args
  * @returns {Stream}
  */
-export const finish = (...args: (Stream | Subjection)[]) => {
-  const stream$ = new Stream()
-  const payload: any[] = []
+export const finish = <T extends (Stream | Observable)[]>(...args: T) => {
+  const stream$ = new Stream<StreamTupleValues<T>>()
+  const payload: StreamTupleValues<T> = [] as any
   let finishCount = 0
   let rejectFlag = false
   const { unsubscribeCallback } = useUnsubscribeCallback(stream$, args.length)
   const next = () => {
+    console.info(payload, rejectFlag)
     if (finishCount === args.length) {
-      stream$.next(
-        rejectFlag ? Promise.reject(payload) : Promise.resolve(payload),
-        true,
-      )
+      stream$.next(rejectFlag ? Promise.reject(payload) : payload, true)
     }
   }
 
   args.forEach((arg$, index) => {
-    arg$.setUnsubscribeCallback(unsubscribeCallback)
-    arg$.finish
-      .finally(() => (finishCount += 1))
-      .then(
-        (data) => {
-          payload[index] = data
-          next()
-        },
-        (data) => {
-          rejectFlag = true
-          payload[index] = data
-          next()
-        },
-      )
+    arg$.afterUnsubscribe(unsubscribeCallback)
+    arg$.complete((_v, status) => {
+      finishCount += 1
+      if (status === 'rejected') rejectFlag = true
+    })
+    arg$.then(
+      (value) => {
+        payload[index] = value
+        next()
+      },
+      (value) => {
+        payload[index] = value
+        next()
+      },
+    )
   })
 
   return stream$
 }
 
 /**
- * combine takes multiple streams or subjections, and return a stream that emits values from all the input streams.
+ * combine takes multiple streams or Observable, and return a stream that emits values from all the input streams.
  * The output stream will finish when all the input streams finish.
  * when all input streams unsubscribe, the output stream will also unsubscribe
- * @param {...Stream|Subjection} args
+ * @param {...Stream|Observable} args
  * @returns {Stream}
  */
-export const combine = (...args: (Stream | Subjection)[]) => {
-  const stream$ = new Stream()
-  const payload: any[] = []
+export const combine = <T extends (Stream | Observable)[]>(...args: T) => {
+  const stream$ = new Stream<StreamTupleValues<T>>()
+  const payload: StreamTupleValues<T> = [] as any
   const promiseStatus = [...Array(args.length)].map(() => 'pending')
   let finishCount = 0
   const { unsubscribeCallback } = useUnsubscribeCallback(stream$, args.length)
@@ -103,162 +100,157 @@ export const combine = (...args: (Stream | Subjection)[]) => {
   const next = () => {
     if (promiseStatus.every((status) => status !== 'pending'))
       stream$.next(
-        promiseStatus.some((status) => status === 'reject')
-          ? Promise.reject(payload)
-          : Promise.resolve(payload),
+        promiseStatus.some((status) => status === 'rejected') ? Promise.reject(payload) : payload,
         finishCount === args.length,
       )
   }
 
   args.forEach((arg$, index) => {
-    arg$.setUnsubscribeCallback(unsubscribeCallback)
+    arg$.afterUnsubscribe(unsubscribeCallback)
     arg$.then(
-      (data) => {
-        promiseStatus[index] = 'resolve'
-        payload[index] = data
+      (value) => {
+        promiseStatus[index] = 'resolved'
+        payload[index] = value
         next()
       },
-      (data) => {
-        promiseStatus[index] = 'reject'
-        payload[index] = data
+      (value) => {
+        promiseStatus[index] = 'rejected'
+        payload[index] = value
         next()
       },
     )
-    arg$.finish.finally(() => (finishCount += 1))
+    arg$.complete(() => (finishCount += 1))
   })
 
   return stream$
 }
 
 /**
- * concat takes multiple streams or subjections, and return a stream that emits values in the order of the input streams.
+ * concat takes multiple streams or Observable, and return a stream that emits values in the order of the input streams.
  * only previous input stream finish, the next input stream values will be emitted
  * The output stream will finish when all the input streams finish.
  * when all input streams unsubscribe, the output stream will also unsubscribe
- * @param {...Stream|Subjection} args
+ * @param {...Stream|Subscription} args
  * @returns {Stream}
  */
-export const concat = (...args: (Stream | Subjection)[]) => {
-  const stream$ = new Stream()
+export const concat = <T extends (Stream | Observable)[]>(...args: T) => {
+  const stream$ = new Stream<StreamTupleValues<T>[number]>()
   const finishFlag = [...Array(args.length)].map(() => false)
   const unsubscribeFlag = [...Array(args.length)].map(() => false)
-  const next = (
-    data: any,
-    promiseStatus: 'resolve' | 'reject',
-    index: number,
-  ) => {
+  const next = (data: any, promiseStatus: 'resolved' | 'rejected', index: number) => {
     if (index === 0 || finishFlag[index - 1]) {
       stream$.next(
-        Promise[promiseStatus](data),
+        promiseStatus === 'resolved' ? data : Promise.reject(data),
         finishFlag.every((flag) => flag),
       )
       if (finishFlag[index] && unsubscribeFlag[index + 1]) {
-        stream$.unsubscribe()
+        setTimeout(() => stream$.unsubscribe())
       }
     }
   }
   args.forEach((arg$, index) => {
-    arg$.setUnsubscribeCallback(() => {
+    arg$.afterUnsubscribe(() => {
       unsubscribeFlag[index] = true
       if ((index === 0 || finishFlag[index - 1]) && !finishFlag[index]) {
-        stream$.unsubscribe()
+        setTimeout(() => stream$.unsubscribe())
       }
     })
     arg$.then(
-      (data) => next(data, 'resolve', index),
-      (data) => next(data, 'reject', index),
+      (value) => next(value, 'resolved', index),
+      (value) => next(value, 'rejected', index),
     )
-    arg$.finish.finally(() => (finishFlag[index] = true))
+    arg$.complete(() => (finishFlag[index] = true))
   })
   return stream$
 }
 
 /**
- * merge takes multiple streams or subjections, and return a stream that emits values from all the input streams.
+ * merge takes multiple streams or Observable, and return a stream that emits values from all the input streams.
  * The output stream will finish when all the input streams finish.
  * when all input streams unsubscribe, the output stream will also unsubscribe
- * @param {...Stream|Subjection} args
+ * @param {...Stream|Observable} args
  * @returns {Stream}
  */
-export const merge = (...args: (Stream | Subjection)[]) => {
-  const stream$ = new Stream()
+export const merge = <T extends (Stream | Observable)[]>(...args: T) => {
+  const stream$ = new Stream<StreamTupleValues<T>[number]>()
   let finishCount = 0
   const { unsubscribeCallback } = useUnsubscribeCallback(stream$, args.length)
-  const next = (data: any, promiseStatus: 'resolve' | 'reject') => {
-    stream$.next(Promise[promiseStatus](data), finishCount === args.length)
+  const next = (data: any, promiseStatus: 'resolved' | 'rejected') => {
+    stream$.next(
+      promiseStatus === 'resolved' ? data : Promise.reject(data),
+      finishCount === args.length,
+    )
   }
 
   args.forEach((arg$) => {
-    arg$.setUnsubscribeCallback(unsubscribeCallback)
+    arg$.afterUnsubscribe(unsubscribeCallback)
     arg$.then(
-      (data) => next(data, 'resolve'),
-      (data) => next(data, 'reject'),
+      (value) => next(value, 'resolved'),
+      (value) => next(value, 'rejected'),
     )
-    arg$.finish.finally(() => (finishCount += 1))
+    arg$.complete(() => (finishCount += 1))
   })
   return stream$
 }
 
 /**
- * partition takes a stream or subjection, and a predicate function that takes value and index as arguments.
+ * partition takes a stream or Observable, and a predicate function that takes value and index as arguments.
  * It returns two streams, the first stream emits values when the predicate return true,
  * and the second stream emits values when the predicate return false.
  * The output streams will finish when the input stream finish.
  * when the input stream unsubscribe, the output streams will also unsubscribe.
- * @param {Stream|Subjection} stream$ the input stream or subjection
+ * @param {Stream|Observable} stream$ the input stream or Observable
  * @param {(this: any, value: any, index: number) => boolean} predicate the predicate function
  * @param {any} [thisArg] the this of the predicate function
  * @returns {[Stream, Stream]} an array of two streams
  */
-export const partition = (
-  stream$: Stream | Subjection,
+export const partition = <T>(
+  stream$: Stream<T> | Observable<T>,
   predicate: (this: any, value: any, index: number) => boolean,
   thisArg?: any,
 ) => {
-  const selectedStream$ = new Stream()
-  const unselectedStream$ = new Stream()
+  const selectedStream$ = new Stream<T>()
+  const unselectedStream$ = new Stream<T>()
   let finishFlag = false
   let index = 1
 
-  const next = (
-    data: any,
-    promiseStatus: 'resolve' | 'reject',
-    flag: boolean,
-  ) => {
+  const next = (data: any, promiseStatus: 'resolved' | 'rejected', flag: boolean) => {
     if (flag) {
-      selectedStream$.next(Promise[promiseStatus](data), finishFlag)
+      selectedStream$.next(promiseStatus === 'resolved' ? data : Promise.reject(data), finishFlag)
     } else {
-      unselectedStream$.next(Promise[promiseStatus](data), finishFlag)
+      unselectedStream$.next(promiseStatus === 'resolved' ? data : Promise.reject(data), finishFlag)
     }
   }
 
   stream$
     .then(
-      (data: any) => {
+      (value: any) => {
         try {
-          next(data, 'resolve', predicate.call(thisArg, data, index))
+          next(value, 'resolved', predicate.call(thisArg, value, index))
         } catch (error) {
-          next(data, 'resolve', false)
+          next(value, 'resolved', false)
           console.log(error)
         }
       },
-      (data) => {
+      (value) => {
         try {
-          next(data, 'reject', predicate.call(thisArg, data, index))
+          next(value, 'rejected', predicate.call(thisArg, value, index))
         } catch (error) {
-          next(data, 'reject', false)
+          next(value, 'rejected', false)
           console.log(error)
         }
       },
     )
     .finally(() => (index += 1))
 
-  stream$.setUnsubscribeCallback(() => {
-    selectedStream$.unsubscribe()
-    unselectedStream$.unsubscribe()
+  stream$.afterUnsubscribe(() => {
+    setTimeout(() => {
+      selectedStream$.unsubscribe()
+      unselectedStream$.unsubscribe()
+    })
   })
 
-  stream$.finish.finally(() => {
+  stream$.complete(() => {
     finishFlag = true
   })
 
@@ -266,23 +258,23 @@ export const partition = (
 }
 
 /**
- * race takes multiple streams or subjections, and returns a stream that emits the first value of all the input streams.
- * The output stream will finish when all the input streams finish.
- * when all input streams unsubscribe, the output stream will also unsubscribe
- * @param {...Stream|Subjection} args
+ * race takes multiple streams or Observable, and returns a stream that emits the first value of all the input streams.
+ * The output stream will finish when first input stream finish.
+ * when first input stream unsubscribe, the output stream will also unsubscribe
+ * @param {...Stream|Observable} args
  * @returns {Stream}
  */
-export const race = (...args: (Stream | Subjection)[]) => {
-  const stream$ = new Stream()
+export const race = <T extends (Stream | Observable)[]>(...args: T) => {
+  const stream$ = new Stream<StreamTupleValues<T>[number]>()
   let finishFlag = false
   let firstIndex: number | null = null
 
   args.forEach((arg$, index) => {
     arg$.then(
-      (data) => {
+      (value) => {
         if (firstIndex === null) firstIndex = index
         if (firstIndex === index) {
-          stream$.next(Promise.resolve(data), finishFlag)
+          stream$.next(value, finishFlag)
         }
       },
       (error) => {
@@ -293,13 +285,13 @@ export const race = (...args: (Stream | Subjection)[]) => {
       },
     )
 
-    arg$.setUnsubscribeCallback(() => {
+    arg$.afterUnsubscribe(() => {
       if (firstIndex === index) {
-        stream$.unsubscribe()
+        setTimeout(() => stream$.unsubscribe())
       }
     })
 
-    arg$.finish.finally(() => {
+    arg$.complete(() => {
       if (firstIndex === index) {
         finishFlag = true
       }

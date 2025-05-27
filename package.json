@@ -25,6 +25,7 @@
   "sideEffects": false,
   "license": "MIT",
   "scripts": {
+    "dev": "tsc -w -p tsconfig.cjs.json -p tsconfig.mjs.json",
     "build": "rm -rf dist && tsc -p tsconfig.cjs.json && tsc -p tsconfig.mjs.json",
     "test": "vitest run",
     "check": "tsc --noEmit",
@@ -41,14 +42,17 @@
     "@eslint/js": "^9.9.0",
     "@types/eslint__js": "^8.42.3",
     "@vitest/coverage-v8": "2.0.5",
-    "jsdom": "^25.0.1",
     "eslint": "^9.9.0",
     "husky": "^9.1.5",
+    "jsdom": "^25.0.1",
     "lint-staged": "^15.2.9",
     "prettier": "^3.3.3",
     "standard-version": "^9.5.0",
     "typescript": "^5.5.4",
     "typescript-eslint": "^8.2.0",
     "vitest": "2.0.5"
+  },
+  "dependencies": {
+    "limu": "^3.13.1"
   }
 }

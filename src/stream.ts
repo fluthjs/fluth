@@ -1,110 +1,158 @@
-import { RootObserver } from './rootObserver'
-/**
- * package Stream
+import { produce, createDraft, finishDraft } from 'limu'
+import { Observable, PromiseStatus } from './observable'
+import { combinePlugin, CombineChainResult } from './plugins'
+import { isObjectLike, isPromiseLike, isAsyncFunction } from './utils'
+
+export type thenPluginFn = (unsubscribe: () => void) => void
+/** execute plugin, this plugin can be used to reset cur observer promise or unsubscribe cur observer
+ * @param promise observer promise
+ * @param unsubscribe unsubscribe observer
+ * @returns return promise will reset observer promise
  */
-export class Stream {
-  #stream = new RootObserver()
+export type executePlugin = <T>(params: {
+  result: Promise<T> | T
+  set: (setter: (state: T) => Promise<void> | void) => Promise<T> | T
+  unsubscribe: () => void
+}) => Promise<any> | any
 
-  constructor() {
-    Object.freeze(this)
-  }
+export type ChainPluginFn<T extends Observable = Observable> = (observer: T) => Record<string, any>
 
-  get plugin() {
-    return this.#stream.plugin
-  }
+export type ChainReturn<P extends Plugin[], T, E> =
+  CombineChainResult<P> extends infer C
+    ? {
+        [K in keyof C]: C[K] extends (...args: infer Args) => any
+          ? ReturnType<C[K]> extends Observable
+            ? (...args: Args) => Observable<T, E & ChainReturn<P, T, E>> & E & ChainReturn<P, T, E>
+            : C[K]
+          : C[K]
+      }
+    : object
 
-  /**
-   * push observer
-   * @param onFulfilled resolve function
-   * @param onRejected reject function
-   * @returns subjection instance
-   */
-  get then() {
-    return this.#stream.then.bind(this.#stream)
-  }
+export interface ThenOrExecutePlugin {
+  then?: thenPluginFn | thenPluginFn[]
+  execute?: executePlugin | executePlugin[]
+}
 
-  /**
-   * push one time observer, will unsubscribe cur observer after execute
-   * @param onFulfilled resolve function
-   * @param onRejected reject function
-   * @returns subjection instance
-   */
-  get thenOnce() {
-    return this.#stream.thenOnce.bind(this.#stream)
-  }
+export interface Plugin extends ThenOrExecutePlugin {
+  chain?: ChainPluginFn
+}
 
-  /**
-   * thenImmediate is like then, but will execute observer immediately if previous then or catch has been resolved or rejected
-   * @param onFulfilled resolve function
-   * @param onRejected reject function
-   * @returns Subjection
-   */
-  get thenImmediate() {
-    return this.#stream.thenImmediate.bind(this.#stream)
-  }
+export interface RootPlugin {
+  then: thenPluginFn[]
+  execute: executePlugin[]
+  chain: ChainPluginFn[]
+}
 
-  /**
-   * execute all observer with then timing sequence
-   */
-  get execute() {
-    return this.#stream.execute.bind(this.#stream)
-  }
-
-  /**
-   * catch promise
-   */
-  get catch() {
-    return this.#stream.catch.bind(this.#stream)
-  }
-
-  /**
-   * finally promise
-   */
-  get finally() {
-    return this.#stream.finally.bind(this.#stream)
+export class Stream<
+  T = any,
+  I extends boolean = false,
+  E extends Record<string, any> = object,
+> extends Observable<T, E> {
+  declare value: I extends true ? T : T | undefined
+  constructor(data?: T) {
+    super()
+    if (data instanceof Promise) {
+      throw new Error('Stream data cannot be a Promise')
+    }
+    this._root = this as Stream
+    if (data) {
+      this.value = data
+      this._rootPromise = Promise.resolve(data)
+      this._status = PromiseStatus.RESOLVED
+      // set cacheRootPromise for execute fn
+      this._cacheRootPromise = this._rootPromise
+    }
   }
 
   /**
-   * clear all observer
+   * use plugin
+   * @param plugin plugin
+   * @returns root node with plugin
    */
-  get unsubscribe() {
-    return this.#stream.unsubscribe.bind(this.#stream)
+  use<P extends Plugin[]>(
+    ...plugins: P
+  ): Stream<T, I, E & ChainReturn<P, T, E>> & E & ChainReturn<P, T, E> {
+    if (plugins.length === 0)
+      return this as unknown as Stream<T, I, E & ChainReturn<P, T, E>> & E & ChainReturn<P, T, E>
+
+    if (!this._plugin) this._plugin = { then: [], execute: [], chain: [] }
+    const curPlugin: RootPlugin = { then: [], execute: [], chain: [] }
+    const mergePlugin = plugins.length > 1 ? combinePlugin(...plugins) : (plugins[0] as Plugin)
+    const pluginKeys = Object.keys(mergePlugin) as (keyof Plugin)[]
+
+    pluginKeys.forEach((key) => {
+      const item = mergePlugin[key]
+      if (this._plugin && item)
+        this._plugin[key] = [
+          ...new Set([...(this._plugin[key] as any[]), ...(Array.isArray(item) ? item : [item])]),
+        ]
+      curPlugin[key] = [item as any]
+    })
+    this._runChainPlugin(this, curPlugin)
+
+    return this as unknown as Stream<T, I, E & ChainReturn<P, T, E>> & E & ChainReturn<P, T, E>
   }
 
   /**
-   * set unsubscribe callback
+   * remove  ThenOrExecutePlugin
+   * @param plugin ThenOrExecutePlugin
    */
-  get setUnsubscribeCallback() {
-    return this.#stream.setUnsubscribeCallback.bind(this.#stream)
+  remove(plugin: ThenOrExecutePlugin | ThenOrExecutePlugin[]) {
+    if (!this._plugin) return
+    const plugins = Array.isArray(plugin) ? plugin : [plugin]
+    const pluginKeys = Object.keys(this._plugin) as (keyof ThenOrExecutePlugin)[]
+
+    pluginKeys.forEach((key) => {
+      const itemsToRemove =
+        plugins
+          .filter((p) => !!p[key])
+          .map((p) => (Array.isArray(p[key]) ? p[key] : [p[key]]))
+          .flat() || []
+
+      const pluginArray = this._plugin?.[key]
+      if (pluginArray) {
+        pluginArray.slice().forEach((item: any) => {
+          if (itemsToRemove.includes(item)) {
+            const index = pluginArray.indexOf(item)
+            if (index !== -1) {
+              pluginArray.splice(index, 1)
+            }
+          }
+        })
+      }
+    })
   }
 
-  /**
-   * pause promise stream execute
-   */
-  get pause() {
-    return this.#stream.pause.bind(this.#stream)
+  set(setter: (state: T) => void, finishFlag = this._finishFlag) {
+    if (isObjectLike(this.value)) {
+      if (isAsyncFunction(setter)) {
+        const draft = createDraft(this.value)
+        setter(draft).then(() => {
+          this.value = finishDraft(draft)
+          this.next(this.value as T, finishFlag)
+        })
+      } else {
+        this.value = produce(this.value, setter)
+        this.next(this.value as T, finishFlag)
+      }
+    }
   }
 
-  /**
-   * restart promise stream execute, promise stream will execute again when next method called
-   */
-  get restart() {
-    return this.#stream.restart.bind(this.#stream)
+  pause() {
+    this._pauseFlag = true
   }
 
-  /**
-   * finish promise
-   */
-  get finish() {
-    return this.#stream.finish
+  restart() {
+    this._pauseFlag = false
   }
 
-  /**
-   * set next promise
-   * @param payload
-   * @param finishFlag finish promise stream, promise stream will clear all observer and cannot then new observer or execute next
-   */
-  next(payload: any, finishFlag?: boolean) {
-    this.#stream.next(payload, finishFlag)
+  next(payload: T | PromiseLike<T>, finishFlag = this._finishFlag) {
+    const isPromiseLikePayload = isPromiseLike(payload)
+    const promise = isPromiseLikePayload ? payload : Promise.resolve(payload)
+    if (this._rootPromise === promise || this._finishFlag) return
+    if (!isPromiseLikePayload) this.value = payload
+    this._rootPromise = promise
+    this._finishFlag = finishFlag
+    this._executeObserver(promise, isPromiseLikePayload ? undefined : payload)
   }
 }

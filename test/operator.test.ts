@@ -1,62 +1,57 @@
 import { expect, describe, test, vi, beforeEach } from 'vitest'
 import { consoleSpy, sleep, streamFactory } from './utils'
 
-import {
-  fork,
-  finish,
-  combine,
-  concat,
-  merge,
-  partition,
-  race,
-  Stream,
-} from '../index'
+import { fork, finish, combine, concat, merge, partition, race, Stream } from '../index'
 
 describe('operator test', async () => {
   beforeEach(() => {
     process.on('unhandledRejection', () => null)
     vi.useFakeTimers()
     consoleSpy.mockClear()
+    process.setMaxListeners(100)
   })
 
   test('test fork ', async () => {
     const promise$ = new Stream()
     const promise1$ = fork(promise$)
     promise1$.then(
-      (data) => console.log('resolve', data),
-      (data) => console.log('reject', data),
+      (value) => console.log('resolve', value),
+      (value) => console.log('reject', value),
     )
+    promise1$.complete((value) => console.log('finish', value))
+
     promise$.next('a')
-    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'resolve', 'a')
 
     promise$.next(Promise.reject('b'))
     await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'reject', 'b')
 
-    promise$.next(Promise.resolve('c'), true)
-    promise1$.finish.then((data) => console.log('finish', data))
-    await sleep(1)
+    // finish case
+    promise$.next('c', true)
     expect(consoleSpy).toHaveBeenNthCalledWith(3, 'finish', 'c')
+    expect(consoleSpy).toHaveBeenNthCalledWith(4, 'resolve', 'c')
   })
 
   test('test fork with unsubscribe', async () => {
     const promise$ = new Stream()
     const promise1$ = fork(promise$)
-    promise1$.setUnsubscribeCallback(() => console.log('unsubscribe'))
+    promise1$.afterUnsubscribe(() => console.log('unsubscribe'))
     promise$.unsubscribe()
+    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'unsubscribe')
   })
 
   test('test finish with resolve', async () => {
-    const { promise$: promise1$, subjection$: subjection1$ } = streamFactory()
-    const { promise$: promise2$, subjection$: subjection2$ } = streamFactory()
-    const { promise$: promise3$, subjection$: subjection3$ } = streamFactory()
+    const { stream$: promise1$, observable$: observable1$ } = streamFactory()
+    const { stream$: promise2$, observable$: observable2$ } = streamFactory()
+    const { stream$: promise3$, observable$: observable3$ } = streamFactory()
 
-    const stream$ = finish(subjection1$, subjection2$, subjection3$)
+    const stream$ = finish(observable1$, observable2$, observable3$)
+    stream$.complete((value: string[]) => console.log('finish', value.toString()))
     stream$.then(
-      (data: string[]) => console.log('resolve', data.toString()),
-      (data: string[]) => console.log('reject', data.toString()),
+      (value: string[]) => console.log('resolve', value.toString()),
+      (value: string[]) => console.log('reject', value.toString()),
     )
     /**
      * ---a✅------b✅------c✅|------
@@ -85,23 +80,20 @@ describe('operator test', async () => {
     promise2$.next(Promise.resolve('g'), true)
     expect(consoleSpy).toHaveBeenCalledTimes(0)
     await sleep(1)
-    expect(consoleSpy).toHaveBeenNthCalledWith(1, 'resolve', 'c,g,n')
-    stream$.finish.then((data: string[]) =>
-      console.log('finish', data.toString()),
-    )
-    await sleep(1)
-    expect(consoleSpy).toHaveBeenNthCalledWith(2, 'finish', 'c,g,n')
+    expect(consoleSpy).toHaveBeenNthCalledWith(1, 'finish', 'c,g,n')
+    expect(consoleSpy).toHaveBeenNthCalledWith(2, 'resolve', 'c,g,n')
   })
 
   test('test finish with reject', async () => {
-    const { promise$: promise1$, subjection$: subjection1$ } = streamFactory()
-    const { promise$: promise2$, subjection$: subjection2$ } = streamFactory()
-    const { promise$: promise3$, subjection$: subjection3$ } = streamFactory()
+    const { stream$: promise1$, observable$: observable1$ } = streamFactory()
+    const { stream$: promise2$, observable$: observable2$ } = streamFactory()
+    const { stream$: promise3$, observable$: observable3$ } = streamFactory()
 
-    const stream$ = finish(subjection1$, subjection2$, subjection3$)
+    const stream$ = finish(observable1$, observable2$, observable3$)
+    stream$.complete((value: string[]) => console.log('finish', value.toString()))
     stream$.then(
-      (data: string[]) => console.log('resolve', data.toString()),
-      (data: string[]) => console.log('reject', data.toString()),
+      (value: string[]) => console.log('resolve', value.toString()),
+      (value: string[]) => console.log('reject', value.toString()),
     )
     /**
      * ---a✅------b✅------c✅|------
@@ -130,36 +122,34 @@ describe('operator test', async () => {
     promise2$.next(Promise.reject('g'), true)
     expect(consoleSpy).toHaveBeenCalledTimes(0)
     await sleep(1)
-    expect(consoleSpy).toHaveBeenNthCalledWith(1, 'reject', 'c,g,n')
-    stream$.finish.catch((data: string[]) =>
-      console.log('finish', data.toString()),
-    )
-    await sleep(1)
-    expect(consoleSpy).toHaveBeenNthCalledWith(2, 'finish', 'c,g,n')
+    expect(consoleSpy).toHaveBeenNthCalledWith(1, 'finish', 'c,g,n')
+    expect(consoleSpy).toHaveBeenNthCalledWith(2, 'reject', 'c,g,n')
   })
 
   test('test finish with all stream$ unsubscribe', async () => {
-    const { subjection$: subjection1$ } = streamFactory()
-    const { subjection$: subjection2$ } = streamFactory()
-    const { subjection$: subjection3$ } = streamFactory()
+    const { observable$: observable1$ } = streamFactory()
+    const { observable$: observable2$ } = streamFactory()
+    const { observable$: observable3$ } = streamFactory()
 
-    const stream$ = finish(subjection1$, subjection2$, subjection3$)
-    stream$.setUnsubscribeCallback(() => console.log('unsubscribe'))
-    subjection1$.unsubscribe()
-    subjection2$.unsubscribe()
-    subjection3$.unsubscribe()
+    const stream$ = finish(observable1$, observable2$, observable3$)
+    stream$.afterUnsubscribe(() => console.log('unsubscribe'))
+    observable1$.unsubscribe()
+    observable2$.unsubscribe()
+    observable3$.unsubscribe()
+    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'unsubscribe')
   })
 
   test('test combine', async () => {
-    const { promise$: promise1$, subjection$: subjection1$ } = streamFactory()
-    const { promise$: promise2$, subjection$: subjection2$ } = streamFactory()
-    const { promise$: promise3$, subjection$: subjection3$ } = streamFactory()
+    const { stream$: promise1$, observable$: observable1$ } = streamFactory()
+    const { stream$: promise2$, observable$: observable2$ } = streamFactory()
+    const { stream$: promise3$, observable$: observable3$ } = streamFactory()
 
-    const stream$ = combine(subjection1$, subjection2$, subjection3$)
+    const stream$ = combine(observable1$, observable2$, observable3$)
+    stream$.complete((value: string[]) => console.log('finish', value.toString()))
     stream$.then(
-      (data: string[]) => console.log('resolve', data.toString()),
-      (data: string[]) => console.log('reject', data.toString()),
+      (value: string[]) => console.log('resolve', value.toString()),
+      (value: string[]) => console.log('reject', value.toString()),
     )
     /**
      * ----a✅--------------------------b✅--------------------------c✅|------------------------
@@ -200,36 +190,34 @@ describe('operator test', async () => {
     await sleep(30)
     promise2$.next(Promise.reject('g'), true)
     await sleep(1)
-    expect(consoleSpy).toHaveBeenNthCalledWith(7, 'reject', 'c,g,n')
-    stream$.finish.catch((data: string[]) =>
-      console.log('finish', data.toString()),
-    )
-    await sleep(1)
-    expect(consoleSpy).toHaveBeenNthCalledWith(8, 'finish', 'c,g,n')
+    expect(consoleSpy).toHaveBeenNthCalledWith(7, 'finish', 'c,g,n')
+    expect(consoleSpy).toHaveBeenNthCalledWith(8, 'reject', 'c,g,n')
   })
 
   test('test combine with all stream$ unsubscribe', async () => {
-    const { subjection$: subjection1$ } = streamFactory()
-    const { subjection$: subjection2$ } = streamFactory()
-    const { subjection$: subjection3$ } = streamFactory()
+    const { observable$: observable1$ } = streamFactory()
+    const { observable$: observable2$ } = streamFactory()
+    const { observable$: observable3$ } = streamFactory()
 
-    const stream$ = combine(subjection1$, subjection2$, subjection3$)
-    stream$.setUnsubscribeCallback(() => console.log('unsubscribe'))
-    subjection1$.unsubscribe()
-    subjection2$.unsubscribe()
-    subjection3$.unsubscribe()
+    const stream$ = combine(observable1$, observable2$, observable3$)
+    stream$.afterUnsubscribe(() => console.log('unsubscribe'))
+    observable1$.unsubscribe()
+    observable2$.unsubscribe()
+    observable3$.unsubscribe()
+    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'unsubscribe')
   })
 
   test('test concat with resolve', async () => {
-    const { promise$: promise1$, subjection$: subjection1$ } = streamFactory()
-    const { promise$: promise2$, subjection$: subjection2$ } = streamFactory()
-    const { promise$: promise3$, subjection$: subjection3$ } = streamFactory()
+    const { stream$: promise1$, observable$: observable1$ } = streamFactory()
+    const { stream$: promise2$, observable$: observable2$ } = streamFactory()
+    const { stream$: promise3$, observable$: observable3$ } = streamFactory()
 
-    const stream$ = concat(subjection1$, subjection2$, subjection3$)
+    const stream$ = concat(observable1$, observable2$, observable3$)
+    stream$.complete((value: string) => console.log('finish', value))
     stream$.then(
-      (data: string[]) => console.log('resolve', data.toString()),
-      (data: string[]) => console.log('reject', data.toString()),
+      (value: string[]) => console.log('resolve', value.toString()),
+      (value: string[]) => console.log('reject', value.toString()),
     )
     /**
      * ---a✅-------b✅|-------------
@@ -259,48 +247,48 @@ describe('operator test', async () => {
 
     promise3$.next(Promise.resolve('n'), true)
     await sleep(1)
-    expect(consoleSpy).toHaveBeenNthCalledWith(4, 'resolve', 'n')
-    stream$.finish.then((data: string) => console.log('finish', data))
-    await sleep(1)
-    expect(consoleSpy).toHaveBeenNthCalledWith(5, 'finish', 'n')
+    expect(consoleSpy).toHaveBeenNthCalledWith(4, 'finish', 'n')
+    expect(consoleSpy).toHaveBeenNthCalledWith(5, 'resolve', 'n')
   })
 
-  test('test concat with current subjection unsubscribe', async () => {
-    const { promise$: promise1$, subjection$: subjection1$ } = streamFactory()
-    const { subjection$: subjection2$ } = streamFactory()
-    const { subjection$: subjection3$ } = streamFactory()
+  test('test concat with current observable unsubscribe', async () => {
+    const { stream$: promise1$, observable$: observable1$ } = streamFactory()
+    const { observable$: observable2$ } = streamFactory()
+    const { observable$: observable3$ } = streamFactory()
 
-    const stream$ = concat(subjection1$, subjection2$, subjection3$)
-    stream$.setUnsubscribeCallback(() => console.log('unsubscribe'))
+    const stream$ = concat(observable1$, observable2$, observable3$)
+    stream$.afterUnsubscribe(() => console.log('unsubscribe'))
     promise1$.next(Promise.resolve('a'))
-    subjection1$.unsubscribe()
+    observable1$.unsubscribe()
+    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'unsubscribe')
   })
 
-  test('test concat with future subjection unsubscribe', async () => {
-    const { promise$: promise1$, subjection$: subjection1$ } = streamFactory()
-    const { promise$: promise2$, subjection$: subjection2$ } = streamFactory()
-    const { subjection$: subjection3$ } = streamFactory()
+  test('test concat with future observable unsubscribe', async () => {
+    const { stream$: promise1$, observable$: observable1$ } = streamFactory()
+    const { stream$: promise2$, observable$: observable2$ } = streamFactory()
+    const { observable$: observable3$ } = streamFactory()
 
-    const stream$ = concat(subjection1$, subjection2$, subjection3$)
-    stream$.setUnsubscribeCallback(() => console.log('unsubscribe'))
-    subjection3$.unsubscribe()
+    const stream$ = concat(observable1$, observable2$, observable3$)
+    stream$.afterUnsubscribe(() => console.log('unsubscribe'))
+    observable3$.unsubscribe()
     promise1$.next(Promise.resolve('a'), true)
     promise2$.next(Promise.resolve('b'))
-    expect(consoleSpy).toBeCalledTimes(0)
     promise2$.next(Promise.resolve('c'), true)
+    expect(consoleSpy).toBeCalledTimes(0)
     await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'unsubscribe')
   })
 
   test('test merge', async () => {
-    const { promise$: promise1$, subjection$: subjection1$ } = streamFactory()
-    const { promise$: promise2$, subjection$: subjection2$ } = streamFactory()
-    const { promise$: promise3$, subjection$: subjection3$ } = streamFactory()
-    const stream$ = merge(subjection1$, subjection2$, subjection3$)
+    const { stream$: promise1$, observable$: observable1$ } = streamFactory()
+    const { stream$: promise2$, observable$: observable2$ } = streamFactory()
+    const { stream$: promise3$, observable$: observable3$ } = streamFactory()
+    const stream$ = merge(observable1$, observable2$, observable3$)
+    stream$.complete((value: string[]) => console.log('finish', value.toString()))
     stream$.then(
-      (data: string) => console.log('resolve', data),
-      (data: string) => console.log('reject', data),
+      (value: string) => console.log('resolve', value),
+      (value: string) => console.log('reject', value),
     )
     /**
      * ---a✅---------b✅--------c✅|----------
@@ -344,99 +332,95 @@ describe('operator test', async () => {
     await sleep(30)
     promise2$.next(Promise.reject('g'), true)
     await sleep(1)
-    expect(consoleSpy).toHaveBeenNthCalledWith(9, 'reject', 'g')
-    await sleep(1)
-    stream$.finish.catch((data: string[]) =>
-      console.log('finish', data.toString()),
-    )
-    await sleep(1)
-    expect(consoleSpy).toHaveBeenNthCalledWith(10, 'finish', 'g')
+    expect(consoleSpy).toHaveBeenNthCalledWith(9, 'finish', 'g')
+    expect(consoleSpy).toHaveBeenNthCalledWith(10, 'reject', 'g')
   })
 
   test('merge with unsubscribe', async () => {
-    const { subjection$: subjection1$ } = streamFactory()
-    const { subjection$: subjection2$ } = streamFactory()
-    const { subjection$: subjection3$ } = streamFactory()
-    const stream$ = merge(subjection1$, subjection2$, subjection3$)
-    stream$.setUnsubscribeCallback(() => console.log('unsubscribe'))
-    subjection1$.unsubscribe()
-    subjection2$.unsubscribe()
+    const { observable$: observable1$ } = streamFactory()
+    const { observable$: observable2$ } = streamFactory()
+    const { observable$: observable3$ } = streamFactory()
+    const stream$ = merge(observable1$, observable2$, observable3$)
+    stream$.afterUnsubscribe(() => console.log('unsubscribe'))
+    observable1$.unsubscribe()
+    observable2$.unsubscribe()
+    observable3$.unsubscribe()
     expect(consoleSpy).toBeCalledTimes(0)
-    subjection3$.unsubscribe()
+    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'unsubscribe')
   })
 
   test('test partition', async () => {
-    const { promise$, subjection$ } = streamFactory()
+    const { stream$, observable$ } = streamFactory()
     /**
      * ---1✅--2✅--3❌--4❌--5✅--6✅--7❌|----
      * ---1✅-------3❌------5✅-------7❌|----
      * --------2✅------4❌-------6✅---------
      */
-    const [stream1$, stream2$] = partition(subjection$, (n) => n % 2 === 1)
+    const [stream1$, stream2$] = partition(observable$, (n) => n % 2 === 1)
+    stream1$.complete((value) => console.log('selected finish', value))
+    stream2$.complete(() => console.log('unselected finish'))
     stream1$.then(
-      (data: string) => console.log('selected', 'resolve', data),
-      (data: string) => console.log('selected', 'reject', data),
+      (value: string) => console.log('selected', 'resolve', value),
+      (value: string) => console.log('selected', 'reject', value),
     )
     stream2$.then(
-      (data: string) => console.log('unselected', 'resolve', data),
-      (data: string) => console.log('unselected', 'reject', data),
+      (value: string) => console.log('unselected', 'resolve', value),
+      (value: string) => console.log('unselected', 'reject', value),
     )
-    promise$.next('1')
+    stream$.next('1')
     await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'selected', 'resolve', '1')
 
-    promise$.next('2')
+    stream$.next('2')
     await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'unselected', 'resolve', '2')
 
-    promise$.next(Promise.reject('3'))
+    stream$.next(Promise.reject('3'))
     await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(3, 'selected', 'reject', '3')
 
-    promise$.next(Promise.reject('4'))
+    stream$.next(Promise.reject('4'))
     await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(4, 'unselected', 'reject', '4')
 
-    promise$.next('5')
+    stream$.next('5')
     await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(5, 'selected', 'resolve', '5')
 
-    promise$.next('6')
+    stream$.next('6')
     await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(6, 'unselected', 'resolve', '6')
 
-    promise$.next(Promise.reject('7'), true)
+    stream$.next(Promise.reject('7'), true)
     await sleep(1)
-    expect(consoleSpy).toHaveBeenNthCalledWith(7, 'selected', 'reject', '7')
-
-    stream1$.finish.catch((data) => console.log('selected finish', data))
-    stream2$.finish.finally(() => console.log('unselected finish'))
-    await sleep(1)
-    expect(consoleSpy).toHaveBeenNthCalledWith(8, 'selected finish', '7')
+    expect(consoleSpy).toHaveBeenNthCalledWith(7, 'selected finish', '7')
+    expect(consoleSpy).toHaveBeenNthCalledWith(8, 'selected', 'reject', '7')
   })
 
   test('test partition with unsubscribe', async () => {
-    const { subjection$ } = streamFactory()
+    const { observable$ } = streamFactory()
 
-    const [stream1$, stream2$] = partition(subjection$, (n) => n % 2 === 1)
+    const [stream1$, stream2$] = partition(observable$, (n) => n % 2 === 1)
 
-    stream1$.setUnsubscribeCallback(() => console.log('selected unsubscribe'))
-    stream2$.setUnsubscribeCallback(() => console.log('unselected unsubscribe'))
-    subjection$.unsubscribe()
+    stream1$.afterUnsubscribe(() => console.log('selected unsubscribe'))
+    stream2$.afterUnsubscribe(() => console.log('unselected unsubscribe'))
+    observable$.unsubscribe()
+    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'selected unsubscribe')
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'unselected unsubscribe')
   })
 
   test('test race', async () => {
-    const { promise$: promise1$, subjection$: subjection1$ } = streamFactory()
-    const { promise$: promise2$, subjection$: subjection2$ } = streamFactory()
-    const { promise$: promise3$, subjection$: subjection3$ } = streamFactory()
+    const { stream$: promise1$, observable$: observable1$ } = streamFactory()
+    const { stream$: promise2$, observable$: observable2$ } = streamFactory()
+    const { stream$: promise3$, observable$: observable3$ } = streamFactory()
 
-    const stream$ = race(subjection1$, subjection2$, subjection3$)
+    const stream$ = race(observable1$, observable2$, observable3$)
+    stream$.complete((value: string) => console.log('finish', value))
     stream$.then(
-      (data: string[]) => console.log('resolve', data.toString()),
-      (data: string[]) => console.log('reject', data.toString()),
+      (value: string[]) => console.log('resolve', value.toString()),
+      (value: string[]) => console.log('reject', value.toString()),
     )
     /**
      * ---a✅------b✅------c❌|------
@@ -464,34 +448,24 @@ describe('operator test', async () => {
 
     promise1$.next(Promise.reject('c'), true)
     await sleep(1)
-    expect(consoleSpy).toHaveBeenNthCalledWith(3, 'reject', 'c')
-    await sleep(30)
-    promise3$.next(Promise.resolve('n'), true)
-    await sleep(30)
-    promise2$.next(Promise.resolve('g'), true)
-    await sleep(1)
-    stream$.finish.catch((data: string) => console.log('finish', data))
-    await sleep(1)
-    expect(consoleSpy).toHaveBeenNthCalledWith(4, 'finish', 'c')
+    expect(consoleSpy).toHaveBeenNthCalledWith(3, 'finish', 'c')
+    expect(consoleSpy).toHaveBeenNthCalledWith(4, 'reject', 'c')
   })
 
   test('test race with unsubscribe', async () => {
-    const { promise$: promise1$, subjection$: subjection1$ } = streamFactory()
-    const { promise$: promise2$, subjection$: subjection2$ } = streamFactory()
-    const { promise$: promise3$, subjection$: subjection3$ } = streamFactory()
+    const { stream$: promise1$, observable$: observable1$ } = streamFactory()
+    const { stream$: promise2$, observable$: observable2$ } = streamFactory()
+    const { stream$: promise3$, observable$: observable3$ } = streamFactory()
 
-    const stream$ = race(subjection1$, subjection2$, subjection3$)
+    const stream$ = race(observable1$, observable2$, observable3$)
 
     promise1$.next(1)
     promise2$.next(2)
     promise3$.next(3)
-    stream$.setUnsubscribeCallback(() => console.log('race unsubscribe'))
+    stream$.afterUnsubscribe(() => console.log('race unsubscribe'))
     await sleep(1)
-    subjection2$.unsubscribe()
-    subjection3$.unsubscribe()
-    expect(consoleSpy).toBeCalledTimes(0)
-
-    subjection1$.unsubscribe()
+    observable1$.unsubscribe()
+    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'race unsubscribe')
   })
 })

@@ -1,4 +1,5 @@
-export type * from './src/observer'
-export type * from './src/rootObserver'
+export type * from './src/observable'
 export * from './src/stream'
+export * from './src/factory'
 export * from './src/operator'
+export * from './src/plugins'

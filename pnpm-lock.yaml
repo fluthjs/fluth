@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      limu:
+        specifier: ^3.13.1
+        version: 3.13.1
     devDependencies:
       '@commitlint/cli':
         specifier: ^19.4.0
@@ -2952,6 +2956,11 @@ packages:
     resolution: {integrity: sha512-eop+wDAvpItUys0FWkHIKeC9ybYrTGbU41U5K7+bttZZeohvnY7M9dZ5kB21GNWiFT2q1OoPTvncPCgSOVO5ow==}
     engines: {node: '>=14'}
     dev: true
+
+  /limu@3.13.1:
+    resolution: {integrity: sha512-4qCZEQZ4yr0KUyjR83I7tZJ3IqAcFucPjkiUN1lk99bmVYYaWqDINaN202w434/sGVM3rpUBHDvXfWpJljQ+/g==}
+    dev: false
+    bundledDependencies: []
 
   /lines-and-columns@1.2.4:
     resolution: {integrity: sha512-7ylylesZQ/PV29jhEDl3Ufjo6ZX7gCqJr5F7PKrqc93v7fzSymt1BpwEU8nAUXs8qzzvqhbjhK5QZg6Mt/HkBg==}
