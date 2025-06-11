@@ -1,27 +1,21 @@
 import { Observable } from './observable'
 import { Plugin } from './stream'
-export type CombineChainResult<T extends any[]> = T extends [infer First, ...infer Rest]
-  ? First extends { chain: (o: Observable) => infer R }
+export type CombineChainResult<P extends any[]> = P extends [infer First, ...infer Rest]
+  ? First extends { chain: <S>(o: Observable<S>) => infer R }
     ? R & CombineChainResult<Rest>
     : CombineChainResult<Rest>
   : object
 
-export const combinePlugin = <T extends Plugin[]>(...args: T) => {
-  type ChainResult<T extends any[]> = T extends [infer First, ...infer Rest]
-    ? First extends { chain: (o: any) => infer R }
-      ? R & ChainResult<Rest>
-      : ChainResult<Rest>
-    : object
-
+export const combinePlugin = <P extends Plugin[]>(...args: P) => {
   return {
     execute: args.flatMap((p) => p.execute || []),
     then: args.flatMap((p) => p.then || []),
     chain: <O extends Observable>(observable: O) => {
-      let result = {} as ChainResult<T>
+      let result = {} as CombineChainResult<P>
       for (const plugin of args) {
         if (plugin.chain) {
           const chained = plugin.chain(observable)
-          result = Object.assign(result, chained) as ChainResult<T>
+          result = Object.assign(result, chained) as CombineChainResult<P>
         }
       }
       return result

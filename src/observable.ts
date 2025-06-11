@@ -88,7 +88,7 @@ export class Observable<T = any, E extends Record<string, any> = object> {
   }
 
   #chain<F>(observer: Observable<F, E>): Observable<F, E> & E {
-    this._runChainPlugin<F>(observer)
+    if (this !== (observer as any)) this._runChainPlugin<F>(observer)
     return observer as Observable<F, E> & E
   }
 

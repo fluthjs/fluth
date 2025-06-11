@@ -235,6 +235,15 @@ describe('stream test', async () => {
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'catch')
   })
 
+  test('test stream catch data', async () => {
+    const promise$ = $<number>()
+    promise$.catch((err) => err).then((value) => console.log(value))
+    promise$.next(Promise.reject(1))
+    await sleep(1)
+
+    expect(consoleSpy).toHaveBeenNthCalledWith(1, 1)
+  })
+
   test('test stream finally', async () => {
     const promise$ = $()
     promise$.finally(() => console.log('finally'))
