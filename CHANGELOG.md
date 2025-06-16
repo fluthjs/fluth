@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.1.1](https://github.com/fluthjs/fluth/compare/v0.1.0...v0.1.1) (2025-06-16)
+
+
+### Bug Fixes
+
+* chainPlugin may cause redefineProperty probleam ([22ce787](https://github.com/fluthjs/fluth/commit/22ce7875a1fb6e09a61db9213e832533df6894c3))
+* observable export ([94f9594](https://github.com/fluthjs/fluth/commit/94f95941d015451f07a5f2ce1103d525920ad08a))
+
 ## [0.1.0](https://github.com/fluthjs/fluth/compare/v0.0.6...v0.1.0) (2025-05-27)
 
 
