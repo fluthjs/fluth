@@ -1,4 +1,4 @@
-export type * from './src/observable'
+export * from './src/observable'
 export * from './src/stream'
 export * from './src/factory'
 export * from './src/operator'
