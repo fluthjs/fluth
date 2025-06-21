@@ -406,7 +406,7 @@ describe('stream test', async () => {
 
   test('test stream finishCallback', async () => {
     const promise$ = $()
-    promise$.complete((value, status) => console.log(value, status))
+    promise$.afterComplete((value, status) => console.log(value, status))
     promise$.next(Promise.resolve('1'), true)
     await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(1, '1', 'resolved')

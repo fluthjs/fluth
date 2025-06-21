@@ -32,6 +32,22 @@ describe('observer test', async () => {
     expect(consoleSpy).toHaveBeenCalledTimes(2)
   })
 
+  test('test observer then without onFulfilled and onRejected', async () => {
+    // then without onFulfilled and onRejected only bypass resolve value
+    const promise$ = $()
+    promise$.then().then(
+      (value) => console.log(value),
+      (error) => console.log(error),
+    )
+
+    promise$.next('resolve')
+    expect(consoleSpy).toHaveBeenNthCalledWith(1, 'resolve')
+    consoleSpy.mockClear()
+    promise$.next(Promise.reject('error'))
+    await sleep(1)
+    expect(consoleSpy).toHaveBeenCalledTimes(0)
+  })
+
   test('test observer unsubscribe', async () => {
     const promise$ = $()
     const observer1 = () => promiseConsoleFactory(100, 'observer1')
@@ -62,7 +78,6 @@ describe('observer test', async () => {
     const observable12$ = observable1$.then(observer12)
     const observable111$ = observable11$.then(observer111)
 
-    // 从中间节点开始测试
     observable1$.unsubscribe()
     promise$.next(true)
     expect(consoleSpy).toHaveBeenCalledTimes(0)
@@ -150,6 +165,42 @@ describe('observer test', async () => {
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'unsubscribe2')
   })
 
+  test('test offUnsubscribe', async () => {
+    const observable$ = $().then()
+    const callback1 = () => console.log('unsubscribe1')
+    const callback2 = () => console.log('unsubscribe2')
+    const callback3 = () => console.log('unsubscribe3')
+
+    observable$.afterUnsubscribe(callback1)
+    observable$.afterUnsubscribe(callback2)
+    observable$.afterUnsubscribe(callback3)
+
+    observable$.offUnsubscribe(callback2)
+
+    observable$.unsubscribe()
+    expect(consoleSpy).toHaveBeenNthCalledWith(1, 'unsubscribe1')
+    expect(consoleSpy).toHaveBeenNthCalledWith(2, 'unsubscribe3')
+    expect(consoleSpy).toHaveBeenCalledTimes(2)
+  })
+
+  test('test offUnsubscribe with non-existent callback', async () => {
+    const observable$ = $().then()
+    const callback1 = () => console.log('unsubscribe1')
+    const callback2 = () => console.log('unsubscribe2')
+    const nonExistentCallback = () => console.log('non-existent')
+
+    observable$.afterUnsubscribe(callback1)
+    observable$.afterUnsubscribe(callback2)
+
+    // 尝试移除不存在的回调
+    observable$.offUnsubscribe(nonExistentCallback)
+
+    observable$.unsubscribe()
+    expect(consoleSpy).toHaveBeenNthCalledWith(1, 'unsubscribe1')
+    expect(consoleSpy).toHaveBeenNthCalledWith(2, 'unsubscribe2')
+    expect(consoleSpy).toHaveBeenCalledTimes(2)
+  })
+
   test('test observer thenOnce', async () => {
     const promise$ = $()
     const observer1 = () => promiseConsoleFactory(100, 'observer1')
@@ -209,21 +260,77 @@ describe('observer test', async () => {
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'finally')
   })
 
-  test('test observer complete', async () => {
+  test('test observer afterComplete', async () => {
     const promise$ = $()
     const promise1$ = promise$.then(() => Promise.resolve('1'))
-    promise1$.complete((value) => console.log(`finish1: ${value}`))
-    promise1$.complete((value) => console.log(`finish2: ${value}`))
+    promise1$.afterComplete((value) => console.log(`finish1: ${value}`))
+    promise1$.afterComplete((value) => console.log(`finish2: ${value}`))
     promise$.next(1, true)
     await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'finish1: 1')
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'finish2: 1')
   })
 
+  test('test offComplete', async () => {
+    const promise$ = $()
+    const promise1$ = promise$.then(() => Promise.resolve('1'))
+    const callback1 = (value) => console.log(`finish1: ${value}`)
+    const callback2 = (value) => console.log(`finish2: ${value}`)
+    const callback3 = (value) => console.log(`finish3: ${value}`)
+
+    promise1$.afterComplete(callback1)
+    promise1$.afterComplete(callback2)
+    promise1$.afterComplete(callback3)
+
+    promise1$.offComplete(callback2)
+
+    promise$.next(1, true)
+    await sleep(1)
+    expect(consoleSpy).toHaveBeenNthCalledWith(1, 'finish1: 1')
+    expect(consoleSpy).toHaveBeenNthCalledWith(2, 'finish3: 1')
+    expect(consoleSpy).toHaveBeenCalledTimes(2)
+  })
+
+  test('test offComplete with non-existent callback', async () => {
+    const promise$ = $()
+    const promise1$ = promise$.then(() => Promise.resolve('1'))
+    const callback1 = (value) => console.log(`finish1: ${value}`)
+    const callback2 = (value) => console.log(`finish2: ${value}`)
+    const nonExistentCallback = (value) => console.log(`non-existent: ${value}`)
+
+    promise1$.afterComplete(callback1)
+    promise1$.afterComplete(callback2)
+
+    promise1$.offComplete(nonExistentCallback)
+
+    promise$.next(1, true)
+    await sleep(1)
+    expect(consoleSpy).toHaveBeenNthCalledWith(1, 'finish1: 1')
+    expect(consoleSpy).toHaveBeenNthCalledWith(2, 'finish2: 1')
+    expect(consoleSpy).toHaveBeenCalledTimes(2)
+  })
+
+  test('test offComplete when promise is rejected', async () => {
+    const promise$ = $()
+    const promise1$ = promise$.then(() => Promise.reject('error'))
+    const callback1 = (value, status) => console.log(`finish1: ${value}, status: ${status}`)
+    const callback2 = (value, status) => console.log(`finish2: ${value}, status: ${status}`)
+
+    promise1$.afterComplete(callback1)
+    promise1$.afterComplete(callback2)
+
+    promise1$.offComplete(callback2)
+
+    promise$.next(1, true)
+    await sleep(1)
+    expect(consoleSpy).toHaveBeenNthCalledWith(1, 'finish1: error, status: rejected')
+    expect(consoleSpy).toHaveBeenCalledTimes(1)
+  })
+
   test('test observer complete and then order', async () => {
     const promise$ = $()
     const promise1$ = promise$.then(() => Promise.resolve())
-    promise1$.complete(() => console.log('finish'))
+    promise1$.afterComplete(() => console.log('finish'))
     promise1$.then(() => console.log('then'))
     promise$.next(Promise.resolve(), true)
     await sleep(1)

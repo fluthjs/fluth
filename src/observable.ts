@@ -181,13 +181,28 @@ export class Observable<T = any, E extends Record<string, any> = object> {
     if (!this.#unsubscribeCallbackList.includes(callback))
       this.#unsubscribeCallbackList.push(callback)
   }
+  /**
+   * remove unsubscribe callback
+   * @param callback callback function
+   */
+  offUnsubscribe(callback: () => void) {
+    this.#unsubscribeCallbackList = this.#unsubscribeCallbackList.filter((fn) => fn !== callback)
+  }
 
   /**
    * set finish callback, will trigger before children observer
    * @param callback callback function
    */
-  complete(callback: (value: T, status: PromiseStatus) => void) {
+  afterComplete(callback: (value: T, status: PromiseStatus) => void) {
     if (!this.#finishCallbackList.includes(callback)) this.#finishCallbackList.push(callback)
+  }
+
+  /**
+   * remove finish callback
+   * @param callback callback function
+   */
+  offComplete(callback: (value: T, status: PromiseStatus) => void) {
+    this.#finishCallbackList = this.#finishCallbackList.filter((fn) => fn !== callback)
   }
 
   #runThenPlugin(observer: Observable) {

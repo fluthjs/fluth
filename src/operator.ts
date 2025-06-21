@@ -1,4 +1,4 @@
-import { Observable } from './observable'
+import { Observable, PromiseStatus } from './observable'
 import { Stream } from './stream'
 
 const useUnsubscribeCallback = (stream$: Stream, length: number) => {
@@ -28,7 +28,7 @@ export type StreamTupleValues<T extends (Stream | Observable)[]> = {
 export const fork = <T>(arg$: Stream<T> | Observable<T>): Stream<T> => {
   const stream$ = new Stream<T>()
   let finishFlag = false
-  arg$.thenImmediate(
+  const observable = arg$.thenImmediate(
     (value) => stream$.next(value, finishFlag),
     (value) => stream$.next(Promise.reject(value), finishFlag),
   )
@@ -37,7 +37,11 @@ export const fork = <T>(arg$: Stream<T> | Observable<T>): Stream<T> => {
       stream$.unsubscribe()
     }),
   )
-  arg$.complete(() => (finishFlag = true))
+  arg$.afterComplete(() => (finishFlag = true))
+
+  stream$.afterUnsubscribe(() => {
+    observable.unsubscribe()
+  })
   return stream$
 }
 
@@ -55,20 +59,20 @@ export const finish = <T extends (Stream | Observable)[]>(...args: T) => {
   let finishCount = 0
   let rejectFlag = false
   const { unsubscribeCallback } = useUnsubscribeCallback(stream$, args.length)
+  const completeCallback = (_v: any, status: PromiseStatus) => {
+    finishCount += 1
+    if (status === 'rejected') rejectFlag = true
+  }
   const next = () => {
-    console.info(payload, rejectFlag)
     if (finishCount === args.length) {
-      stream$.next(rejectFlag ? Promise.reject(payload) : payload, true)
+      stream$.next(rejectFlag ? Promise.reject([...payload]) : [...payload], true)
     }
   }
 
   args.forEach((arg$, index) => {
     arg$.afterUnsubscribe(unsubscribeCallback)
-    arg$.complete((_v, status) => {
-      finishCount += 1
-      if (status === 'rejected') rejectFlag = true
-    })
-    arg$.then(
+    arg$.afterComplete(completeCallback)
+    const observable = arg$.then(
       (value) => {
         payload[index] = value
         next()
@@ -78,7 +82,15 @@ export const finish = <T extends (Stream | Observable)[]>(...args: T) => {
         next()
       },
     )
+
+    stream$.afterUnsubscribe(() => {
+      arg$.offUnsubscribe(unsubscribeCallback)
+      arg$.offComplete(completeCallback)
+      observable.unsubscribe()
+    })
   })
+
+  stream$.afterComplete(() => (payload.length = 0))
 
   return stream$
 }
@@ -96,17 +108,21 @@ export const combine = <T extends (Stream | Observable)[]>(...args: T) => {
   const promiseStatus = [...Array(args.length)].map(() => 'pending')
   let finishCount = 0
   const { unsubscribeCallback } = useUnsubscribeCallback(stream$, args.length)
+  const completeCallback = () => (finishCount += 1)
 
   const next = () => {
     if (promiseStatus.every((status) => status !== 'pending'))
       stream$.next(
-        promiseStatus.some((status) => status === 'rejected') ? Promise.reject(payload) : payload,
+        promiseStatus.some((status) => status === 'rejected')
+          ? Promise.reject([...payload])
+          : [...payload],
         finishCount === args.length,
       )
   }
 
   args.forEach((arg$, index) => {
     arg$.afterUnsubscribe(unsubscribeCallback)
+    arg$.afterComplete(completeCallback)
     arg$.then(
       (value) => {
         promiseStatus[index] = 'resolved'
@@ -119,7 +135,15 @@ export const combine = <T extends (Stream | Observable)[]>(...args: T) => {
         next()
       },
     )
-    arg$.complete(() => (finishCount += 1))
+    stream$.afterUnsubscribe(() => {
+      arg$.offUnsubscribe(unsubscribeCallback)
+      arg$.offComplete(completeCallback)
+    })
+  })
+
+  stream$.afterComplete(() => {
+    payload.length = 0
+    promiseStatus.length = 0
   })
 
   return stream$
@@ -149,17 +173,25 @@ export const concat = <T extends (Stream | Observable)[]>(...args: T) => {
     }
   }
   args.forEach((arg$, index) => {
-    arg$.afterUnsubscribe(() => {
+    const unsubscribeCallback = () => {
       unsubscribeFlag[index] = true
       if ((index === 0 || finishFlag[index - 1]) && !finishFlag[index]) {
         setTimeout(() => stream$.unsubscribe())
       }
-    })
-    arg$.then(
+    }
+    const completeCallback = () => (finishFlag[index] = true)
+    arg$.afterUnsubscribe(unsubscribeCallback)
+    arg$.afterComplete(completeCallback)
+    const observable = arg$.then(
       (value) => next(value, 'resolved', index),
       (value) => next(value, 'rejected', index),
     )
-    arg$.complete(() => (finishFlag[index] = true))
+
+    stream$.afterUnsubscribe(() => {
+      arg$.offUnsubscribe(unsubscribeCallback)
+      arg$.offComplete(completeCallback)
+      observable.unsubscribe()
+    })
   })
   return stream$
 }
@@ -175,6 +207,7 @@ export const merge = <T extends (Stream | Observable)[]>(...args: T) => {
   const stream$ = new Stream<StreamTupleValues<T>[number]>()
   let finishCount = 0
   const { unsubscribeCallback } = useUnsubscribeCallback(stream$, args.length)
+  const completeCallback = () => (finishCount += 1)
   const next = (data: any, promiseStatus: 'resolved' | 'rejected') => {
     stream$.next(
       promiseStatus === 'resolved' ? data : Promise.reject(data),
@@ -184,11 +217,17 @@ export const merge = <T extends (Stream | Observable)[]>(...args: T) => {
 
   args.forEach((arg$) => {
     arg$.afterUnsubscribe(unsubscribeCallback)
-    arg$.then(
+    arg$.afterComplete(completeCallback)
+    const observable = arg$.then(
       (value) => next(value, 'resolved'),
       (value) => next(value, 'rejected'),
     )
-    arg$.complete(() => (finishCount += 1))
+
+    stream$.afterUnsubscribe(() => {
+      arg$.offUnsubscribe(unsubscribeCallback)
+      arg$.offComplete(completeCallback)
+      observable.unsubscribe()
+    })
   })
   return stream$
 }
@@ -206,7 +245,7 @@ export const merge = <T extends (Stream | Observable)[]>(...args: T) => {
  */
 export const partition = <T>(
   stream$: Stream<T> | Observable<T>,
-  predicate: (this: any, value: any, index: number) => boolean,
+  predicate: (this: any, value: any, status: 'resolved' | 'rejected', index: number) => boolean,
   thisArg?: any,
 ) => {
   const selectedStream$ = new Stream<T>()
@@ -222,11 +261,11 @@ export const partition = <T>(
     }
   }
 
-  stream$
+  const observable = stream$
     .then(
       (value: any) => {
         try {
-          next(value, 'resolved', predicate.call(thisArg, value, index))
+          next(value, 'resolved', predicate.call(thisArg, value, 'resolved', index))
         } catch (error) {
           next(value, 'resolved', false)
           console.log(error)
@@ -234,7 +273,7 @@ export const partition = <T>(
       },
       (value) => {
         try {
-          next(value, 'rejected', predicate.call(thisArg, value, index))
+          next(value, 'rejected', predicate.call(thisArg, value, 'rejected', index))
         } catch (error) {
           next(value, 'rejected', false)
           console.log(error)
@@ -243,15 +282,21 @@ export const partition = <T>(
     )
     .finally(() => (index += 1))
 
-  stream$.afterUnsubscribe(() => {
+  const unsubscribeCallback = () => {
     setTimeout(() => {
       selectedStream$.unsubscribe()
       unselectedStream$.unsubscribe()
     })
-  })
+  }
+  const completeCallback = () => (finishFlag = true)
 
-  stream$.complete(() => {
-    finishFlag = true
+  stream$.afterUnsubscribe(unsubscribeCallback)
+  stream$.afterComplete(completeCallback)
+
+  finish(selectedStream$, unselectedStream$).afterComplete(() => {
+    stream$.offUnsubscribe(unsubscribeCallback)
+    stream$.offComplete(completeCallback)
+    observable.unsubscribe()
   })
 
   return [selectedStream$, unselectedStream$]
@@ -264,13 +309,13 @@ export const partition = <T>(
  * @param {...Stream|Observable} args
  * @returns {Stream}
  */
-export const race = <T extends (Stream | Observable)[]>(...args: T) => {
+export const promiseRace = <T extends (Stream | Observable)[]>(...args: T) => {
   const stream$ = new Stream<StreamTupleValues<T>[number]>()
   let finishFlag = false
   let firstIndex: number | null = null
 
   args.forEach((arg$, index) => {
-    arg$.then(
+    const observable = arg$.then(
       (value) => {
         if (firstIndex === null) firstIndex = index
         if (firstIndex === index) {
@@ -285,17 +330,74 @@ export const race = <T extends (Stream | Observable)[]>(...args: T) => {
       },
     )
 
-    arg$.afterUnsubscribe(() => {
+    const unsubscribeCallback = () => {
       if (firstIndex === index) {
         setTimeout(() => stream$.unsubscribe())
       }
-    })
-
-    arg$.complete(() => {
+    }
+    const completeCallback = () => {
       if (firstIndex === index) {
         finishFlag = true
       }
+    }
+
+    arg$.afterUnsubscribe(unsubscribeCallback)
+    arg$.afterComplete(completeCallback)
+
+    stream$.afterUnsubscribe(() => {
+      arg$.offUnsubscribe(unsubscribeCallback)
+      arg$.offComplete(completeCallback)
+      observable.unsubscribe()
     })
   })
+  return stream$
+}
+
+export const promiseAll = <T extends (Stream | Observable)[]>(...args: T) => {
+  const stream$ = new Stream<StreamTupleValues<T>>()
+  const payload: StreamTupleValues<T> = [] as any
+  const promiseStatus = [...Array(args.length)].map(() => 'pending')
+  let finishCount = 0
+  const { unsubscribeCallback } = useUnsubscribeCallback(stream$, args.length)
+  const completeCallback = () => (finishCount += 1)
+
+  const next = () => {
+    if (promiseStatus.every((status) => status !== 'pending')) {
+      stream$.next(
+        promiseStatus.some((status) => status === 'rejected')
+          ? Promise.reject([...payload])
+          : [...payload],
+        finishCount === args.length,
+      )
+      promiseStatus.forEach((_, index) => (promiseStatus[index] = 'pending'))
+    }
+  }
+
+  args.forEach((arg$, index) => {
+    arg$.afterUnsubscribe(unsubscribeCallback)
+    arg$.afterComplete(completeCallback)
+    arg$.then(
+      (value) => {
+        promiseStatus[index] = 'resolved'
+        payload[index] = value
+        next()
+      },
+      (value) => {
+        promiseStatus[index] = 'rejected'
+        payload[index] = value
+        next()
+      },
+    )
+    stream$.afterUnsubscribe(() => {
+      arg$.offUnsubscribe(unsubscribeCallback)
+      arg$.offComplete(completeCallback)
+    })
+  })
+
+  stream$.afterComplete(() => {
+    payload.length = 0
+    promiseStatus.length = 0
+  })
+
   return stream$
 }
