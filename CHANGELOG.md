@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.2.0](https://github.com/fluthjs/fluth/compare/v0.1.0...v0.2.0) (2025-06-21)
+
+
+### Features
+
+* add promiseAll operator and offUnsubscribe offComplete methods ([96f7daa](https://github.com/fluthjs/fluth/commit/96f7daafd0bcfad6f99b4642e9e685343260f58b))
+
+
+### Bug Fixes
+
+* chainPlugin may cause redefineProperty probleam ([22ce787](https://github.com/fluthjs/fluth/commit/22ce7875a1fb6e09a61db9213e832533df6894c3))
+
 ## [0.1.0](https://github.com/fluthjs/fluth/compare/v0.0.6...v0.1.0) (2025-05-27)
 
 
