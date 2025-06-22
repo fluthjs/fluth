@@ -13,9 +13,6 @@ export const promiseConsoleFactory = (time: number, data: string) =>
   )
 export const streamFactory = () => {
   const stream$ = new Stream()
-  const observable$ = stream$.then(
-    (data) => data,
-    (data) => Promise.reject(data),
-  )
+  const observable$ = stream$.then()
   return { stream$, observable$ }
 }

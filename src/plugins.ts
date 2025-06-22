@@ -97,6 +97,7 @@ export const throttle = {
             return false
           }
         })
+        newObservable.afterUnsubscribe(() => (timeout = null))
         return newObservable as T
       },
     }
@@ -128,6 +129,7 @@ export const debounce = {
             return false
           } else return true
         })
+        newObservable.afterUnsubscribe(() => (timer = null))
         return newObservable
       },
     }

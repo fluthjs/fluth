@@ -218,8 +218,8 @@ export class Observable<T = any, E extends Record<string, any> = object> {
     differ?: (value: T) => any,
   ) {
     const observer = new Observable<F extends PromiseLike<infer V> ? V : F, E>(this)
-    observer.#resolve = onFulfilled
-    observer.#reject = onRejected
+    observer.#resolve = onFulfilled || ((value) => value)
+    observer.#reject = onRejected || ((error) => Promise.reject(error))
     observer.#condition = condition
     observer.#differ = differ
 
@@ -517,8 +517,11 @@ export class Observable<T = any, E extends Record<string, any> = object> {
         status,
       )
     } else if (this.#parent._status === PromiseStatus.REJECTED) {
-      this.#reject &&
-        this.#executeNode(() => this.#reject?.(this.#parent?.value), rootPromise, status)
+      this.#executeNode(
+        () => this.#reject?.(this.#parent?.value) || this.#parent?.value,
+        rootPromise,
+        status,
+      )
     }
   }
 

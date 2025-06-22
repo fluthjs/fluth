@@ -45,7 +45,7 @@ describe('observer test', async () => {
     consoleSpy.mockClear()
     promise$.next(Promise.reject('error'))
     await sleep(1)
-    expect(consoleSpy).toHaveBeenCalledTimes(0)
+    expect(consoleSpy).toHaveBeenNthCalledWith(1, 'error')
   })
 
   test('test observer unsubscribe', async () => {
