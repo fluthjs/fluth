@@ -151,3 +151,34 @@ export const consoleExec = {
     return result
   },
 }
+
+/**
+ * @description skip chain plugin
+ * @param observable
+ * @param skipTime
+ * @returns Observable
+ */
+export const skip = {
+  chain: <T extends Observable>(observable: T) => {
+    return {
+      skip: (skipTime: number) => {
+        let time = skipTime
+        const newObservable = observable.then(undefined, undefined, () => {
+          if (time > 0) {
+            time -= 1
+            return false
+          } else return true
+        })
+        return newObservable
+      },
+      skipFilter: (filter: (time: number) => boolean) => {
+        let time = 0
+        const newObservable = observable.then(undefined, undefined, () => {
+          time += 1
+          return filter(time)
+        })
+        return newObservable
+      },
+    }
+  },
+}

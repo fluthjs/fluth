@@ -427,24 +427,4 @@ describe('observer test', async () => {
     })
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 3)
   })
-
-  test('test skip method without param', async () => {
-    const promise$ = $()
-    const observable$ = promise$.then()
-    observable$.skip().then(() => console.log('test'))
-    promise$.next(1)
-    expect(consoleSpy).toHaveBeenCalledTimes(0)
-    promise$.next(2)
-    expect(consoleSpy).toHaveBeenCalledTimes(1)
-  })
-
-  test('test skip method with param', async () => {
-    const promise$ = $()
-    const observable$ = promise$.then()
-    observable$.skip(2).then(() => console.log('test'))
-    promise$.next(1)
-    promise$.next(2)
-    promise$.next(3)
-    expect(consoleSpy).toHaveBeenCalledTimes(1)
-  })
 })

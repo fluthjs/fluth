@@ -1,6 +1,6 @@
 import { expect, describe, test, vi, beforeEach } from 'vitest'
 import { consoleSpy, sleep } from './utils'
-import { $, delay, delayExec, throttle, debounce, consoleExec } from '../index'
+import { $, delay, delayExec, throttle, debounce, consoleExec, skip } from '../index'
 
 describe('plugins test', async () => {
   beforeEach(() => {
@@ -169,5 +169,25 @@ describe('plugins test', async () => {
     promise$.next(4)
     promise$.next(5) // 打印 5
     await sleep(100)
+  })
+
+  test('test skip plugin with param', async () => {
+    const promise$ = $().use(skip)
+    promise$.skip(2).then(() => console.log('test'))
+    promise$.next(1)
+    promise$.next(2)
+    promise$.next(3)
+    expect(consoleSpy).toHaveBeenCalledTimes(1)
+  })
+
+  test('test skipFilter plugin', async () => {
+    const promise$ = $().use(skip)
+    promise$.skipFilter((time) => time > 2).then(() => console.log('test'))
+    promise$.next(1) // time = 2, filter returns false
+    expect(consoleSpy).toHaveBeenCalledTimes(0)
+    promise$.next(2) // time = 3, filter returns true
+    expect(consoleSpy).toHaveBeenCalledTimes(0)
+    promise$.next(3) // time = 4, filter returns true
+    expect(consoleSpy).toHaveBeenCalledTimes(1)
   })
 })

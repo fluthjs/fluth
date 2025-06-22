@@ -55,8 +55,6 @@ export class Observable<T = any, E extends Record<string, any> = object> {
   protected _pauseFlag = false
   // finish flag
   protected _finishFlag = false
-  // skip number
-  protected _skipTime = 0
   // root promise of root observable
   protected _rootPromise: PromiseLike<T> | null = null
 
@@ -374,11 +372,6 @@ export class Observable<T = any, E extends Record<string, any> = object> {
     return this.then<T>(undefined, undefined, undefined, getter)
   }
 
-  skip(skipTime = 1) {
-    this._skipTime = skipTime
-    return this
-  }
-
   #runExecutePlugin(result: any) {
     if (!this._root?._plugin?.execute.length) return result
 
@@ -504,11 +497,7 @@ export class Observable<T = any, E extends Record<string, any> = object> {
     rootValue?: any,
   ) {
     if (!rootPromise || this._root?._pauseFlag || rootPromise !== this._root?._rootPromise) return
-    // skip check
-    if (this._skipTime) {
-      this._skipTime -= 1
-      return
-    }
+
     const status = this._status
     this._status = PromiseStatus.PENDING
 
