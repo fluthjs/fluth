@@ -1,17 +1,19 @@
 import { produce, createDraft, finishDraft } from 'limu'
-import { Observable, PromiseStatus } from './observable'
+import { Observable, PromiseStatus, OnFulfilled, OnRejected } from './observable'
 import { combinePlugin, CombineChainResult } from './plugins'
 import { isObjectLike, isPromiseLike, isAsyncFunction } from './utils'
 
 export type thenPluginFn = (unsubscribe: () => void) => void
 /** execute plugin, this plugin can be used to reset cur observer promise or unsubscribe cur observer
- * @param promise observer promise
- * @param unsubscribe unsubscribe observer
+ * @param params
  * @returns return promise will reset observer promise
  */
 export type executePlugin = <T>(params: {
   result: Promise<T> | T
   set: (setter: (state: T) => Promise<void> | void) => Promise<T> | T
+  root: boolean
+  onfulfilled?: OnFulfilled
+  onrejected?: OnRejected
   unsubscribe: () => void
 }) => Promise<any> | any
 

@@ -212,14 +212,14 @@ export class Observable<T = any, E extends Record<string, any> = object> {
   #thenObserver<F>(
     once: boolean,
     immediate: boolean,
-    onFulfilled?: OnFulfilled<T, F>,
-    onRejected?: OnRejected,
+    onfulfilled?: OnFulfilled<T, F>,
+    onrejected?: OnRejected,
     condition?: (value: T) => boolean,
     differ?: (value: T) => any,
   ) {
     const observer = new Observable<F extends PromiseLike<infer V> ? V : F, E>(this)
-    observer.#resolve = onFulfilled || ((value) => value)
-    observer.#reject = onRejected || ((error) => Promise.reject(error))
+    observer.#resolve = onfulfilled
+    observer.#reject = onrejected
     observer.#condition = condition
     observer.#differ = differ
 
@@ -356,7 +356,7 @@ export class Observable<T = any, E extends Record<string, any> = object> {
 
   /**
    * Given a condition, the observer will be executed only when condition is true
-   * @param condition condition function, given cur observervalue
+   * @param condition condition function, given cur observer value
    * @returns Observable
    */
   filter(condition: (value: T) => boolean) {
@@ -365,7 +365,7 @@ export class Observable<T = any, E extends Record<string, any> = object> {
 
   /**
    * Given a differ, the observer will be executed only when differ result is not equal to previousvalue
-   * @param getter getter function, given cur observervalue
+   * @param getter getter function, given cur observer value
    * @returns Observable
    */
   change(getter: (value: T | undefined) => any) {
@@ -378,10 +378,13 @@ export class Observable<T = any, E extends Record<string, any> = object> {
     const context = {
       result,
       set: (setter: (value: T) => void | Promise<void>) => this.#set(result, setter),
+      root: !this.#parent,
+      onfulfilled: this.#resolve,
+      onrejected: this.#reject,
       unsubscribe: () => this.#unsubscribeObservable(),
     }
 
-    // 使用 reduce 从左到右组合执行插件
+    // use reduce from left to right to compose plugins
     return this._root._plugin.execute.reduce((prevResult, plugin) => {
       return safeCallback(() => plugin({ ...context, result: prevResult }))() ?? prevResult
     }, context.result)
@@ -518,7 +521,7 @@ export class Observable<T = any, E extends Record<string, any> = object> {
       )
     } else if (this.#parent._status === PromiseStatus.REJECTED) {
       this.#executeNode(
-        () => this.#reject?.(this.#parent?.value) || this.#parent?.value,
+        () => this.#reject?.(this.#parent?.value) || Promise.reject(this.#parent?.value),
         rootPromise,
         status,
       )

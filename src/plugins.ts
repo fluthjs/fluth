@@ -1,4 +1,4 @@
-import { Observable } from './observable'
+import { Observable, OnFulfilled, OnRejected } from './observable'
 import { Plugin } from './stream'
 export type CombineChainResult<P extends any[]> = P extends [infer First, ...infer Rest]
   ? First extends { chain: <S>(o: Observable<S>) => infer R }
@@ -142,7 +142,19 @@ export const debounce = {
  * @returns executePlugin
  */
 export const consoleExec = {
-  execute: ({ result }: { result: Promise<any> | any }) => {
+  execute: ({
+    result,
+    root,
+    onfulfilled,
+    onrejected,
+  }: {
+    result: Promise<any> | any
+    root: boolean
+    onfulfilled?: OnFulfilled
+    onrejected?: OnRejected
+  }) => {
+    // empty node skip console log
+    if (!onfulfilled && !onrejected && !root) return
     if (result instanceof Promise) {
       result.then((value) => {
         console.log('value', value)
