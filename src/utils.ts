@@ -1,11 +1,12 @@
 import { isObject, isMap, isSet } from 'limu/lib/support/util'
+import { Stream } from './stream'
 
 export const safeCallback = (callback: any) => {
   return (...args: any[]) => {
     try {
       return callback?.(...args)
     } catch (error) {
-      console.log(error)
+      console.error(error)
     }
   }
 }
@@ -29,4 +30,17 @@ export const isPromiseLike = <T>(payload: T | PromiseLike<T>): payload is Promis
 
 export const isAsyncFunction = (fn: any): fn is (...args: any[]) => Promise<any> => {
   return typeof fn === 'function' && Object.prototype.toString.call(fn) === '[object AsyncFunction]'
+}
+
+export const useUnsubscribeCallback = (stream$: Stream, length: number) => {
+  let unsubscribeCount = 0
+  const unsubscribeCallback = () => {
+    unsubscribeCount += 1
+    if (unsubscribeCount === length) {
+      setTimeout(() => {
+        stream$.unsubscribe()
+      })
+    }
+  }
+  return { unsubscribeCallback }
 }

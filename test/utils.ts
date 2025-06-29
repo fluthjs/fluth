@@ -2,6 +2,7 @@ import { vi } from 'vitest'
 import { Stream } from '../index'
 
 export const consoleSpy = vi.spyOn(console, 'log')
+export const errorSpy = vi.spyOn(console, 'error')
 export const sleep = (time: number) => vi.advanceTimersByTimeAsync(time)
 export const setTimeoutSleep = (time: number) => new Promise((resolve) => setTimeout(resolve, time))
 export const promiseFactory = (time: number, data: string, flag = true) =>

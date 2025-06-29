@@ -1,16 +1,16 @@
 import { produce, createDraft, finishDraft } from 'limu'
-import { Stream, RootPlugin } from './stream'
+import { Stream } from './stream'
 import { safeCallback, isObjectLike, isAsyncFunction } from './utils'
-
-export type OnFulfilled<T = any, V = any> = (data: T) => V | Promise<V>
-export type OnRejected<V = any> = (reason: any) => V | Promise<V>
-export type OnFinally = Parameters<Promise<any>['finally']>[0]
-
-export enum PromiseStatus {
-  PENDING = 'pending',
-  RESOLVED = 'resolved',
-  REJECTED = 'rejected',
-}
+import {
+  OnFulfilled,
+  OnRejected,
+  OnFinally,
+  Plugin,
+  PluginParams,
+  PromiseStatus,
+  OperatorFunction,
+  PipeResult,
+} from './types'
 
 /**
  *  Observable node, the basic unit of promise-like stream programming,
@@ -21,7 +21,7 @@ export enum PromiseStatus {
  * @template T the type of the value
  * @template E the type of the chain plugin
  */
-export class Observable<T = any, E extends Record<string, any> = object> {
+export class Observable<T = any> {
   // resolve of observer
   #resolve?: OnFulfilled
   // reject of observer
@@ -42,6 +42,8 @@ export class Observable<T = any, E extends Record<string, any> = object> {
   #children: Observable[] = []
   // parent observable node
   #parent: Observable | null = null
+  // plugin of current observable
+  #plugin: Plugin = { then: [], execute: [] }
 
   // status of observable
   protected _status: PromiseStatus | null = null
@@ -49,12 +51,14 @@ export class Observable<T = any, E extends Record<string, any> = object> {
   protected _root: Stream | null = null
   // cache root promise, for execute fn
   protected _cacheRootPromise: PromiseLike<any> | null = null
-  // plugin of observable of root observable
-  protected _plugin?: RootPlugin
   // pause flag of root observable, no use for child observable
   protected _pauseFlag = false
   // finish flag
   protected _finishFlag = false
+  // unsubscribe flag
+  protected _unsubscribeFlag = false
+  // once flag
+  protected _onceFlag = false
   // root promise of root observable
   protected _rootPromise: PromiseLike<T> | null = null
 
@@ -72,22 +76,124 @@ export class Observable<T = any, E extends Record<string, any> = object> {
     }
   }
 
-  protected _runChainPlugin<F>(observer: Observable<F, E>, plugin?: RootPlugin) {
-    return safeCallback(() =>
-      (plugin || this._root?._plugin)?.chain
-        .map((fn) => fn(observer))
-        .forEach((obj) => {
-          Object.keys(obj).forEach((prop) => {
-            const descriptor = Object.getOwnPropertyDescriptor(obj, prop)
-            if (descriptor) Object.defineProperty(observer, prop, descriptor)
-          })
-        }),
-    )()
+  /**
+   * use plugin
+   * @param plugin plugin
+   * @returns current observable
+   */
+  use<P extends PluginParams[]>(...plugins: P) {
+    if (plugins.length === 0) return this
+
+    const curPlugin: Plugin = {
+      then: plugins.flatMap((p) => p.then || []).filter(Boolean),
+      execute: plugins.flatMap((p) => p.execute || []).filter(Boolean),
+    }
+    const pluginKeys = Object.keys(curPlugin) as (keyof Plugin)[]
+
+    pluginKeys.forEach((key) => {
+      const item = curPlugin[key]
+      if (this.#plugin && item)
+        this.#plugin[key] = [
+          ...new Set([...(this.#plugin[key] as any[]), ...(Array.isArray(item) ? item : [item])]),
+        ]
+      curPlugin[key] = [item as any]
+    })
+
+    return this
   }
 
-  #chain<F>(observer: Observable<F, E>): Observable<F, E> & E {
-    if (this !== (observer as any)) this._runChainPlugin<F>(observer)
-    return observer as Observable<F, E> & E
+  /**
+   * remove  ThenOrExecutePlugin
+   * @param plugins ThenOrExecutePlugin
+   * @returns current observable
+   */
+  remove<P extends PluginParams[]>(...plugins: P) {
+    if (plugins.length === 0) return this
+    const curPlugin: Plugin = {
+      then: plugins.flatMap((p) => p.then || []).filter(Boolean),
+      execute: plugins.flatMap((p) => p.execute || []).filter(Boolean),
+    }
+
+    const pluginKeys = Object.keys(curPlugin) as (keyof Plugin)[]
+
+    pluginKeys.forEach((key) => {
+      this.#plugin[key] = this.#plugin[key].filter(
+        (item) => !curPlugin[key].includes(item as any),
+      ) as any
+    })
+
+    return this
+  }
+
+  /**
+   * pipe operator
+   */
+  pipe(): Observable<T>
+  pipe<A>(op1: OperatorFunction<T, A>): Observable<A>
+  pipe<A, B>(op1: OperatorFunction<T, A>, op2: OperatorFunction<A, B>): Observable<B>
+  pipe<A, B, C>(
+    op1: OperatorFunction<T, A>,
+    op2: OperatorFunction<A, B>,
+    op3: OperatorFunction<B, C>,
+  ): Observable<C>
+  pipe<A, B, C, D>(
+    op1: OperatorFunction<T, A>,
+    op2: OperatorFunction<A, B>,
+    op3: OperatorFunction<B, C>,
+    op4: OperatorFunction<C, D>,
+  ): Observable<D>
+  pipe<A, B, C, D, E>(
+    op1: OperatorFunction<T, A>,
+    op2: OperatorFunction<A, B>,
+    op3: OperatorFunction<B, C>,
+    op4: OperatorFunction<C, D>,
+    op5: OperatorFunction<D, E>,
+  ): Observable<E>
+  pipe<A, B, C, D, E, F>(
+    op1: OperatorFunction<T, A>,
+    op2: OperatorFunction<A, B>,
+    op3: OperatorFunction<B, C>,
+    op4: OperatorFunction<C, D>,
+    op5: OperatorFunction<D, E>,
+    op6: OperatorFunction<E, F>,
+  ): Observable<F>
+  pipe<A, B, C, D, E, F, G>(
+    op1: OperatorFunction<T, A>,
+    op2: OperatorFunction<A, B>,
+    op3: OperatorFunction<B, C>,
+    op4: OperatorFunction<C, D>,
+    op5: OperatorFunction<D, E>,
+    op6: OperatorFunction<E, F>,
+    op7: OperatorFunction<F, G>,
+  ): Observable<G>
+  pipe<A, B, C, D, E, F, G, H>(
+    op1: OperatorFunction<T, A>,
+    op2: OperatorFunction<A, B>,
+    op3: OperatorFunction<B, C>,
+    op4: OperatorFunction<C, D>,
+    op5: OperatorFunction<D, E>,
+    op6: OperatorFunction<E, F>,
+    op7: OperatorFunction<F, G>,
+    op8: OperatorFunction<G, H>,
+  ): Observable<H>
+  pipe<A, B, C, D, E, F, G, H, I>(
+    op1: OperatorFunction<T, A>,
+    op2: OperatorFunction<A, B>,
+    op3: OperatorFunction<B, C>,
+    op4: OperatorFunction<C, D>,
+    op5: OperatorFunction<D, E>,
+    op6: OperatorFunction<E, F>,
+    op7: OperatorFunction<F, G>,
+    op8: OperatorFunction<G, H>,
+    op9: OperatorFunction<H, I>,
+  ): Observable<I>
+  pipe<Ops extends OperatorFunction<any, any>[]>(
+    ...operators: Ops
+  ): Observable<PipeResult<T, Ops>> {
+    return operators.reduce(
+      (observable, operator) => operator(observable),
+      this as Observable<T>,
+    ) as Observable<PipeResult<T, Ops>>
   }
 
   /**
@@ -133,7 +239,8 @@ export class Observable<T = any, E extends Record<string, any> = object> {
   unsubscribe() {
     if (this._finishFlag) return
     this._finishFlag = true
-    this.#unsubscribeObservable(true)
+    this._unsubscribeFlag = true
+    this.#unsubscribeObservable(true, false)
   }
 
   /**
@@ -142,8 +249,9 @@ export class Observable<T = any, E extends Record<string, any> = object> {
    * 2. actively calling observable's unsubscribe method, active is true
    * current observer is not root observer, should also have different behavior
    * @param active active flag, indicate #unsubscribeObservable is called by active or not
+   * @param immediate immediate flag, indicate children should be clear immediately or later
    */
-  #unsubscribeObservable(active = false) {
+  #unsubscribeObservable(active = false, immediate = false) {
     if (this._status === PromiseStatus.PENDING) return
 
     if (this.#parent) {
@@ -152,6 +260,7 @@ export class Observable<T = any, E extends Record<string, any> = object> {
         this.#parent.#children.splice(idx, 1)[0]
       }
     }
+    if (active) this.#finishCallbackList.forEach((fn) => safeCallback(fn)(this.value, this._status))
 
     if (this.#unsubscribeCallbackList.length)
       this.#unsubscribeCallbackList.forEach((fn) => safeCallback(fn)())
@@ -168,6 +277,11 @@ export class Observable<T = any, E extends Record<string, any> = object> {
       // after recursively unsubscribeObservable, if no childPending this.#children.length should be 0
       // so call #clean to clear left property, if has childPending, #cleanParent will be called by child observer
       if (!childPending) this.#clean()
+    } else {
+      if (immediate)
+        // clear all children
+        this.#children = []
+      this.#clean()
     }
   }
 
@@ -204,7 +318,7 @@ export class Observable<T = any, E extends Record<string, any> = object> {
   }
 
   #runThenPlugin(observer: Observable) {
-    this._root?._plugin?.then.forEach((fn) => {
+    this.#plugin.then.forEach((fn) => {
       safeCallback(fn)(() => observer.#unsubscribeObservable())
     })
   }
@@ -217,7 +331,7 @@ export class Observable<T = any, E extends Record<string, any> = object> {
     condition?: (value: T) => boolean,
     differ?: (value: T) => any,
   ) {
-    const observer = new Observable<F extends PromiseLike<infer V> ? V : F, E>(this)
+    const observer = new Observable<F extends PromiseLike<infer V> ? V : F>(this)
     observer.#resolve = onfulfilled
     observer.#reject = onrejected
     observer.#condition = condition
@@ -227,7 +341,7 @@ export class Observable<T = any, E extends Record<string, any> = object> {
       this.#children.push(observer)
     }
     this.#runThenPlugin(observer)
-    if (once) observer._finishFlag = true
+    if (once) observer._onceFlag = true
     if (
       immediate &&
       (this._status === PromiseStatus.RESOLVED || this._status === PromiseStatus.REJECTED)
@@ -235,7 +349,7 @@ export class Observable<T = any, E extends Record<string, any> = object> {
       observer._executeObserver.call(observer, this._cacheRootPromise)
     }
 
-    return this.#chain<F extends PromiseLike<infer V> ? V : F>(observer)
+    return observer
   }
 
   /**
@@ -288,7 +402,7 @@ export class Observable<T = any, E extends Record<string, any> = object> {
    */
   catch(onRejected: OnRejected<unknown>) {
     this.#catchHandler = safeCallback(onRejected)
-    return this.#chain<T>(this)
+    return this
   }
 
   /**
@@ -299,7 +413,7 @@ export class Observable<T = any, E extends Record<string, any> = object> {
 
   finally(onFinally: OnFinally) {
     this.#finallyHandler = safeCallback(onFinally)
-    return this.#chain<T>(this)
+    return this
   }
 
   #set(value: T, setter: (value: T) => void | Promise<void>): Promise<T> | T {
@@ -355,15 +469,6 @@ export class Observable<T = any, E extends Record<string, any> = object> {
   }
 
   /**
-   * Given a condition, the observer will be executed only when condition is true
-   * @param condition condition function, given cur observer value
-   * @returns Observable
-   */
-  filter(condition: (value: T) => boolean) {
-    return this.then<T>(undefined, undefined, condition)
-  }
-
-  /**
    * Given a differ, the observer will be executed only when differ result is not equal to previousvalue
    * @param getter getter function, given cur observer value
    * @returns Observable
@@ -373,7 +478,7 @@ export class Observable<T = any, E extends Record<string, any> = object> {
   }
 
   #runExecutePlugin(result: any) {
-    if (!this._root?._plugin?.execute.length) return result
+    if (!this.#plugin.execute.length) return result
 
     const context = {
       result,
@@ -385,7 +490,7 @@ export class Observable<T = any, E extends Record<string, any> = object> {
     }
 
     // use reduce from left to right to compose plugins
-    return this._root._plugin.execute.reduce((prevResult, plugin) => {
+    return this.#plugin.execute.reduce((prevResult, plugin) => {
       return safeCallback(() => plugin({ ...context, result: prevResult }))() ?? prevResult
     }, context.result)
   }
@@ -403,10 +508,15 @@ export class Observable<T = any, E extends Record<string, any> = object> {
     if (this._root?._finishFlag)
       this.#finishCallbackList.forEach((fn) => safeCallback(fn)(this.value, this._status))
     // unsubscribe check
-    if (this._finishFlag || this._root?._finishFlag || (this.#parent && !this.#parent?._root)) {
+    if (
+      this._unsubscribeFlag ||
+      this._onceFlag ||
+      this._root?._finishFlag ||
+      (this.#parent && !this.#parent?._root)
+    ) {
       const parent = this.#parent
-      this.#unsubscribeObservable()
-      !this._finishFlag && this.#cleanParent(parent)
+      this.#unsubscribeObservable(false, this._unsubscribeFlag)
+      if (!this._onceFlag && !this._unsubscribeFlag) this.#cleanParent(parent)
     }
     // condition check
     if (this.#condition && !safeCallback(this.#condition)(this.value)) return

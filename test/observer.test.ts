@@ -118,12 +118,11 @@ describe('observer test', async () => {
     const observable1$ = promise$.then(observer1)
     const observable11$ = observable1$.then(observer11)
 
-    // 从中间节点开始测试
     promise$.next(Promise.resolve())
     await sleep(50)
     observable1$.unsubscribe()
     await sleep(160)
-    expect(consoleSpy).toHaveBeenCalledTimes(2) // 与根节点测试不同，这里应该为0
+    expect(consoleSpy).toHaveBeenCalledTimes(1)
     expect((observable1$ as any)._cacheRootPromise).toBeNull()
     expect((observable11$ as any)._cacheRootPromise).toBeNull()
   })
@@ -136,12 +135,11 @@ describe('observer test', async () => {
     const observable1$ = promise$.then(observer1)
     const observable11$ = observable1$.then(observer11)
 
-    // 从中间节点开始测试
     promise$.next(Promise.resolve())
     await sleep(150)
     observable1$.unsubscribe()
     await sleep(60)
-    expect(consoleSpy).toHaveBeenCalledTimes(2) // 与根节点测试不同，这里应该为0
+    expect(consoleSpy).toHaveBeenCalledTimes(2)
     expect((observable1$ as any)._cacheRootPromise).toBeNull()
     expect((observable11$ as any)._cacheRootPromise).toBeNull()
   })
@@ -391,16 +389,6 @@ describe('observer test', async () => {
     expect(promise$.value?.key2.key22 === promise1$.value?.key2.key22).toBeFalsy()
   })
 
-  test('test filter method', async () => {
-    const promise$ = $()
-    promise$.filter((value) => value > 2).then(() => console.log('test'))
-    promise$.next(1)
-    promise$.next(2)
-    promise$.next(3)
-    promise$.next(4)
-    expect(consoleSpy).toHaveBeenCalledTimes(2)
-  })
-
   test('test change method', async () => {
     const promise$ = $<{ num: number }>()
     promise$.change((value) => value?.num).then(() => console.log('test'))
@@ -426,5 +414,24 @@ describe('observer test', async () => {
       value.b.c = 3
     })
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 3)
+  })
+
+  test('test add execute plugin', async () => {
+    const promise$ = $()
+    const observer1 = () => promiseFactory(100, 'observer1')
+    const observer2 = () => promiseFactory(100, 'observer2')
+    const executePlugin = ({ result: promise }) =>
+      promise.then((value) => {
+        console.log(value)
+        Promise.resolve(value)
+      })
+    promise$
+      .use({ execute: executePlugin })
+      .then(observer1)
+      .use({ execute: executePlugin })
+      .then(observer2)
+    promise$.next(Promise.resolve())
+    await sleep(210)
+    expect(consoleSpy).toHaveBeenNthCalledWith(2, 'observer1')
   })
 })

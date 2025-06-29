@@ -4,43 +4,37 @@ All notable changes to this project will be documented in this file. See [standa
 
 ## [0.2.0](https://github.com/fluthjs/fluth/compare/v0.1.0...v0.2.0) (2025-06-21)
 
-
 ### Features
 
-* add promiseAll operator and offUnsubscribe offComplete methods ([96f7daa](https://github.com/fluthjs/fluth/commit/96f7daafd0bcfad6f99b4642e9e685343260f58b))
-
+- add promiseAll operator and offUnsubscribe offComplete methods ([96f7daa](https://github.com/fluthjs/fluth/commit/96f7daafd0bcfad6f99b4642e9e685343260f58b))
 
 ### Bug Fixes
 
-* chainPlugin may cause redefineProperty probleam ([22ce787](https://github.com/fluthjs/fluth/commit/22ce7875a1fb6e09a61db9213e832533df6894c3))
+- chainPlugin may cause redefineProperty probleam ([22ce787](https://github.com/fluthjs/fluth/commit/22ce7875a1fb6e09a61db9213e832533df6894c3))
 
 ## [0.1.0](https://github.com/fluthjs/fluth/compare/v0.0.6...v0.1.0) (2025-05-27)
 
-
 ### Features
 
-* add plugin ability ([d94bd84](https://github.com/fluthjs/fluth/commit/d94bd84c2498521cfb9997df480b0b5c9531f6ca))
+- add plugin ability ([d94bd84](https://github.com/fluthjs/fluth/commit/d94bd84c2498521cfb9997df480b0b5c9531f6ca))
 
 ### [0.0.6](https://github.com/fluthjs/fluth/compare/v0.0.5...v0.0.6) (2024-11-23)
 
-
 ### Features
 
-* add thenImmediate api ([8924d91](https://github.com/fluthjs/fluth/commit/8924d9199fcaf97096afb0ae1b859ec8bbc5bf7e))
+- add thenImmediate api ([8924d91](https://github.com/fluthjs/fluth/commit/8924d9199fcaf97096afb0ae1b859ec8bbc5bf7e))
 
 ### [0.0.5](https://github.com/fluthjs/fluth/compare/v0.0.4...v0.0.5) (2024-11-19)
 
-
 ### Bug Fixes
 
-* vue proxy probleam ([aa526fc](https://github.com/fluthjs/fluth/commit/aa526fc7bd1fcdada8882f837db83ad8b675b8b1))
+- vue proxy probleam ([aa526fc](https://github.com/fluthjs/fluth/commit/aa526fc7bd1fcdada8882f837db83ad8b675b8b1))
 
 ### [0.0.4](https://github.com/fluthjs/fluth/compare/v0.0.3...v0.0.4) (2024-11-18)
 
-
 ### Features
 
-* support cjs and mjs ([431ba61](https://github.com/fluthjs/fluth/commit/431ba61954f7e0fe71b5cb4ee7ecbf027b5817d0))
+- support cjs and mjs ([431ba61](https://github.com/fluthjs/fluth/commit/431ba61954f7e0fe71b5cb4ee7ecbf027b5817d0))
 
 ### [0.0.3](https://github.com/fluthjs/fluth/compare/v0.0.2...v0.0.3) (2024-11-18)
 
