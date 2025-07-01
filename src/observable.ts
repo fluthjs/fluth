@@ -43,7 +43,7 @@ export class Observable<T = any> {
   // parent observable node
   #parent: Observable | null = null
   // plugin of current observable
-  #plugin: Plugin = { then: [], execute: [] }
+  #plugin: Plugin = { then: [], execute: [], thenAll: [], executeAll: [] }
 
   // status of observable
   protected _status: PromiseStatus | null = null
@@ -83,11 +83,15 @@ export class Observable<T = any> {
    */
   use<P extends PluginParams[]>(...plugins: P) {
     if (plugins.length === 0) return this
+    const isRoot = !this.#parent
 
     const curPlugin: Plugin = {
       then: plugins.flatMap((p) => p.then || []).filter(Boolean),
       execute: plugins.flatMap((p) => p.execute || []).filter(Boolean),
+      thenAll: isRoot ? plugins.flatMap((p) => p.thenAll || []).filter(Boolean) : [],
+      executeAll: isRoot ? plugins.flatMap((p) => p.executeAll || []).filter(Boolean) : [],
     }
+
     const pluginKeys = Object.keys(curPlugin) as (keyof Plugin)[]
 
     pluginKeys.forEach((key) => {
@@ -112,6 +116,8 @@ export class Observable<T = any> {
     const curPlugin: Plugin = {
       then: plugins.flatMap((p) => p.then || []).filter(Boolean),
       execute: plugins.flatMap((p) => p.execute || []).filter(Boolean),
+      thenAll: plugins.flatMap((p) => p.thenAll || []).filter(Boolean),
+      executeAll: plugins.flatMap((p) => p.executeAll || []).filter(Boolean),
     }
 
     const pluginKeys = Object.keys(curPlugin) as (keyof Plugin)[]
@@ -318,7 +324,8 @@ export class Observable<T = any> {
   }
 
   #runThenPlugin(observer: Observable) {
-    this.#plugin.then.forEach((fn) => {
+    const thenAll = this._root ? this._root.#plugin.thenAll.concat(this.#plugin.then) : this.#plugin.then
+    thenAll.forEach((fn) => {
       safeCallback(fn)(() => observer.#unsubscribeObservable())
     })
   }
@@ -490,7 +497,8 @@ export class Observable<T = any> {
     }
 
     // use reduce from left to right to compose plugins
-    return this.#plugin.execute.reduce((prevResult, plugin) => {
+    const executeAll = this._root ? this._root.#plugin.executeAll.concat(this.#plugin.execute) : this.#plugin.execute
+    return executeAll.reduce((prevResult, plugin) => {
       return safeCallback(() => plugin({ ...context, result: prevResult }))() ?? prevResult
     }, context.result)
   }

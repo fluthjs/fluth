@@ -24,6 +24,8 @@ export type executePlugin = <T>(params: {
 export interface PluginParams {
   then?: thenPluginFn | thenPluginFn[]
   execute?: executePlugin | executePlugin[]
+  thenAll?: thenPluginFn | thenPluginFn[]
+  executeAll?: executePlugin | executePlugin[]
 }
 
 /**
@@ -32,6 +34,8 @@ export interface PluginParams {
 export interface Plugin {
   then: thenPluginFn[]
   execute: executePlugin[]
+  thenAll: thenPluginFn[]
+  executeAll: executePlugin[]
 }
 
 export type Operator<T = any> = (observable: Observable<T>) => Observable<T>
@@ -52,7 +56,7 @@ export type OperatorFunction<T = any, R = any> = (observable: Observable<T>) => 
 export type PipeResult<T, Ops extends any[]> = Ops extends []
   ? T
   : Ops extends [infer FirstOp, ...infer RestOps]
-    ? FirstOp extends OperatorFunction<T, infer R>
-      ? PipeResult<R, RestOps>
-      : never
-    : never
+  ? FirstOp extends OperatorFunction<T, infer R>
+  ? PipeResult<R, RestOps>
+  : never
+  : never
