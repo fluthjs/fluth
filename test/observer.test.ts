@@ -434,4 +434,22 @@ describe('observer test', async () => {
     await sleep(210)
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'observer1')
   })
+
+  test('test then plugin', async () => {
+    const promise$ = $()
+    const thenPlugin = {
+      then: (unsubscribe) => {
+        setTimeout(unsubscribe, 100)
+      },
+    }
+    promise$.use(thenPlugin)
+    promise$.then((data) => console.log(data))
+
+    promise$.next('hello')
+    expect(consoleSpy).toHaveBeenNthCalledWith(1, 'hello')
+    consoleSpy.mockClear()
+    await sleep(100)
+    promise$.next('world')
+    expect(consoleSpy).toHaveBeenCalledTimes(0)
+  })
 })

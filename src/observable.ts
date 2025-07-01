@@ -235,6 +235,8 @@ export class Observable<T = any> {
       this._status = null
       this.#condition = undefined
       this.#differ = undefined
+      this.#plugin.then = []
+      this.#plugin.execute = []
       this._cacheRootPromise = null
     }
   }
@@ -324,8 +326,8 @@ export class Observable<T = any> {
   }
 
   #runThenPlugin(observer: Observable) {
-    const thenAll = this._root ? this._root.#plugin.thenAll.concat(this.#plugin.then) : this.#plugin.then
-    thenAll.forEach((fn) => {
+    const thenPlugins = this._root ? this._root.#plugin.thenAll.concat(this.#plugin.then) : this.#plugin.then
+    thenPlugins.forEach((fn) => {
       safeCallback(fn)(() => observer.#unsubscribeObservable(), observer)
     })
   }

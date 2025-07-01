@@ -4,7 +4,7 @@ import { Stream } from './stream'
 export type OnFulfilled<T = any, V = any> = (data: T) => V | Promise<V>
 export type OnRejected<V = any> = (reason: any) => V | Promise<V>
 export type OnFinally = Parameters<Promise<any>['finally']>[0]
-export type thenPluginFn = (unsubscribe: () => void) => void
+export type thenPluginFn = (unsubscribe: () => void, observable: Observable) => void
 /**
  * @param params
  * @returns return promise will reset observer value
