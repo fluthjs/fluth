@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.3.1](https://github.com/fluthjs/fluth/compare/v0.3.0...v0.3.1) (2025-07-01)
+
+
+### Features
+
+* add thenAll and executeAll plugin capability ([e5db289](https://github.com/fluthjs/fluth/commit/e5db28936c24dd61db3e129a7671500ce7debe4c))
+
 ## [0.3.0](https://github.com/fluthjs/fluth/compare/v0.1.0...v0.3.0) (2025-06-29)
 
 
