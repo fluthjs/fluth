@@ -45,8 +45,6 @@ export class Observable<T = any> {
   // plugin of current observable
   #plugin: Plugin = { then: [], execute: [], thenAll: [], executeAll: [] }
 
-  // status of observable
-  protected _status: PromiseStatus | null = null
   // root observable node
   protected _root: Stream | null = null
   // cache root promise, for execute fn
@@ -64,6 +62,8 @@ export class Observable<T = any> {
 
   // value of observable node
   value: T | undefined
+  // status of observable node
+  status: PromiseStatus | null = null
 
   constructor(streamOrParent?: Stream | Observable) {
     if (!streamOrParent) return
@@ -247,7 +247,7 @@ export class Observable<T = any> {
     this._root = null
     // clear property if no child observer
     if (!this.#children.length) {
-      this._status = null
+      this.status = null
       this.#condition = undefined
       this.#differ = undefined
       this.#plugin.then = []
@@ -275,7 +275,7 @@ export class Observable<T = any> {
    * @param immediate immediate flag, indicate children should be clear immediately or later
    */
   #unsubscribeObservable(active = false, immediate = false) {
-    if (this._status === PromiseStatus.PENDING) return
+    if (this.status === PromiseStatus.PENDING) return
 
     if (this.#parent) {
       const idx = this.#parent.#children.indexOf(this)
@@ -283,7 +283,7 @@ export class Observable<T = any> {
         this.#parent.#children.splice(idx, 1)[0]
       }
     }
-    if (active) this.#finishCallbackList.forEach((fn) => safeCallback(fn)(this.value, this._status))
+    if (active) this.#finishCallbackList.forEach((fn) => safeCallback(fn)(this.value, this.status))
 
     if (this.#unsubscribeCallbackList.length)
       this.#unsubscribeCallbackList.forEach((fn) => safeCallback(fn)())
@@ -292,7 +292,7 @@ export class Observable<T = any> {
 
     // Recursively call the #unsubscribeObservable method of child nodes.
     if (active) {
-      const childPending = this.#children.some((child) => child._status === PromiseStatus.PENDING)
+      const childPending = this.#children.some((child) => child.status === PromiseStatus.PENDING)
 
       this.#children.slice().forEach((child) => {
         child.#unsubscribeObservable(active)
@@ -370,7 +370,7 @@ export class Observable<T = any> {
     if (once) observer._onceFlag = true
     if (
       immediate &&
-      (this._status === PromiseStatus.RESOLVED || this._status === PromiseStatus.REJECTED)
+      (this.status === PromiseStatus.RESOLVED || this.status === PromiseStatus.REJECTED)
     ) {
       observer._executeObserver.call(observer, this._cacheRootPromise)
     }
@@ -490,7 +490,7 @@ export class Observable<T = any> {
    * @returns Observable
    */
   $thenImmediate(setter: (value: T) => void | Promise<void>) {
-    if (!this.#parent) this._status = this._status === null ? PromiseStatus.RESOLVED : this._status
+    if (!this.#parent) this.status = this.status === null ? PromiseStatus.RESOLVED : this.status
     return this.#thenObserver<T>(false, true, (value) => this.#set(value, setter))
   }
 
@@ -535,7 +535,7 @@ export class Observable<T = any> {
     this.#finallyHandler?.()
     // finish flag check
     if (this._root?._finishFlag)
-      this.#finishCallbackList.forEach((fn) => safeCallback(fn)(this.value, this._status))
+      this.#finishCallbackList.forEach((fn) => safeCallback(fn)(this.value, this.status))
     // unsubscribe check
     if (
       this._unsubscribeFlag ||
@@ -579,7 +579,7 @@ export class Observable<T = any> {
             differResult =
               safeCallback(this.#differ)(this.value) === safeCallback(this.#differ)(data)
           this.value = data
-          this._status = PromiseStatus.RESOLVED
+          this.status = PromiseStatus.RESOLVED
         },
         (error) => {
           // first time skip differ check
@@ -587,12 +587,12 @@ export class Observable<T = any> {
             differResult =
               safeCallback(this.#differ)(this.value) === safeCallback(this.#differ)(error)
           this.value = error
-          this._status = PromiseStatus.REJECTED
+          this.status = PromiseStatus.REJECTED
         },
       )
       promise.finally(() => this.#executeFinish(differResult))
     } else {
-      this._status = PromiseStatus.RESOLVED
+      this.status = PromiseStatus.RESOLVED
       if (this.#differ && status !== null)
         differResult = safeCallback(this.#differ)(this.value) === safeCallback(this.#differ)(result)
       this.value = result
@@ -619,7 +619,7 @@ export class Observable<T = any> {
       const result = this.#runExecutePlugin(nodeProcessor())
       this.#executeResult(result, status, this.#catchHandler)
     } catch (error) {
-      this._status = this.#catchHandler ? PromiseStatus.RESOLVED : PromiseStatus.REJECTED
+      this.status = this.#catchHandler ? PromiseStatus.RESOLVED : PromiseStatus.REJECTED
       // ! not sure whether is the correct way to handle this error
       const result = this.#catchHandler ? safeCallback(this.#catchHandler)(error) : error
       this.#executeResult(result, status)
@@ -642,21 +642,21 @@ export class Observable<T = any> {
   ) {
     if (!rootPromise || this._root?._pauseFlag || rootPromise !== this._root?._rootPromise) return
 
-    const status = this._status
-    this._status = PromiseStatus.PENDING
+    const status = this.status
+    this.status = PromiseStatus.PENDING
 
     // root node
     if (!this.#parent) {
       // if rootValue is provided, execute rootValue immediately instead of waiting for the rootPromise to resolve
       this.#executeNode(() => (active ? rootPromise : rootValue), rootPromise, status)
       // child node
-    } else if (this.#parent._status === PromiseStatus.RESOLVED) {
+    } else if (this.#parent.status === PromiseStatus.RESOLVED) {
       this.#executeNode(
         () => this.#resolve?.(this.#parent?.value) || this.#parent?.value,
         rootPromise,
         status,
       )
-    } else if (this.#parent._status === PromiseStatus.REJECTED) {
+    } else if (this.#parent.status === PromiseStatus.REJECTED) {
       this.#executeNode(
         () => this.#reject?.(this.#parent?.value) || Promise.reject(this.#parent?.value),
         rootPromise,

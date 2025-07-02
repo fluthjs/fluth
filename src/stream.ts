@@ -13,7 +13,7 @@ export class Stream<T = any, I extends boolean = false> extends Observable<T> {
     this._root = this as Stream
     this.value = data as T
     this._rootPromise = Promise.resolve(data as T)
-    this._status = PromiseStatus.RESOLVED
+    this.status = PromiseStatus.RESOLVED
     // set cacheRootPromise for execute fn
     this._cacheRootPromise = this._rootPromise
   }

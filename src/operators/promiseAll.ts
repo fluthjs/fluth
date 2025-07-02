@@ -1,6 +1,6 @@
 import { Observable } from '../observable'
 import { Stream } from '../stream'
-import { StreamTupleValues } from '../types'
+import { StreamTupleValues, PromiseStatus } from '../types'
 import { useUnsubscribeCallback } from '../utils'
 
 /**
@@ -15,21 +15,31 @@ import { useUnsubscribeCallback } from '../utils'
 export const promiseAll = <T extends (Stream | Observable)[]>(...args$: T) => {
   const stream$ = new Stream<StreamTupleValues<T>>()
   const payload: StreamTupleValues<T> = [] as any
-  const promiseStatus = [...Array(args$.length)].map(() => 'pending')
+  const promiseStatus: PromiseStatus[] = [...Array(args$.length)].map(() => PromiseStatus.PENDING)
   let finishCount = 0
   const { unsubscribeCallback } = useUnsubscribeCallback(stream$, args$.length)
   const completeCallback = () => (finishCount += 1)
 
   const next = () => {
-    if (promiseStatus.every((status) => status !== 'pending')) {
+    if (promiseStatus.every((status) => status !== PromiseStatus.PENDING)) {
       stream$.next(
-        promiseStatus.some((status) => status === 'rejected')
+        promiseStatus.some((status) => status === PromiseStatus.REJECTED)
           ? Promise.reject([...payload])
           : [...payload],
         finishCount === args$.length,
       )
-      promiseStatus.forEach((_, index) => (promiseStatus[index] = 'pending'))
+      promiseStatus.forEach((_, index) => {
+        ;(promiseStatus as PromiseStatus[])[index] = PromiseStatus.PENDING
+      })
     }
+  }
+
+  const resetPromiseStatus = () => {
+    args$.forEach((arg$, index) => {
+      if (arg$.status === PromiseStatus.PENDING) {
+        promiseStatus[index] = PromiseStatus.PENDING
+      }
+    })
   }
 
   args$.forEach((arg$, index) => {
@@ -37,13 +47,15 @@ export const promiseAll = <T extends (Stream | Observable)[]>(...args$: T) => {
     arg$.afterComplete(completeCallback)
     arg$.then(
       (value) => {
-        promiseStatus[index] = 'resolved'
+        promiseStatus[index] = PromiseStatus.RESOLVED
         payload[index] = value
+        resetPromiseStatus()
         next()
       },
       (value) => {
-        promiseStatus[index] = 'rejected'
+        promiseStatus[index] = PromiseStatus.REJECTED
         payload[index] = value
+        resetPromiseStatus()
         next()
       },
     )
