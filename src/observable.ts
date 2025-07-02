@@ -196,6 +196,18 @@ export class Observable<T = any> {
     op8: OperatorFunction<G, H>,
     op9: OperatorFunction<H, I>,
   ): Observable<I>
+  pipe<A, B, C, D, E, F, G, H, I>(
+    op1: OperatorFunction<T, A>,
+    op2: OperatorFunction<A, B>,
+    op3: OperatorFunction<B, C>,
+    op4: OperatorFunction<C, D>,
+    op5: OperatorFunction<D, E>,
+    op6: OperatorFunction<E, F>,
+    op7: OperatorFunction<F, G>,
+    op8: OperatorFunction<G, H>,
+    op9: OperatorFunction<H, I>,
+    ...ops: OperatorFunction<any, any>[]
+  ): Observable
   pipe<Ops extends OperatorFunction<any, any>[]>(
     ...operators: Ops
   ): Observable<PipeResult<T, Ops>> {
