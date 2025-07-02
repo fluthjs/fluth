@@ -1,6 +1,6 @@
 {
   "name": "fluth",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "A Promise-based asynchronous flow control library",
   "author": "yiludege <https://github.com/yiludege>",
   "repository": "https://github.com/fluthjs/fluth",
