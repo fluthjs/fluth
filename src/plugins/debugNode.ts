@@ -20,6 +20,8 @@ export const debugNode = () => ({
       // eslint-disable-next-line
       debugger
     }
+    // eslint-disable-next-line
+    debugger
     return result
   },
 })
