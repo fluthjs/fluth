@@ -326,7 +326,9 @@ export class Observable<T = any> {
   }
 
   #runThenPlugin(observer: Observable) {
-    const thenPlugins = this._root ? this._root.#plugin.thenAll.concat(this.#plugin.then) : this.#plugin.then
+    const thenPlugins = this._root
+      ? this._root.#plugin.thenAll.concat(this.#plugin.then)
+      : this.#plugin.then
     thenPlugins.forEach((fn) => {
       safeCallback(fn)(() => observer.#unsubscribeObservable(), observer)
     })
@@ -499,7 +501,9 @@ export class Observable<T = any> {
     }
 
     // use reduce from left to right to compose plugins
-    const executeAll = this._root ? this._root.#plugin.executeAll.concat(this.#plugin.execute) : this.#plugin.execute
+    const executeAll = this._root
+      ? this._root.#plugin.executeAll.concat(this.#plugin.execute)
+      : this.#plugin.execute
     return executeAll.reduce((prevResult, plugin) => {
       return safeCallback(() => plugin({ ...context, result: prevResult }))() ?? prevResult
     }, context.result)
@@ -611,6 +615,7 @@ export class Observable<T = any> {
    * Execute observer with optional root promise or value
    * @param rootPromise - Root promise to observe (optional)
    * @param rootValue - Immediate value to use instead of promise (optional)
+   * @param active - Whether called by execute function
    * @remarks
    * - If rootValue provided, will use it immediately
    * - Only executes if not paused and promise matches root promise
@@ -618,6 +623,7 @@ export class Observable<T = any> {
   protected _executeObserver(
     rootPromise: PromiseLike<any> | null = this._cacheRootPromise,
     rootValue?: any,
+    active = false,
   ) {
     if (!rootPromise || this._root?._pauseFlag || rootPromise !== this._root?._rootPromise) return
 
@@ -627,11 +633,7 @@ export class Observable<T = any> {
     // root node
     if (!this.#parent) {
       // if rootValue is provided, execute rootValue immediately instead of waiting for the rootPromise to resolve
-      this.#executeNode(
-        () => (rootValue !== undefined ? rootValue : rootPromise),
-        rootPromise,
-        status,
-      )
+      this.#executeNode(() => (active ? rootPromise : rootValue), rootPromise, status)
       // child node
     } else if (this.#parent._status === PromiseStatus.RESOLVED) {
       this.#executeNode(
@@ -652,6 +654,6 @@ export class Observable<T = any> {
    * Execute observer, if rootPromise is provided, it will execute observer immediately
    */
   execute() {
-    return this._executeObserver()
+    return this._executeObserver(undefined, undefined, true)
   }
 }

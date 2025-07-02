@@ -11,13 +11,11 @@ export class Stream<T = any, I extends boolean = false> extends Observable<T> {
       throw new Error('Stream data cannot be a Promise')
     }
     this._root = this as Stream
-    if (data !== undefined) {
-      this.value = data
-      this._rootPromise = Promise.resolve(data)
-      this._status = PromiseStatus.RESOLVED
-      // set cacheRootPromise for execute fn
-      this._cacheRootPromise = this._rootPromise
-    }
+    this.value = data as T
+    this._rootPromise = Promise.resolve(data as T)
+    this._status = PromiseStatus.RESOLVED
+    // set cacheRootPromise for execute fn
+    this._cacheRootPromise = this._rootPromise
   }
 
   set(setter: (state: T) => void, finishFlag = this._finishFlag) {
@@ -54,7 +52,7 @@ export class Stream<T = any, I extends boolean = false> extends Observable<T> {
     if (!isPromiseLikePayload) this.value = payload
     this._rootPromise = promise
     this._finishFlag = finishFlag
-    this._executeObserver(promise, isPromiseLikePayload ? undefined : payload)
+    this._executeObserver(promise, payload)
   }
 }
 
