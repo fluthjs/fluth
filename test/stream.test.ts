@@ -26,6 +26,17 @@ describe('stream test', async () => {
     expect(consoleSpy).toHaveBeenNthCalledWith(1, true)
   })
 
+  test('test Stream with boundary value', async () => {
+    const promise$ = $(0)
+    expect(promise$.value).toBe(0)
+    const promise1$ = $(undefined)
+    expect(promise1$.value).toBe(undefined)
+    const promise2$ = $(null)
+    expect(promise2$.value).toBe(null)
+    const promise3$ = $(false)
+    expect(promise3$.value).toBe(false)
+  })
+
   test('test stream execute order', async () => {
     const promise$ = $()
 

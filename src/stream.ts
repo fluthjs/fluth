@@ -11,7 +11,7 @@ export class Stream<T = any, I extends boolean = false> extends Observable<T> {
       throw new Error('Stream data cannot be a Promise')
     }
     this._root = this as Stream
-    if (data) {
+    if (data !== undefined) {
       this.value = data
       this._rootPromise = Promise.resolve(data)
       this._status = PromiseStatus.RESOLVED
