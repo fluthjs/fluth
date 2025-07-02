@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.3.8](https://github.com/fluthjs/fluth/compare/v0.3.7...v0.3.8) (2025-07-02)
+
+
+### Features
+
+* promiseAll operator no emit when status is pending ([b9db4a0](https://github.com/fluthjs/fluth/commit/b9db4a0ca74de2840db544260bb14d77629c8967))
+
 ### [0.3.7](https://github.com/fluthjs/fluth/compare/v0.3.6...v0.3.7) (2025-07-02)
 
 
