@@ -401,11 +401,11 @@ describe('observer test', async () => {
 
   test('test get method', async () => {
     const promise$ = $({ a: 1, b: { c: 2 } })
-    const promise1$ = promise$.get((value) => value?.b)
-    promise1$.then((value) => {
+    const observable$ = promise$.get((value) => value?.b)
+    observable$.then((value) => {
       console.log(value?.c)
     })
-    expect(promise1$.value?.c).toBe(2)
+    expect(observable$.value?.c).toBe(2)
     promise$.set((value) => {
       value.a = 2
     })

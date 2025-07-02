@@ -581,7 +581,7 @@ export class Observable<T = any> {
       promise.finally(() => this.#executeFinish(differResult))
     } else {
       this._status = PromiseStatus.RESOLVED
-      if (this.#differ)
+      if (this.#differ && status !== null)
         differResult = safeCallback(this.#differ)(this.value) === safeCallback(this.#differ)(result)
       this.value = result
       this.#executeFinish(differResult)
