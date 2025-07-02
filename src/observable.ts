@@ -83,13 +83,16 @@ export class Observable<T = any> {
    */
   use<P extends PluginParams[]>(...plugins: P) {
     if (plugins.length === 0) return this
-    const isRoot = !this.#parent
 
     const curPlugin: Plugin = {
       then: plugins.flatMap((p) => p.then || []).filter(Boolean),
       execute: plugins.flatMap((p) => p.execute || []).filter(Boolean),
-      thenAll: isRoot ? plugins.flatMap((p) => p.thenAll || []).filter(Boolean) : [],
-      executeAll: isRoot ? plugins.flatMap((p) => p.executeAll || []).filter(Boolean) : [],
+      thenAll: plugins.flatMap((p) => p.thenAll || []).filter(Boolean),
+      executeAll: plugins.flatMap((p) => p.executeAll || []).filter(Boolean),
+    }
+
+    if (this.#parent && (curPlugin.thenAll.length || curPlugin.executeAll.length)) {
+      throw new Error('observable node can not use thenAll or executeAll plugin')
     }
 
     const pluginKeys = Object.keys(curPlugin) as (keyof Plugin)[]
@@ -489,7 +492,10 @@ export class Observable<T = any> {
   }
 
   #runExecutePlugin(result: any) {
-    if (!this.#plugin.execute.length) return result
+    const executeAll = this._root
+      ? this._root.#plugin.executeAll.concat(this.#plugin.execute)
+      : this.#plugin.execute
+    if (!executeAll.length) return result
 
     const context = {
       result,
@@ -501,9 +507,6 @@ export class Observable<T = any> {
     }
 
     // use reduce from left to right to compose plugins
-    const executeAll = this._root
-      ? this._root.#plugin.executeAll.concat(this.#plugin.execute)
-      : this.#plugin.execute
     return executeAll.reduce((prevResult, plugin) => {
       return safeCallback(() => plugin({ ...context, result: prevResult }))() ?? prevResult
     }, context.result)
