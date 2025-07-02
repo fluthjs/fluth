@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.3.5](https://github.com/fluthjs/fluth/compare/v0.3.4...v0.3.5) (2025-07-02)
+
+
+### Features
+
+* add consoleAll plugin ([c6a98a5](https://github.com/fluthjs/fluth/commit/c6a98a51fb8ee5201e3c8a0d12d16af702b0c7c1))
+* add debugNode and debugAll plugin ([c988a24](https://github.com/fluthjs/fluth/commit/c988a24c28dc74a306a812dc5fe95bdefa8989c5))
+* modify consoleExec to consoleNode and add custom console prefix ([7c30266](https://github.com/fluthjs/fluth/commit/7c3026681952f787b73627f9d6426df7aa109d11))
+
 ### [0.3.4](https://github.com/fluthjs/fluth/compare/v0.3.3...v0.3.4) (2025-07-02)
 
 
