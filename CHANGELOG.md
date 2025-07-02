@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.3.6](https://github.com/fluthjs/fluth/compare/v0.3.5...v0.3.6) (2025-07-02)
+
+
+### Bug Fixes
+
+* get method lead error ([8dc48f0](https://github.com/fluthjs/fluth/commit/8dc48f0ae68158a619ab8f4610f4a1803e57fe47))
+
 ### [0.3.5](https://github.com/fluthjs/fluth/compare/v0.3.4...v0.3.5) (2025-07-02)
 
 
