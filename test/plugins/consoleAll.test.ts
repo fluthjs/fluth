@@ -1,7 +1,6 @@
 import { expect, describe, test, vi, beforeEach } from 'vitest'
 import { consoleSpy, sleep } from '../utils'
-import { $, debounce } from '../../index'
-import { consoleAll } from '../../src/plugins/consoleAll'
+import { $, debounce, consoleAll } from '../../index'
 
 describe('consoleAll plugins test', async () => {
   beforeEach(() => {
