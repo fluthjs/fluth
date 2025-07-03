@@ -35,8 +35,6 @@ export const debugAll = () => ({
       // eslint-disable-next-line
       debugger
     }
-    // eslint-disable-next-line
-    debugger
     return result
   },
 })

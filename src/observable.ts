@@ -43,7 +43,7 @@ export class Observable<T = any> {
   // parent observable node
   #parent: Observable | null = null
   // plugin of current observable
-  #plugin: Plugin = { then: [], execute: [], thenAll: [], executeAll: [] }
+  #plugin: Plugin<T> = { then: [], execute: [], thenAll: [], executeAll: [] }
 
   // root observable node
   protected _root: Stream | null = null
@@ -81,10 +81,10 @@ export class Observable<T = any> {
    * @param plugin plugin
    * @returns current observable
    */
-  use<P extends PluginParams[]>(...plugins: P) {
+  use<P extends PluginParams<T>[]>(...plugins: P) {
     if (plugins.length === 0) return this
 
-    const curPlugin: Plugin = {
+    const curPlugin: Plugin<T> = {
       then: plugins.flatMap((p) => p.then || []).filter(Boolean),
       execute: plugins.flatMap((p) => p.execute || []).filter(Boolean),
       thenAll: plugins.flatMap((p) => p.thenAll || []).filter(Boolean),
@@ -95,7 +95,7 @@ export class Observable<T = any> {
       throw new Error('observable node can not use thenAll or executeAll plugin')
     }
 
-    const pluginKeys = Object.keys(curPlugin) as (keyof Plugin)[]
+    const pluginKeys = Object.keys(curPlugin) as (keyof Plugin<TextEncoderStream>)[]
 
     pluginKeys.forEach((key) => {
       const item = curPlugin[key]
@@ -114,16 +114,16 @@ export class Observable<T = any> {
    * @param plugins ThenOrExecutePlugin
    * @returns current observable
    */
-  remove<P extends PluginParams[]>(...plugins: P) {
+  remove<P extends PluginParams<T>[]>(...plugins: P) {
     if (plugins.length === 0) return this
-    const curPlugin: Plugin = {
+    const curPlugin: Plugin<T> = {
       then: plugins.flatMap((p) => p.then || []).filter(Boolean),
       execute: plugins.flatMap((p) => p.execute || []).filter(Boolean),
       thenAll: plugins.flatMap((p) => p.thenAll || []).filter(Boolean),
       executeAll: plugins.flatMap((p) => p.executeAll || []).filter(Boolean),
     }
 
-    const pluginKeys = Object.keys(curPlugin) as (keyof Plugin)[]
+    const pluginKeys = Object.keys(curPlugin) as (keyof Plugin<T>)[]
 
     pluginKeys.forEach((key) => {
       this.#plugin[key] = this.#plugin[key].filter(

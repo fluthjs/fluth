@@ -25,6 +25,98 @@ describe('debugNode plugins test', async () => {
     expect(resolvedValue).toBe('async-value')
   })
 
+  test('test debugNode with condition function', async () => {
+    // Test condition function that returns true (should not trigger debugger)
+    const conditionTrue = vi.fn(() => true)
+    const plugin1 = debugNode(conditionTrue)
+    
+    const result1 = plugin1.execute({ result: 'test-value' })
+    expect(result1).toBe('test-value')
+    expect(conditionTrue).toHaveBeenCalledWith('test-value')
+
+    // Test condition function that returns false (would trigger debugger)
+    const conditionFalse = vi.fn(() => false)
+    const plugin2 = debugNode(conditionFalse)
+    
+    const result2 = plugin2.execute({ result: 'test-value' })
+    expect(result2).toBe('test-value')
+    expect(conditionFalse).toHaveBeenCalledWith('test-value')
+  })
+
+  test('test debugNode with condition function for Promise', async () => {
+    const condition = vi.fn(() => true)
+    const plugin = debugNode(condition)
+    
+    const promiseValue = Promise.resolve('async-value')
+    const result = plugin.execute({ result: promiseValue })
+    expect(result).toBe(promiseValue)
+    
+    // Wait for promise to resolve and condition to be called
+    await promiseValue
+    expect(condition).toHaveBeenCalledWith('async-value')
+  })
+
+  test('test debugNode with conditionError function', async () => {
+    // Test conditionError function that returns true (should not trigger debugger)
+    const conditionErrorTrue = vi.fn(() => true)
+    const plugin1 = debugNode(undefined, conditionErrorTrue)
+    
+    const rejectedPromise = Promise.reject(new Error('test error'))
+    const result = plugin1.execute({ result: rejectedPromise })
+    expect(result).toBe(rejectedPromise)
+    
+    try {
+      await rejectedPromise
+    } catch (error) {
+      // Wait a bit for the error handler to be called
+      await new Promise(resolve => setTimeout(resolve, 0))
+      expect(conditionErrorTrue).toHaveBeenCalledWith(error)
+    }
+  })
+
+  test('test debugNode with conditionError function returning false', async () => {
+    const conditionErrorFalse = vi.fn(() => false)
+    const plugin = debugNode(undefined, conditionErrorFalse)
+    
+    const rejectedPromise = Promise.reject(new Error('test error'))
+    const result = plugin.execute({ result: rejectedPromise })
+    expect(result).toBe(rejectedPromise)
+    
+    try {
+      await rejectedPromise
+    } catch (error) {
+      // Wait a bit for the error handler to be called
+      await new Promise(resolve => setTimeout(resolve, 0))
+      expect(conditionErrorFalse).toHaveBeenCalledWith(error)
+    }
+  })
+
+  test('test debugNode with both condition and conditionError', async () => {
+    const condition = vi.fn(() => true)
+    const conditionError = vi.fn(() => false)
+    const plugin = debugNode(condition, conditionError)
+    
+    // Test successful case
+    const successPromise = Promise.resolve('success')
+    const result1 = plugin.execute({ result: successPromise })
+    expect(result1).toBe(successPromise)
+    
+    await successPromise
+    expect(condition).toHaveBeenCalledWith('success')
+    
+    // Test error case
+    const errorPromise = Promise.reject(new Error('error'))
+    const result2 = plugin.execute({ result: errorPromise })
+    expect(result2).toBe(errorPromise)
+    
+    try {
+      await errorPromise
+    } catch (error) {
+      await new Promise(resolve => setTimeout(resolve, 0))
+      expect(conditionError).toHaveBeenCalledWith(error)
+    }
+  })
+
   test('test debugNode with Promise rejection', async () => {
     const plugin = debugNode()
     const rejectedPromise = Promise.reject(new Error('test error'))

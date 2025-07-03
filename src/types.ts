@@ -4,12 +4,12 @@ import { Stream } from './stream'
 export type OnFulfilled<T = any, V = any> = (data: T) => V | Promise<V>
 export type OnRejected<V = any> = (reason: any) => V | Promise<V>
 export type OnFinally = Parameters<Promise<any>['finally']>[0]
-export type thenPluginFn = (unsubscribe: () => void, observable: Observable) => void
+export type thenPluginFn<T> = (unsubscribe: () => void, observable: Observable<T>) => void
 /**
  * @param params
  * @returns return promise will reset observer value
  */
-export type executePlugin = <T>(params: {
+export type executePlugin<T> = (params: {
   result: Promise<T> | T
   set: (setter: (state: T) => Promise<void> | void) => Promise<T> | T
   root: boolean
@@ -21,21 +21,21 @@ export type executePlugin = <T>(params: {
 /**
  * @description use or remove plugins params
  */
-export interface PluginParams {
-  then?: thenPluginFn | thenPluginFn[]
-  execute?: executePlugin | executePlugin[]
-  thenAll?: thenPluginFn | thenPluginFn[]
-  executeAll?: executePlugin | executePlugin[]
+export interface PluginParams<T> {
+  then?: thenPluginFn<T> | thenPluginFn<T>[]
+  execute?: executePlugin<T> | executePlugin<T>[]
+  thenAll?: thenPluginFn<T> | thenPluginFn<T>[]
+  executeAll?: executePlugin<T> | executePlugin<T>[]
 }
 
 /**
  * @description plugin of observable
  */
-export interface Plugin {
-  then: thenPluginFn[]
-  execute: executePlugin[]
-  thenAll: thenPluginFn[]
-  executeAll: executePlugin[]
+export interface Plugin<T> {
+  then: thenPluginFn<T>[]
+  execute: executePlugin<T>[]
+  thenAll: thenPluginFn<T>[]
+  executeAll: executePlugin<T>[]
 }
 
 export type Operator<T = any> = (observable: Observable<T>) => Observable<T>
@@ -56,7 +56,7 @@ export type OperatorFunction<T = any, R = any> = (observable: Observable<T>) => 
 export type PipeResult<T, Ops extends any[]> = Ops extends []
   ? T
   : Ops extends [infer FirstOp, ...infer RestOps]
-  ? FirstOp extends OperatorFunction<T, infer R>
-  ? PipeResult<R, RestOps>
-  : never
-  : never
+    ? FirstOp extends OperatorFunction<T, infer R>
+      ? PipeResult<R, RestOps>
+      : never
+    : never
