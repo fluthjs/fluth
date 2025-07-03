@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.3.11](https://github.com/fluthjs/fluth/compare/v0.3.10...v0.3.11) (2025-07-03)
+
+
+### Bug Fixes
+
+* debugNode plugin not work ([e3a9703](https://github.com/fluthjs/fluth/commit/e3a970399161aa3f97eb313d6274b51a5c91d7d6))
+
 ### [0.3.10](https://github.com/fluthjs/fluth/compare/v0.3.7...v0.3.10) (2025-07-03)
 
 
