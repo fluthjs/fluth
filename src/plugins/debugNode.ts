@@ -14,16 +14,16 @@ export const debugNode = (
       result.then(
         (data) => {
           // eslint-disable-next-line
-          if (!condition || !condition(data)) debugger
+          if (!condition || condition(data)) debugger
         },
         (error) => {
           // eslint-disable-next-line
-          if (!conditionError || !conditionError(error)) debugger
+          if (!conditionError || conditionError(error)) debugger
         },
       )
     } else {
       // eslint-disable-next-line
-      if (!condition || !condition(result)) debugger
+      if (!condition || condition(result)) debugger
     }
     return result
   },
