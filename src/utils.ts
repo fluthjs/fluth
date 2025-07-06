@@ -1,12 +1,16 @@
 import { isObject, isMap, isSet } from 'limu/lib/support/util'
 import { Stream } from './stream'
 
-export const safeCallback = (callback: any) => {
+export const safeCallback = (callback: any, errorHandler?: (error: any) => void) => {
   return (...args: any[]) => {
     try {
       return callback?.(...args)
     } catch (error) {
-      console.error(error)
+      if (errorHandler) {
+        errorHandler(error)
+      } else {
+        console.error(error)
+      }
     }
   }
 }

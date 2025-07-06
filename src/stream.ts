@@ -49,7 +49,6 @@ export class Stream<T = any, I extends boolean = false> extends Observable<T> {
     const isPromiseLikePayload = isPromiseLike(payload)
     const promise = isPromiseLikePayload ? payload : Promise.resolve(payload)
     if (this._rootPromise === promise || this._finishFlag) return
-    if (!isPromiseLikePayload) this.value = payload
     this._rootPromise = promise
     this._finishFlag = finishFlag
     this._executeObserver(promise, payload)

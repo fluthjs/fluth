@@ -30,10 +30,8 @@ export class Observable<T = any> {
   #condition?: (value: any) => boolean
   // differ fn
   #differ?: (value: any) => any
-  // catch of then handler
-  #catchHandler?: OnRejected
   // finally of then handler
-  #finallyHandler?: OnFinally
+  #finally?: OnFinally
   // after unsubscribe callback
   #unsubscribeCallbackList: (() => void)[] = []
   // only root Observable finished will call this callback
@@ -239,8 +237,7 @@ export class Observable<T = any> {
     // clear property immediately
     this.#resolve = undefined
     this.#reject = undefined
-    this.#catchHandler = undefined
-    this.#finallyHandler = undefined
+    this.#finally = undefined
     this.#unsubscribeCallbackList = []
     this.#finishCallbackList = []
     this.#parent = null
@@ -349,17 +346,27 @@ export class Observable<T = any> {
     })
   }
 
-  #thenObserver<F>(
-    once: boolean,
-    immediate: boolean,
-    onfulfilled?: OnFulfilled<T, F>,
-    onrejected?: OnRejected,
-    condition?: (value: T) => boolean,
-    differ?: (value: T) => any,
-  ) {
+  #thenObserver<F>({
+    once = false,
+    immediate = false,
+    onfulfilled,
+    onrejected,
+    onfinally,
+    condition,
+    differ,
+  }: {
+    once?: boolean
+    immediate?: boolean
+    onfulfilled?: OnFulfilled<T, F>
+    onrejected?: OnRejected
+    onfinally?: OnFinally
+    condition?: (value: T) => boolean
+    differ?: (value: T) => any
+  }) {
     const observer = new Observable<F extends PromiseLike<infer V> ? V : F>(this)
     observer.#resolve = onfulfilled
     observer.#reject = onrejected
+    observer.#finally = onfinally
     observer.#condition = condition
     observer.#differ = differ
 
@@ -393,7 +400,12 @@ export class Observable<T = any> {
     condition?: (value: T) => boolean,
     differ?: (value: T) => any,
   ) {
-    return this.#thenObserver<F>(false, false, onFulfilled, onRejected, condition, differ)
+    return this.#thenObserver<F>({
+      onfulfilled: onFulfilled,
+      onrejected: onRejected,
+      condition,
+      differ,
+    })
   }
 
   /**
@@ -408,7 +420,13 @@ export class Observable<T = any> {
     condition?: (value: T) => boolean,
     differ?: (value: T) => any,
   ) {
-    return this.#thenObserver<F>(false, true, onFulfilled, onRejected, condition, differ)
+    return this.#thenObserver<F>({
+      immediate: true,
+      onfulfilled: onFulfilled,
+      onrejected: onRejected,
+      condition,
+      differ,
+    })
   }
 
   /**
@@ -418,7 +436,11 @@ export class Observable<T = any> {
    * @returns
    */
   thenOnce<F = T>(onFulfilled?: OnFulfilled<T>, onRejected?: OnRejected) {
-    return this.#thenObserver<F>(true, false, onFulfilled, onRejected)
+    return this.#thenObserver<F>({
+      once: true,
+      onfulfilled: onFulfilled,
+      onrejected: onRejected,
+    })
   }
 
   /**
@@ -427,8 +449,9 @@ export class Observable<T = any> {
    * @returns Observable
    */
   catch(onRejected: OnRejected<unknown>) {
-    this.#catchHandler = safeCallback(onRejected)
-    return this
+    return this.#thenObserver<T>({
+      onrejected: onRejected,
+    })
   }
 
   /**
@@ -438,8 +461,9 @@ export class Observable<T = any> {
    */
 
   finally(onFinally: OnFinally) {
-    this.#finallyHandler = safeCallback(onFinally)
-    return this
+    return this.#thenObserver<T>({
+      onfinally: onFinally,
+    })
   }
 
   #set(value: T, setter: (value: T) => void | Promise<void>): Promise<T> | T {
@@ -472,7 +496,9 @@ export class Observable<T = any> {
    * @returns Observable
    */
   $then(setter: (value: T) => void | Promise<void>) {
-    return this.#thenObserver<T>(false, false, (value) => this.#set(value, setter))
+    return this.#thenObserver<T>({
+      onfulfilled: (value: T) => this.#set(value, setter),
+    })
   }
 
   /**
@@ -481,7 +507,10 @@ export class Observable<T = any> {
    * @returns Observable
    */
   $thenOnce(setter: (value: T) => void | Promise<void>) {
-    return this.#thenObserver<T>(true, false, (value) => this.#set(value, setter))
+    return this.#thenObserver<T>({
+      once: true,
+      onfulfilled: (value: T) => this.#set(value, setter),
+    })
   }
 
   /**
@@ -491,7 +520,10 @@ export class Observable<T = any> {
    */
   $thenImmediate(setter: (value: T) => void | Promise<void>) {
     if (!this.#parent) this.status = this.status === null ? PromiseStatus.RESOLVED : this.status
-    return this.#thenObserver<T>(false, true, (value) => this.#set(value, setter))
+    return this.#thenObserver<T>({
+      immediate: true,
+      onfulfilled: (value: T) => this.#set(value, setter),
+    })
   }
 
   /**
@@ -532,7 +564,6 @@ export class Observable<T = any> {
    * @param differResult
    */
   #executeFinish(differResult = false) {
-    this.#finallyHandler?.()
     // finish flag check
     if (this._root?._finishFlag)
       this.#finishCallbackList.forEach((fn) => safeCallback(fn)(this.value, this.status))
@@ -559,43 +590,62 @@ export class Observable<T = any> {
 
   /**
    * Execute node process result, if result is a promise, it will add a catch handler
-   * if catchHandler is provided. If result is not a promise, it will resolve the
-   * observer immediately.
    * @param result result to execute
    * @param status last promise status
-   * @param catchHandler catch handler for promise
    */
-  #executeResult(
-    result: any | Promise<any>,
-    status: PromiseStatus | null,
-    catchHandler?: OnRejected,
-  ) {
+  #executeResult(result: any | Promise<any>, status: PromiseStatus | null) {
     let differResult = false
-    if (result instanceof Promise) {
-      const promise = (catchHandler ? result.catch(catchHandler) : result).then(
+    const handlePromiseResult = (result: Promise<any>) =>
+      result.then(
         (data) => {
+          this.status = PromiseStatus.RESOLVED
           // first time skip differ check
           if (this.#differ && status !== null)
             differResult =
               safeCallback(this.#differ)(this.value) === safeCallback(this.#differ)(data)
           this.value = data
-          this.status = PromiseStatus.RESOLVED
         },
         (error) => {
-          // first time skip differ check
-          if (this.#differ && status !== null)
-            differResult =
-              safeCallback(this.#differ)(this.value) === safeCallback(this.#differ)(error)
-          this.value = error
           this.status = PromiseStatus.REJECTED
+          this.value = error
         },
       )
-      promise.finally(() => this.#executeFinish(differResult))
+    if (result instanceof Promise) {
+      const promise = handlePromiseResult(result)
+      if (this.#finally)
+        promise
+          .finally(() => {
+            try {
+              const finallyResult = this.#finally?.() as any
+              if (finallyResult instanceof Promise) {
+                return handlePromiseResult(finallyResult)
+              }
+            } catch (error) {
+              this.value = error as any
+              this.status = PromiseStatus.REJECTED
+            }
+          })
+          .finally(() => this.#executeFinish(differResult))
+      else promise.finally(() => this.#executeFinish(differResult))
     } else {
       this.status = PromiseStatus.RESOLVED
       if (this.#differ && status !== null)
         differResult = safeCallback(this.#differ)(this.value) === safeCallback(this.#differ)(result)
       this.value = result
+
+      if (this.#finally) {
+        try {
+          const finallyResult = this.#finally?.() as any
+          if (finallyResult instanceof Promise) {
+            return handlePromiseResult(finallyResult).finally(() =>
+              this.#executeFinish(differResult),
+            )
+          }
+        } catch (error) {
+          this.status = PromiseStatus.REJECTED
+          this.value = error as any
+        }
+      }
       this.#executeFinish(differResult)
     }
   }
@@ -617,12 +667,10 @@ export class Observable<T = any> {
     this._cacheRootPromise = rootPromise
     try {
       const result = this.#runExecutePlugin(nodeProcessor())
-      this.#executeResult(result, status, this.#catchHandler)
-    } catch (error) {
-      this.status = this.#catchHandler ? PromiseStatus.RESOLVED : PromiseStatus.REJECTED
-      // ! not sure whether is the correct way to handle this error
-      const result = this.#catchHandler ? safeCallback(this.#catchHandler)(error) : error
       this.#executeResult(result, status)
+    } catch (error) {
+      this.status = PromiseStatus.REJECTED
+      this.#executeResult(Promise.reject(error), status)
     }
   }
 

@@ -2,7 +2,7 @@ import { expect, describe, test, vi, beforeEach } from 'vitest'
 import { consoleSpy, sleep } from '../utils'
 import { $, skip } from '../../index'
 
-describe('skip operator test', async () => {
+describe('skip operator test', () => {
   beforeEach(() => {
     process.on('unhandledRejection', () => null)
     vi.useFakeTimers()
@@ -10,7 +10,7 @@ describe('skip operator test', async () => {
     process.setMaxListeners(100)
   })
 
-  test('test skip method without param', async () => {
+  test('test skip method without param', () => {
     const promise$ = $()
     const observable$ = promise$.then()
     observable$.pipe(skip(1)).then(() => console.log('test'))
@@ -20,7 +20,7 @@ describe('skip operator test', async () => {
     expect(consoleSpy).toHaveBeenCalledTimes(1)
   })
 
-  test('test skip method with param', async () => {
+  test('test skip method with param', () => {
     const promise$ = $()
     const observable$ = promise$.then()
     observable$.pipe(skip(2)).then(() => console.log('test'))
@@ -30,7 +30,7 @@ describe('skip operator test', async () => {
     expect(consoleSpy).toHaveBeenCalledTimes(1)
   })
 
-  test('test skip operator', async () => {
+  test('test skip operator', () => {
     const stream$ = $()
     const skippedStream$ = stream$.pipe(skip(2))
 
@@ -41,21 +41,18 @@ describe('skip operator test', async () => {
     // First two emissions should be skipped
     stream$.next(1)
     stream$.next(2)
-    await sleep(1)
     expect(consoleSpy).not.toHaveBeenCalled()
 
     // Third emission should pass through
     stream$.next(3)
-    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'skipped:', 3)
 
     // Subsequent emissions should also pass through
     stream$.next(4)
-    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'skipped:', 4)
   })
 
-  test('test skip with zero count', async () => {
+  test('test skip with zero count', () => {
     const stream$ = $()
     const skippedStream$ = stream$.pipe(skip(0))
 
@@ -65,15 +62,13 @@ describe('skip operator test', async () => {
 
     // All emissions should pass through
     stream$.next(1)
-    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'not skipped:', 1)
 
     stream$.next(2)
-    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'not skipped:', 2)
   })
 
-  test('test skip with large count', async () => {
+  test('test skip with large count', () => {
     const stream$ = $()
     const skippedStream$ = stream$.pipe(skip(5))
 
@@ -85,18 +80,15 @@ describe('skip operator test', async () => {
     stream$.next(1)
     stream$.next(2)
     stream$.next(3)
-    await sleep(1)
     expect(consoleSpy).not.toHaveBeenCalled()
 
     // Emit exactly skip count
     stream$.next(4)
     stream$.next(5)
-    await sleep(1)
     expect(consoleSpy).not.toHaveBeenCalled()
 
     // Emit after skip count
     stream$.next(6)
-    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'after skip:', 6)
   })
 
@@ -121,11 +113,10 @@ describe('skip operator test', async () => {
 
     // Third emission should also pass through
     stream$.next('success')
-    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'resolved:', 'success')
   })
 
-  test('test skip with unsubscribe', async () => {
+  test('test skip with unsubscribe', () => {
     const stream$ = $()
     const skippedStream$ = stream$.pipe(skip(2))
 
@@ -139,7 +130,6 @@ describe('skip operator test', async () => {
     // Should not emit even after unsubscribe
     stream$.next(2)
     stream$.next(3)
-    await sleep(1)
     expect(consoleSpy).not.toHaveBeenCalled()
   })
 })
