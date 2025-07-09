@@ -2,24 +2,23 @@ import { Observable } from '../observable'
 import { Stream } from '../stream'
 
 /**
- * This function creates a buffer that collects values from the observable based on the trigger observable.
- * only emit resolved value, if the value is rejected, it will not be emitted
+ * A function that audits the data stream and triggers certain actions based on completion.
+ * only emit recently resolved value, if the value is rejected, it will not be emitted
  * @param {Stream | Observable} arg$ - The trigger observable to collect values.
  * @param {Observable<T>} observable$ - The observable to collect values from.
  * @return {Observable<T[]>} A new observable containing arrays of collected values.
  */
-export const buffer =
+export const audit =
   <T>(arg$: Stream | Observable) =>
-  (observable$: Observable<T>): Observable<T[]> => {
-    const tempValue: T[] = []
+  (observable$: Observable<T>): Observable<T> => {
     let finished = false
-    const newObservable = new Stream<T[]>()
+    let currentValue: T | undefined
+    const newObservable = new Stream<T>()
     const triggerNext = () => {
-      newObservable.next([...tempValue], finished)
-      tempValue.length = 0
+      newObservable.next(currentValue as T, finished)
     }
 
-    const dataObservable$ = observable$.then((value) => tempValue.push(value))
+    const dataObservable$ = observable$.then((value) => (currentValue = value))
     arg$.then(triggerNext)
 
     arg$.afterComplete(() => {
@@ -27,5 +26,5 @@ export const buffer =
       dataObservable$.unsubscribe()
     })
 
-    return newObservable.then()
+    return newObservable.then() as Observable<T>
   }

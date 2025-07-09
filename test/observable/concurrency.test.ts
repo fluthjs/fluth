@@ -276,4 +276,79 @@ describe('Observable concurrency and race condition edge cases', () => {
     stream.next('test')
     expect(consoleSpy).not.toHaveBeenCalled()
   })
+
+  test('should stop pending child observable execution when stream emits new value', async () => {
+    // Test objective: Verify that when Observable is in pending state and stream emits new value,
+    // the pending Promise result should be ignored, won't update Observable's value,
+    // and won't trigger its children observable execution
+    const stream = new Stream()
+
+    // Use controllable Promise to simulate slow async operation
+    const pendingPromises: { resolve: (value: string) => void }[] = []
+
+    // Add a child observable that will execute slow async operation
+    const slowChild = stream.then(() => {
+      console.log('slow-child-start')
+      return new Promise<string>((resolve) => {
+        pendingPromises.push({ resolve })
+      })
+    })
+
+    // Add grandchild to verify children won't be triggered
+    const grandChild = slowChild.then((value) => {
+      console.log('grandchild-executed', value)
+      return 'grandchild-result'
+    })
+
+    // Start the first async operation
+    stream.next('first-value')
+
+    // Wait a bit to ensure child starts execution
+    await sleep(10)
+
+    // Verify child observable has started execution and is in pending state
+    expect(consoleSpy).toHaveBeenCalledWith('slow-child-start')
+    expect(slowChild.status).toBe('pending')
+    expect(grandChild.status).toBe(null) // grandchild hasn't started yet
+    expect(pendingPromises.length).toBe(1) // one pending Promise
+
+    // Now emit new value, this creates new rootPromise
+    stream.next('second-value')
+
+    // Wait for new value propagation
+    await sleep(10)
+
+    // Now resolve the slow Promise, simulating pending operation completion
+    pendingPromises[0].resolve('slow-child-result')
+
+    // Wait for Promise resolution to be processed
+    await sleep(10)
+
+    // Key verification 1: slowChild's value should not be updated with pending result
+    // because when Promise completes, rootPromise has changed, so Observable ignores the result
+    expect(slowChild.value).not.toBe('slow-child-result')
+    expect(slowChild.value).toBeUndefined() // value remains undefined because Promise result was ignored
+
+    // Key verification 2: grandChild should not be triggered to execute
+    // because slowChild didn't process pending result, so children won't be triggered
+    expect(consoleSpy).not.toHaveBeenCalledWith('grandchild-executed', 'slow-child-result')
+    expect(grandChild.value).toBeUndefined() // grandchild never executed
+
+    // Verify stream's value is the latest
+    expect(stream.value).toBe('second-value')
+
+    // Verify console output: slow-child-start was called 2 times (each stream.next re-executes)
+    // but grandchild-executed should not be called because first Promise result was ignored
+    expect(consoleSpy).toHaveBeenCalledTimes(2)
+    expect(consoleSpy).toHaveBeenNthCalledWith(1, 'slow-child-start')
+    expect(consoleSpy).toHaveBeenNthCalledWith(2, 'slow-child-start')
+    expect(consoleSpy).not.toHaveBeenCalledWith('grandchild-executed', expect.any(String))
+
+    pendingPromises[1].resolve('slow-child-result')
+    await sleep(10)
+    // Key verification 3: grandChild should be triggered to execute
+    expect(slowChild.value).toBe('slow-child-result')
+    expect(grandChild.value).toBe('grandchild-result')
+    expect(consoleSpy).toHaveBeenCalledWith('grandchild-executed', 'slow-child-result')
+  })
 })

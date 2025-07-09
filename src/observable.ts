@@ -593,11 +593,16 @@ export class Observable<T = any> {
    * @param result result to execute
    * @param status last promise status
    */
-  #executeResult(result: any | Promise<any>, status: PromiseStatus | null) {
+  #executeResult(
+    result: any | Promise<any>,
+    status: PromiseStatus | null,
+    rootPromise: PromiseLike<any>,
+  ) {
     let differResult = false
     const handlePromiseResult = (result: Promise<any>) =>
       result.then(
         (data) => {
+          if (this._root?._rootPromise !== rootPromise) return
           this.status = PromiseStatus.RESOLVED
           // first time skip differ check
           if (this.#differ && status !== null)
@@ -606,12 +611,19 @@ export class Observable<T = any> {
           this.value = data
         },
         (error) => {
+          if (this._root?._rootPromise !== rootPromise) return
           this.status = PromiseStatus.REJECTED
           this.value = error
         },
       )
+    const handleExecuteFinish = () => {
+      if (this._root?._rootPromise !== rootPromise) return
+      this.#executeFinish(differResult)
+    }
     if (result instanceof Promise) {
+      // promise handler
       const promise = handlePromiseResult(result)
+      // finally handler when promise is resolved or rejected
       if (this.#finally)
         promise
           .finally(() => {
@@ -621,25 +633,25 @@ export class Observable<T = any> {
                 return handlePromiseResult(finallyResult)
               }
             } catch (error) {
+              if (this._root?._rootPromise !== rootPromise) return
               this.value = error as any
               this.status = PromiseStatus.REJECTED
             }
           })
-          .finally(() => this.#executeFinish(differResult))
-      else promise.finally(() => this.#executeFinish(differResult))
+          .finally(handleExecuteFinish)
+      else promise.finally(handleExecuteFinish)
     } else {
       this.status = PromiseStatus.RESOLVED
       if (this.#differ && status !== null)
         differResult = safeCallback(this.#differ)(this.value) === safeCallback(this.#differ)(result)
       this.value = result
 
+      // finally handler when not promise
       if (this.#finally) {
         try {
           const finallyResult = this.#finally?.() as any
           if (finallyResult instanceof Promise) {
-            return handlePromiseResult(finallyResult).finally(() =>
-              this.#executeFinish(differResult),
-            )
+            return handlePromiseResult(finallyResult).finally(handleExecuteFinish)
           }
         } catch (error) {
           this.status = PromiseStatus.REJECTED
@@ -667,10 +679,10 @@ export class Observable<T = any> {
     this._cacheRootPromise = rootPromise
     try {
       const result = this.#runExecutePlugin(nodeProcessor())
-      this.#executeResult(result, status)
+      this.#executeResult(result, status, rootPromise)
     } catch (error) {
       this.status = PromiseStatus.REJECTED
-      this.#executeResult(Promise.reject(error), status)
+      this.#executeResult(Promise.reject(error), status, rootPromise)
     }
   }
 
@@ -688,6 +700,11 @@ export class Observable<T = any> {
     rootValue?: any,
     active = false,
   ) {
+    if (rootPromise !== this._root?._rootPromise)
+      console.warn(
+        'stream emit new value, unexecuted child observable node will stop execute and wait new stream value',
+      )
+
     if (!rootPromise || this._root?._pauseFlag || rootPromise !== this._root?._rootPromise) return
 
     const status = this.status

@@ -10,7 +10,7 @@ describe('Stream next method', () => {
     process.setMaxListeners(100)
   })
 
-  test('test stream execute order', async () => {
+  test('test stream execute order with wait', async () => {
     const promise$ = $()
 
     promise$.then(
@@ -20,11 +20,29 @@ describe('Stream next method', () => {
 
     promise$.next(1)
     promise$.next(Promise.reject(2))
+    await sleep(1)
     promise$.next(3)
     await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'resolve', 1)
+    expect(consoleSpy).toHaveBeenNthCalledWith(2, 'reject', 2)
+    expect(consoleSpy).toHaveBeenNthCalledWith(3, 'resolve', 3)
+  })
+
+  test('test stream execute order without wait', async () => {
+    const promise$ = $()
+    promise$.then(
+      (r) => console.log('resolve', r),
+      (e) => console.log('reject', e),
+    )
+    promise$.next(1)
+    promise$.next(Promise.resolve(2))
+    promise$.next(3)
+    promise$.next(Promise.reject(4))
+    await sleep(1)
+
+    expect(consoleSpy).toHaveBeenNthCalledWith(1, 'resolve', 1)
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'resolve', 3)
-    expect(consoleSpy).toHaveBeenNthCalledWith(3, 'reject', 2)
+    expect(consoleSpy).toHaveBeenNthCalledWith(3, 'reject', 4)
   })
 
   test('test stream finish', async () => {

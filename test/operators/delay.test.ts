@@ -41,12 +41,13 @@ describe('delay operator test', async () => {
     stream$.next(2)
     await sleep(25)
 
-    // First value should emit
-    expect(consoleSpy).toHaveBeenNthCalledWith(1, 'delayed:', 1)
+    // First value should not emit because stream emit new value
+    // unexecuted child observable node will stop execute and wait new stream value
+    expect(consoleSpy).not.toHaveBeenCalled()
 
     await sleep(25)
     // Second value should emit
-    expect(consoleSpy).toHaveBeenNthCalledWith(2, 'delayed:', 2)
+    expect(consoleSpy).toHaveBeenNthCalledWith(1, 'delayed:', 2)
   })
 
   test('test delay with rejected promise', async () => {

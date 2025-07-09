@@ -1,3 +1,4 @@
+export { audit } from './audit'
 export { fork } from './fork'
 export { finish } from './finish'
 export { combine } from './combine'
