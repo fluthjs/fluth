@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.3.14](https://github.com/fluthjs/fluth/compare/v0.3.13...v0.3.14) (2025-07-10)
+
+
+### Features
+
+* add params for consoleAll plugin and improve consoleAll logic ([0ed734b](https://github.com/fluthjs/fluth/commit/0ed734b2b68b146a1a859b11d350514cbdaa39cf))
+
 ### [0.3.13](https://github.com/fluthjs/fluth/compare/v0.3.12...v0.3.13) (2025-07-09)
 
 
