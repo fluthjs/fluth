@@ -1,6 +1,6 @@
 import { expect, describe, test, vi, beforeEach } from 'vitest'
 import { consoleSpy, sleep } from '../utils'
-import { $, debounce, consoleAll } from '../../index'
+import { $, debounce, consoleAll, PromiseStatus } from '../../index'
 
 describe('consoleAll plugins test', async () => {
   beforeEach(() => {
@@ -145,13 +145,21 @@ describe('consoleAll plugins test', async () => {
     const plugin = consoleAll()
 
     // Test synchronous value with root=true (should log)
-    const syncResult = plugin.executeAll({ result: 'sync-value', root: true })
+    const syncResult = plugin.executeAll({
+      result: 'sync-value',
+      status: PromiseStatus.RESOLVED,
+      root: true,
+    })
     expect(syncResult).toBe('sync-value')
     expect(consoleSpy).toHaveBeenCalledWith('resolve', 'sync-value')
 
     // Test Promise value with root=true (should log)
     const promiseValue = Promise.resolve('async-value')
-    const asyncResult = plugin.executeAll({ result: promiseValue, root: true })
+    const asyncResult = plugin.executeAll({
+      result: promiseValue,
+      status: PromiseStatus.RESOLVED,
+      root: true,
+    })
     expect(asyncResult).toBe(promiseValue)
 
     await promiseValue
@@ -159,7 +167,11 @@ describe('consoleAll plugins test', async () => {
     expect(consoleSpy).toHaveBeenCalledTimes(2)
 
     // Test with root=false and no onfulfilled/onrejected (should skip logging)
-    const skipResult = plugin.executeAll({ result: 'skip-value', root: false })
+    const skipResult = plugin.executeAll({
+      result: 'skip-value',
+      status: PromiseStatus.RESOLVED,
+      root: false,
+    })
     expect(skipResult).toBe('skip-value')
     // Should not log additional calls
     expect(consoleSpy).toHaveBeenCalledTimes(2)
@@ -214,5 +226,66 @@ describe('consoleAll plugins test', async () => {
     expect(consoleSpy).toHaveBeenCalledWith('executeAll', 20) // step2 result
     expect(consoleSpy).toHaveBeenCalledWith('step3 processing:', 20)
     expect(consoleSpy).toHaveBeenCalledWith('executeAll', '20') // step3 result
+  })
+
+  test('test consoleAll plugin with new status parameter and improved skip logic', async () => {
+    const plugin = consoleAll()
+
+    // Test 1: Root node always logs regardless of status
+    const rootResult = plugin.executeAll({
+      result: 'root-value',
+      status: PromiseStatus.REJECTED,
+      root: true,
+      onfulfilled: undefined,
+      onrejected: undefined,
+    })
+    expect(rootResult).toBe('root-value')
+    expect(consoleSpy).toHaveBeenCalledWith('resolve', 'root-value')
+
+    // Test 2: Non-root with onfulfilled always logs
+    const withFulfilledResult = plugin.executeAll({
+      result: 'fulfilled-value',
+      status: PromiseStatus.RESOLVED,
+      root: false,
+      onfulfilled: vi.fn(),
+      onrejected: undefined,
+    })
+    expect(withFulfilledResult).toBe('fulfilled-value')
+    expect(consoleSpy).toHaveBeenCalledWith('resolve', 'fulfilled-value')
+
+    // Test 3: Non-root with onrejected and REJECTED status should log
+    const rejectedWithHandlerResult = plugin.executeAll({
+      result: 'rejected-handled-value',
+      status: PromiseStatus.REJECTED,
+      root: false,
+      onfulfilled: undefined,
+      onrejected: vi.fn(),
+    })
+    expect(rejectedWithHandlerResult).toBe('rejected-handled-value')
+    expect(consoleSpy).toHaveBeenCalledWith('resolve', 'rejected-handled-value')
+
+    // Test 4: Non-root with onrejected but NOT REJECTED status should skip
+    const rejectedHandlerResolvedResult = plugin.executeAll({
+      result: 'should-skip-value',
+      status: PromiseStatus.RESOLVED,
+      root: false,
+      onfulfilled: undefined,
+      onrejected: vi.fn(),
+    })
+    expect(rejectedHandlerResolvedResult).toBe('should-skip-value')
+    expect(consoleSpy).toHaveBeenCalledTimes(3) // No new calls
+
+    // Test 5: Non-root with no handlers should skip
+    const noHandlersResult = plugin.executeAll({
+      result: 'should-skip-value-2',
+      status: PromiseStatus.RESOLVED,
+      root: false,
+      onfulfilled: undefined,
+      onrejected: undefined,
+    })
+    expect(noHandlersResult).toBe('should-skip-value-2')
+    expect(consoleSpy).toHaveBeenCalledTimes(3) // No new calls
+
+    expect(consoleSpy).toHaveBeenCalledTimes(3)
   })
 })

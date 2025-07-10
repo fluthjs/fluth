@@ -1,4 +1,4 @@
-import { OnFulfilled, OnRejected } from '../types'
+import { OnFulfilled, OnRejected, PromiseStatus } from '../types'
 /**
  * @description console node executeAll plugin
  * @param resolvePrefix prefix for resolve console prefix
@@ -8,20 +8,25 @@ import { OnFulfilled, OnRejected } from '../types'
 export const consoleAll = (resolvePrefix = 'resolve', rejectPrefix = 'reject') => ({
   executeAll: ({
     result,
+    status,
     onfulfilled,
     onrejected,
     root,
   }: {
     result: Promise<any> | any
+    status: PromiseStatus | null
     onfulfilled?: OnFulfilled
     onrejected?: OnRejected
     root: boolean
   }) => {
-    // skip pass through node
-    if (!root && !onfulfilled && !onrejected) {
+    // should log: root node, has resolve callback, or rejected with error handler
+    const shouldLog = root || onfulfilled || (onrejected && status === PromiseStatus.REJECTED)
+
+    if (!shouldLog) {
       return result
     }
-    // empty node skip console log
+
+    // log the result
     if (result instanceof Promise) {
       result.then(
         (value) => {
