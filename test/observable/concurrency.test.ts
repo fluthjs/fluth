@@ -1,7 +1,6 @@
 import { expect, describe, test, vi, beforeEach } from 'vitest'
 import { consoleSpy, sleep } from '../utils'
-import { Observable } from '../../src/observable'
-import { Stream } from '../../src/stream'
+import { Stream, Observable, get, change } from '../../index'
 
 describe('Observable concurrency and race condition edge cases', () => {
   beforeEach(() => {
@@ -198,7 +197,7 @@ describe('Observable concurrency and race condition edge cases', () => {
   test('should handle race condition between get and unsubscribe', () => {
     const stream = new Stream()
     const observable = stream.then(() => 'test')
-    const child = observable.get(() => console.log('get executed'))
+    const child = observable.pipe(get(() => console.log('get executed')))
     child.unsubscribe()
     stream.next('test')
     expect(consoleSpy).not.toHaveBeenCalled()
@@ -207,7 +206,7 @@ describe('Observable concurrency and race condition edge cases', () => {
   test('should handle race condition between change and unsubscribe', () => {
     const stream = new Stream()
     const observable = stream.then(() => 'test')
-    const child = observable.change(() => console.log('change executed'))
+    const child = observable.pipe(change(() => console.log('change executed')))
     child.unsubscribe()
     stream.next('test')
     expect(consoleSpy).not.toHaveBeenCalled()

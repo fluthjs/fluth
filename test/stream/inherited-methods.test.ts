@@ -1,6 +1,6 @@
 import { expect, describe, test, vi, beforeEach } from 'vitest'
 import { consoleSpy, sleep, promiseConsoleFactory } from '../utils'
-import { $ } from '../../index'
+import { $, change } from '../../index'
 
 describe('Stream inherited methods from Observable', () => {
   beforeEach(() => {
@@ -95,7 +95,7 @@ describe('Stream inherited methods from Observable', () => {
 
   test('test stream change', async () => {
     const promise$ = $({ a: 1 })
-    promise$.change((value) => value?.a).then((value) => console.log(value))
+    promise$.pipe(change((value) => value?.a)).then((value) => console.log(value))
     promise$.next({ a: 2 })
     expect(consoleSpy).toHaveBeenNthCalledWith(1, { a: 2 })
   })

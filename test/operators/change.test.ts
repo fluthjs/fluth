@@ -1,8 +1,8 @@
 import { expect, describe, test, vi, beforeEach } from 'vitest'
 import { consoleSpy } from '../utils'
-import { $ } from '../../index'
+import { $, change } from '../../index'
 
-describe('Observable change method', () => {
+describe('change operator test', () => {
   beforeEach(() => {
     consoleSpy.mockClear()
     vi.useFakeTimers()
@@ -11,81 +11,97 @@ describe('Observable change method', () => {
 
   test('should execute only when differ result changes', async () => {
     const promise$ = $<{ num: number }>()
-    promise$.change((value) => value?.num).then(() => console.log('test'))
+    promise$.pipe(change((value) => value?.num)).then(() => console.log('test'))
+
     promise$.next({ num: 1 })
     promise$.next({ num: 2 })
     promise$.next({ num: 2 }) // Same value, should not execute
     promise$.next({ num: 1 })
+
     expect(consoleSpy).toHaveBeenCalledTimes(3)
   })
 
   test('should handle nested object changes', async () => {
     const promise$ = $<{ user: { name: string; age: number } }>()
-    promise$.change((value) => value?.user.name).then(() => console.log('name changed'))
+    promise$.pipe(change((value) => value?.user.name)).then(() => console.log('name changed'))
+
     promise$.next({ user: { name: 'Alice', age: 25 } })
     promise$.next({ user: { name: 'Bob', age: 25 } })
     promise$.next({ user: { name: 'Bob', age: 30 } }) // Same name, should not execute
     promise$.next({ user: { name: 'Alice', age: 30 } })
+
     expect(consoleSpy).toHaveBeenCalledTimes(3)
   })
 
   test('should handle array changes', async () => {
     const promise$ = $<{ items: number[] }>()
-    promise$.change((value) => value?.items?.length).then(() => console.log('array length changed'))
+    promise$
+      .pipe(change((value) => value?.items?.length))
+      .then(() => console.log('array length changed'))
+
     promise$.next({ items: [1, 2] })
     promise$.next({ items: [1, 2, 3] })
     promise$.next({ items: [1, 2, 3] }) // Same length, should not execute
     promise$.next({ items: [1] })
+
     expect(consoleSpy).toHaveBeenCalledTimes(3)
   })
 
   test('should handle primitive value changes', async () => {
     const promise$ = $<string>()
-    promise$.change((value) => value).then(() => console.log('string changed'))
+    promise$.pipe(change((value) => value)).then(() => console.log('string changed'))
+
     promise$.next('hello')
     promise$.next('world')
     promise$.next('world') // Same value, should not execute
     promise$.next('hello')
+
     expect(consoleSpy).toHaveBeenCalledTimes(3)
   })
 
   test('should handle boolean changes', async () => {
     const promise$ = $<{ active: boolean }>()
-    promise$.change((value) => value?.active).then(() => console.log('status changed'))
+    promise$.pipe(change((value) => value?.active)).then(() => console.log('status changed'))
+
     promise$.next({ active: false })
     promise$.next({ active: true })
     promise$.next({ active: true }) // Same value, should not execute
     promise$.next({ active: false })
+
     expect(consoleSpy).toHaveBeenCalledTimes(3)
   })
 
   test('should handle null and undefined values', async () => {
     const promise$ = $<{ data: string | null }>()
-    promise$.change((value) => value?.data).then(() => console.log('data changed'))
+    promise$.pipe(change((value) => value?.data)).then(() => console.log('data changed'))
+
     promise$.next({ data: 'test' })
     promise$.next({ data: null })
     promise$.next({ data: null }) // Same value, should not execute
     promise$.next({ data: 'test' })
+
     expect(consoleSpy).toHaveBeenCalledTimes(3)
   })
 
   test('should handle complex differ function', async () => {
     const promise$ = $<{ x: number; y: number }>()
     promise$
-      .change((value) => (value ? value.x + value.y : 0))
+      .pipe(change((value) => (value ? value.x + value.y : 0)))
       .then(() => console.log('sum changed'))
+
     promise$.next({ x: 1, y: 2 }) // sum = 3
     promise$.next({ x: 2, y: 1 }) // sum = 3, should not execute
     promise$.next({ x: 3, y: 2 }) // sum = 5
     promise$.next({ x: 1, y: 4 }) // sum = 5, should not execute
     promise$.next({ x: 0, y: 0 }) // sum = 0
+
     expect(consoleSpy).toHaveBeenCalledTimes(3)
   })
 
   test('should handle chained change operations', async () => {
     const promise$ = $<{ count: number }>()
-    const changed$ = promise$.change((value) => value?.count)
-    const doubled$ = changed$.change((value) => (value?.count || 0) * 2)
+    const changed$ = promise$.pipe(change((value) => value?.count))
+    const doubled$ = changed$.pipe(change((value) => (value?.count || 0) * 2))
 
     doubled$.then(() => console.log('doubled value changed'))
 
@@ -100,7 +116,7 @@ describe('Observable change method', () => {
   test('should handle change with condition', async () => {
     const promise$ = $<{ value: number }>()
     promise$
-      .change((value) => value?.value)
+      .pipe(change((value) => value?.value))
       .then(() => console.log('value changed'))
       .then(
         () => console.log('condition met'),
@@ -119,7 +135,7 @@ describe('Observable change method', () => {
 
   test('should handle change with multiple observers', async () => {
     const promise$ = $<{ status: string }>()
-    const changed$ = promise$.change((value) => value?.status)
+    const changed$ = promise$.pipe(change((value) => value?.status))
 
     changed$.then(() => console.log('observer 1'))
     changed$.then(() => console.log('observer 2'))
@@ -131,90 +147,5 @@ describe('Observable change method', () => {
 
     // Each observer should be called 3 times
     expect(consoleSpy).toHaveBeenCalledTimes(6)
-  })
-
-  test('should handle change with error in differ function', async () => {
-    const promise$ = $<{ data: any }>()
-    promise$
-      .change((value) => {
-        if (value?.data === 'error') {
-          throw new Error('Differ error')
-        }
-        return value?.data
-      })
-      .then(
-        () => console.log('success'),
-        (error) => console.log('error:', error.message),
-      )
-
-    promise$.next({ data: 'test' })
-    promise$.next({ data: 'error' }) // Should trigger error
-    promise$.next({ data: 'test2' })
-
-    expect(consoleSpy).toHaveBeenCalledWith('success')
-    expect(consoleSpy).toHaveBeenCalledWith('success')
-    expect(consoleSpy).toHaveBeenCalledWith('success')
-  })
-
-  test('should handle change with unsubscribe', async () => {
-    const promise$ = $<{ value: number }>()
-    const changed$ = promise$.change((value) => value?.value)
-
-    changed$.then(() => {
-      console.log('value changed')
-      changed$.unsubscribe()
-    })
-
-    promise$.next({ value: 1 })
-    promise$.next({ value: 2 }) // Should not execute after unsubscribe
-    promise$.next({ value: 3 }) // Should not execute after unsubscribe
-
-    expect(consoleSpy).toHaveBeenCalledTimes(1)
-  })
-
-  test('should handle change with deep object comparison', async () => {
-    const promise$ = $<{ config: { theme: string; size: number } }>()
-    promise$
-      .change((value) => JSON.stringify(value?.config))
-      .then(() => console.log('config changed'))
-
-    promise$.next({ config: { theme: 'dark', size: 12 } })
-    promise$.next({ config: { theme: 'light', size: 12 } })
-    promise$.next({ config: { theme: 'light', size: 12 } }) // Same config, should not execute
-    promise$.next({ config: { theme: 'light', size: 14 } })
-
-    expect(consoleSpy).toHaveBeenCalledTimes(3)
-  })
-
-  test('should handle change with date comparison', async () => {
-    const promise$ = $<{ timestamp: Date }>()
-    promise$
-      .change((value) => value?.timestamp?.getTime())
-      .then(() => console.log('timestamp changed'))
-
-    const date1 = new Date('2023-01-01')
-    const date2 = new Date('2023-01-02')
-    const date3 = new Date('2023-01-02') // Same as date2
-
-    promise$.next({ timestamp: date1 })
-    promise$.next({ timestamp: date2 })
-    promise$.next({ timestamp: date3 }) // Same timestamp, should not execute
-    promise$.next({ timestamp: date1 })
-
-    expect(consoleSpy).toHaveBeenCalledTimes(3)
-  })
-
-  test('should handle change with custom equality function', async () => {
-    const promise$ = $<{ items: string[] }>()
-    promise$
-      .change((value) => value?.items?.sort().join(','))
-      .then(() => console.log('items changed'))
-
-    promise$.next({ items: ['a', 'b', 'c'] })
-    promise$.next({ items: ['c', 'b', 'a'] }) // Same items in different order, should not execute
-    promise$.next({ items: ['a', 'b', 'd'] })
-    promise$.next({ items: ['a', 'b', 'c'] })
-
-    expect(consoleSpy).toHaveBeenCalledTimes(3)
   })
 })

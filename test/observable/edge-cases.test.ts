@@ -1,7 +1,6 @@
 import { expect, describe, test, vi, beforeEach } from 'vitest'
 import { consoleSpy } from '../utils'
-import { Observable } from '../../src/observable'
-import { Stream } from '../../src/stream'
+import { Stream, Observable, get, change } from '../../index'
 
 describe('Observable edge cases', () => {
   beforeEach(() => {
@@ -228,8 +227,8 @@ describe('Observable edge cases', () => {
     const observable = new Observable(stream)
 
     expect(() => {
-      observable.get(null as any)
-      observable.get(undefined as any)
+      observable.pipe(get(null as any))
+      observable.pipe(get(undefined as any))
     }).not.toThrow()
   })
 
@@ -239,8 +238,8 @@ describe('Observable edge cases', () => {
     const observable = new Observable(stream)
 
     expect(() => {
-      observable.change(null as any)
-      observable.change(undefined as any)
+      observable.pipe(change(null as any))
+      observable.pipe(change(undefined as any))
     }).not.toThrow()
   })
 

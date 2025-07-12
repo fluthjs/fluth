@@ -480,17 +480,6 @@ export class Observable<T = any> {
   }
 
   /**
-   * push observer with getter
-   * @param getter getter function
-   * @returns Observable
-   */
-  get<F>(getter: (value: T | undefined) => F) {
-    return this.thenImmediate<T>(undefined, undefined, undefined, getter).thenImmediate<F>(
-      getter as any,
-    )
-  }
-
-  /**
    * push immutable observer
    * @param setter setter function
    * @returns Observable
@@ -524,15 +513,6 @@ export class Observable<T = any> {
       immediate: true,
       onfulfilled: (value: T) => this.#set(value, setter),
     })
-  }
-
-  /**
-   * Given a differ, the observer will be executed only when differ result is not equal to previousvalue
-   * @param getter getter function, given cur observer value
-   * @returns Observable
-   */
-  change(getter: (value: T | undefined) => any) {
-    return this.then<T>(undefined, undefined, undefined, getter)
   }
 
   #runExecutePlugin(result: any) {
@@ -718,13 +698,14 @@ export class Observable<T = any> {
       // child node
     } else if (this.#parent.status === PromiseStatus.RESOLVED) {
       this.#executeNode(
-        () => this.#resolve?.(this.#parent?.value) || this.#parent?.value,
+        () => (this.#resolve ? this.#resolve(this.#parent?.value) : this.#parent?.value),
         rootPromise,
         status,
       )
     } else if (this.#parent.status === PromiseStatus.REJECTED) {
       this.#executeNode(
-        () => this.#reject?.(this.#parent?.value) || Promise.reject(this.#parent?.value),
+        () =>
+          this.#reject ? this.#reject(this.#parent?.value) : Promise.reject(this.#parent?.value),
         rootPromise,
         status,
       )
