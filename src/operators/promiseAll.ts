@@ -45,7 +45,7 @@ export const promiseAll = <T extends (Stream | Observable)[]>(...args$: T) => {
   args$.forEach((arg$, index) => {
     arg$.afterUnsubscribe(unsubscribeCallback)
     arg$.afterComplete(completeCallback)
-    arg$.then(
+    const observable$ = arg$.then(
       (value) => {
         promiseStatus[index] = PromiseStatus.RESOLVED
         payload[index] = value
@@ -62,6 +62,7 @@ export const promiseAll = <T extends (Stream | Observable)[]>(...args$: T) => {
     stream$.afterUnsubscribe(() => {
       arg$.offUnsubscribe(unsubscribeCallback)
       arg$.offComplete(completeCallback)
+      observable$.unsubscribe()
     })
   })
 
