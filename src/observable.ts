@@ -53,6 +53,8 @@ export class Observable<T = any> {
   protected _finishFlag = false
   // unsubscribe flag
   protected _unsubscribeFlag = false
+  // clean flag
+  protected _cleanFlag = false
   // once flag
   protected _onceFlag = false
   // root promise of root observable
@@ -72,6 +74,16 @@ export class Observable<T = any> {
       this.#parent = null
       this._root = streamOrParent
     }
+  }
+
+  /**
+   * get flag of observable node
+   * @private
+   * @param flag flag name, one of `_finishFlag`, `_unsubscribeFlag`, `_onceFlag`, `_cleanFlag`
+   * @returns the flag value
+   */
+  _getFlag(flag: '_finishFlag' | '_unsubscribeFlag' | '_onceFlag' | '_cleanFlag') {
+    return this[flag]
   }
 
   /**
@@ -229,9 +241,9 @@ export class Observable<T = any> {
   /**
    * clean observable node, then children observers should be clean too
    * because children observers are reference of root observable node
-   * _pauseFlag、_finishFlag、_rootPromise、_plugin should not be clean
+   * _pauseFlag、_finishFlag、_rootPromise should not be clean
    * because it will be used by deep children observers
-   * value should not be clean because after unsubscribe the value may still be used
+   * value ans status should not be clean because after unsubscribe the value may still be used
    */
   #clean() {
     // clear property immediately
@@ -244,12 +256,12 @@ export class Observable<T = any> {
     this._root = null
     // clear property if no child observer
     if (!this.#children.length) {
-      this.status = null
       this.#condition = undefined
       this.#differ = undefined
       this.#plugin.then = []
       this.#plugin.execute = []
       this._cacheRootPromise = null
+      this._cleanFlag = true
     }
   }
 
@@ -280,7 +292,10 @@ export class Observable<T = any> {
         this.#parent.#children.splice(idx, 1)[0]
       }
     }
-    if (active) this.#finishCallbackList.forEach((fn) => safeCallback(fn)(this.value, this.status))
+    if (active) {
+      this.#finishCallbackList.forEach((fn) => safeCallback(fn)(this.value, this.status))
+      this._finishFlag = true
+    }
 
     if (this.#unsubscribeCallbackList.length)
       this.#unsubscribeCallbackList.forEach((fn) => safeCallback(fn)())
@@ -546,8 +561,10 @@ export class Observable<T = any> {
    */
   #executeFinish(differResult = false) {
     // finish flag check
-    if (this._root?._finishFlag)
+    if (this._root?._finishFlag) {
       this.#finishCallbackList.forEach((fn) => safeCallback(fn)(this.value, this.status))
+      this._finishFlag = true
+    }
     // unsubscribe check
     if (
       this._unsubscribeFlag ||

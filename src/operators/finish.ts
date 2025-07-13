@@ -16,6 +16,12 @@ export const finish = <T extends (Stream | Observable)[]>(...args$: T) => {
   const payload: StreamTupleValues<T> = [] as any
   let finishCount = 0
   let rejectFlag = false
+
+  // check input type
+  if (args$.some((arg$) => !(arg$ instanceof Stream) && !(arg$ instanceof Observable))) {
+    throw new Error('finish operator only accepts Stream or Observable as input')
+  }
+
   const { unsubscribeCallback } = useUnsubscribeCallback(stream$, args$.length)
   const completeCallback = (_v: any, status: PromiseStatus) => {
     finishCount += 1
@@ -28,6 +34,15 @@ export const finish = <T extends (Stream | Observable)[]>(...args$: T) => {
   }
 
   args$.forEach((arg$, index) => {
+    // if input is finished,
+    if (arg$._getFlag('_finishFlag')) {
+      payload[index] = arg$.value
+      finishCount += 1
+      if (arg$.status === PromiseStatus.REJECTED) rejectFlag = true
+      next()
+      return
+    }
+
     arg$.afterUnsubscribe(unsubscribeCallback)
     arg$.afterComplete(completeCallback)
     const observable = arg$.then(

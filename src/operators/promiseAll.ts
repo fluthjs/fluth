@@ -4,15 +4,15 @@ import { StreamTupleValues, PromiseStatus } from '../types'
 import { useUnsubscribeCallback } from '../utils'
 
 /**
- * promiseAll takes multiple streams or Observables and returns a stream that emits an array of resolved values
- * from all input streams. If any input stream is rejected, the output stream will emit a rejected promise with
- * the respective values. The output stream will finish when all input streams finish. When all input streams
- * unsubscribe, the output stream will also unsubscribe.
- * @param {...Stream|Observable} args$ - The input streams or Observables to be combined.
- * @returns {Stream} - A stream that emits an array of values or a rejected promise.
+ * Internal implementation function for promiseAll variants
+ * @param args$ - The input streams or Observables to be combined.
+ * @param shouldAwait - Whether to wait for pending promises during status reset
+ * @returns A stream that emits an array of values or a rejected promise.
  */
-
-export const promiseAll = <T extends (Stream | Observable)[]>(...args$: T) => {
+const promiseAllImpl = <T extends (Stream | Observable)[]>(
+  args$: T,
+  shouldAwait = true,
+): Stream<StreamTupleValues<T>> => {
   const stream$ = new Stream<StreamTupleValues<T>>()
   const payload: StreamTupleValues<T> = [] as any
   const promiseStatus: PromiseStatus[] = [...Array(args$.length)].map(() => PromiseStatus.PENDING)
@@ -36,8 +36,9 @@ export const promiseAll = <T extends (Stream | Observable)[]>(...args$: T) => {
 
   const resetPromiseStatus = () => {
     args$.forEach((arg$, index) => {
-      if (arg$.status === PromiseStatus.PENDING) {
+      if (arg$.status === PromiseStatus.PENDING && shouldAwait) {
         promiseStatus[index] = PromiseStatus.PENDING
+        stream$.status = PromiseStatus.PENDING
       }
     })
   }
@@ -72,4 +73,45 @@ export const promiseAll = <T extends (Stream | Observable)[]>(...args$: T) => {
   })
 
   return stream$
+}
+
+/**
+ * promiseAll takes multiple streams or Observables and returns a stream that emits an array of resolved values
+ * from all input streams.
+ * when Observable is pending, the output stream will also be pending.
+ * If any input stream is rejected, the output stream will emit a rejected promise with the respective values.
+ * The output stream will finish when all input streams finish.
+ * When all input streams unsubscribe, the output stream will also unsubscribe.
+ *
+ * This version waits for pending promises during status reset (shouldAwait = true).
+ *
+ * @param {...Stream|Observable} args$ - The input streams or Observables to be combined.
+ * @returns A stream that emits an array of values or a rejected promise.
+ *
+ * @example
+ * const result = promiseAll(stream1, stream2, stream3)
+ * // result type: Stream<[T1, T2, T3]> with perfect type inference
+ */
+export const promiseAll = <T extends (Stream | Observable)[]>(
+  ...args$: T
+): Stream<StreamTupleValues<T>> => {
+  return promiseAllImpl(args$, true)
+}
+
+/**
+ * promiseAllNoAwait is similar to promiseAll but does not wait for pending promises during status reset.
+ * This can improve performance in scenarios where you don't need to wait for async operations to complete
+ * before processing the next batch of values.
+ *
+ * @param {...Stream|Observable} args$ - The input streams or Observables to be combined.
+ * @returns A stream that emits an array of values or a rejected promise.
+ *
+ * @example
+ * const result = promiseAllNoAwait(stream1, stream2, stream3)
+ * // result type: Stream<[T1, T2, T3]> with perfect type inference
+ */
+export const promiseAllNoAwait = <T extends (Stream | Observable)[]>(
+  ...args$: T
+): Stream<StreamTupleValues<T>> => {
+  return promiseAllImpl(args$, false)
 }

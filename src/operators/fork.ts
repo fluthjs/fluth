@@ -3,27 +3,52 @@ import { Stream } from '../stream'
 
 /**
  * fork takes a stream or Observable, and returns a stream that emits the same value as the input stream.
- * The output stream will finish when the input stream finish.
- * when the input stream unsubscribe, the output stream will also unsubscribe
- * @param {Stream|Observable} arg$ the input stream or Observable
- * @returns {Stream} a stream that emits the same value as the input stream
- */
-export const fork = <T>(arg$: Stream<T> | Observable<T>): Stream<T> => {
+ * @param {Stream|Observable} arg$ - The input stream or Observable to fork from
+ * @param {boolean} autoUnsubscribe - Whether the output stream should automatically unsubscribe
+ *                                   when the input stream unsubscribes. Defaults to true.
+ *                                   - When true: input stream unsubscribe will cause output stream to unsubscribe
+ *                                   - When false: input stream unsubscribe will NOT affect output stream
+ * @returns {Stream} A stream that emits the same values as the input stream
+ **/
+
+export const fork = <T>(arg$: Stream<T> | Observable<T>, autoUnsubscribe = true): Stream<T> => {
   const stream$ = new Stream<T>()
   let finishFlag = false
+
+  // check input type
+  if (!(arg$ instanceof Stream) && !(arg$ instanceof Observable)) {
+    throw new Error('fork operator only accepts Stream or Observable as input')
+  }
+
+  // if arg$ is finished, should not fork
+  if (arg$._getFlag('_finishFlag')) {
+    console.log(arg$, 'is finished, should not fork')
+    return stream$
+  }
+
+  // fork the arg$ stream
   const observable$ = arg$.thenImmediate(
     (value) => stream$.next(value, finishFlag),
     (value) => stream$.next(Promise.reject(value), finishFlag),
   )
-  arg$.afterUnsubscribe(() =>
+
+  const argAfterUnsubscribe = () =>
     setTimeout(() => {
       stream$.unsubscribe()
-    }),
-  )
-  arg$.afterComplete(() => (finishFlag = true))
+    })
+  const argAfterComplete = () => (finishFlag = true)
+
+  if (autoUnsubscribe) {
+    arg$.afterUnsubscribe(argAfterUnsubscribe)
+    arg$.afterComplete(argAfterComplete)
+  }
 
   stream$.afterUnsubscribe(() => {
     observable$.unsubscribe()
+    if (autoUnsubscribe) {
+      arg$.offUnsubscribe(argAfterUnsubscribe)
+      arg$.offComplete(argAfterComplete)
+    }
   })
   return stream$
 }
