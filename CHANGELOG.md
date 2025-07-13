@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.3.15](https://github.com/fluthjs/fluth/compare/v0.3.14...v0.3.15) (2025-07-13)
+
+
+### Features
+
+* add cleanFlag for observable ([ab58252](https://github.com/fluthjs/fluth/commit/ab58252ed25ec9412e5a44834b2ca1aa0026bd9f))
+* add shouldAwait params for buffer and audit ([b13245f](https://github.com/fluthjs/fluth/commit/b13245ff9926456644b2835ffe22e1391a21c5d3))
+* optimization finish and combine operator ([cef4ba2](https://github.com/fluthjs/fluth/commit/cef4ba2482a5815b490a89b8599d3051b6580a80))
+* remove get and change to operator ([1ebdc9b](https://github.com/fluthjs/fluth/commit/1ebdc9bbd3f18a2fc37a1e787601c97fa63f84c4))
+
 ### [0.3.14](https://github.com/fluthjs/fluth/compare/v0.3.13...v0.3.14) (2025-07-10)
 
 
