@@ -111,9 +111,6 @@ describe('fork operator test', async () => {
       console.log('fork received:', value)
     })
 
-    // Should log warning about finished stream
-    expect(consoleSpy).toHaveBeenCalledWith(expect.anything(), 'is finished, should not fork')
-
     // Should not receive any value
     expect(receivedValue).toBe(null)
     expect(consoleSpy).not.toHaveBeenCalledWith('fork received:', expect.anything())
@@ -177,9 +174,6 @@ describe('fork operator test', async () => {
     // Both should behave the same way (no emission) regardless of autoUnsubscribe setting
     expect(autoReceived).toBe(null)
     expect(manualReceived).toBe(null)
-
-    // Should log warning for both
-    expect(consoleSpy).toHaveBeenCalledTimes(2)
   })
 
   // New tests for autoUnsubscribe parameter

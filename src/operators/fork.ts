@@ -22,7 +22,6 @@ export const fork = <T>(arg$: Stream<T> | Observable<T>, autoUnsubscribe = true)
 
   // if arg$ is finished, should not fork
   if (arg$._getFlag('_finishFlag')) {
-    console.log(arg$, 'is finished, should not fork')
     return stream$
   }
 

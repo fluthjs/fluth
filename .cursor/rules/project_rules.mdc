@@ -101,72 +101,136 @@ Git hooks configuration:
 - Public APIs exported uniformly through `index.ts`
 - Plugins and operators organized in separate files
 
-### Build Output
+### Operator Design Rules
 
-- Supports both CommonJS and ES Module formats
-- Build artifacts output to `dist/` directory (created during build)
-- Includes type declaration files
+#### Stream Lifecycle Management
 
-## Dependency Management
+- When designing operators with stream inputs and outputs, consider the impact of input streams that are already finished on the output stream
+- When designing operators with stream inputs and outputs, consider the impact of input stream unsubscription on the output stream
+- When designing operators with stream inputs and outputs, consider the impact of output stream unsubscription on the input stream
+- When designing operators with stream inputs and outputs, consider the impact of input empty
+- Properly handle stream completion and unsubscription propagation in both directions
 
-- Uses pnpm as package manager
-- Production dependency: `limu` (immutable data processing)
-- Development dependencies include testing, building, code quality checking tools
+#### Memory Management
 
-## Release Process
+- When designing operators with stream inputs and outputs, consider memory leak issues
+- Implement proper cleanup mechanisms for all subscriptions and references
+- Use `useUnsubscribeCallback` utility for managing multiple stream unsubscriptions
+- Clear arrays and references in cleanup callbacks to prevent memory leaks
+- Handle circular references and parent-child relationships properly
 
-1. Code commits trigger pre-commit hooks
-2. GitHub Actions execute automated checks
-3. Use standard-version to manage versions and CHANGELOG
-4. Automatic publishing to npm
+#### Input Validation and Edge Cases
 
-## Code Quality Enhancement Suggestions
+- Thoroughly consider input boundary conditions when designing operators
+- Validate input types and throw appropriate errors for invalid inputs
+- Handle empty input scenarios gracefully
+- Consider single stream vs multiple stream scenarios
+- Handle mixed valid/invalid input combinations
 
-### 1. Documentation Improvements
+#### Status and State Management
 
-- Add comprehensive JSDoc comments to all public APIs
-- Create detailed API documentation with examples
-- All comments should use english language
+- Properly track and propagate PromiseStatus (PENDING, RESOLVED, REJECTED)
+- Handle already finished streams correctly during operator initialization
+- Ensure consistent status updates across all stream operations
+- Implement proper finishCount tracking for multiple stream scenarios
 
-### 2. Testing Enhancements
+#### Operator Function Design Patterns
 
-- Increase test coverage to 100%
-- Add integration tests
-- Add performance benchmarks
-- Add edge case testing
+- Use higher-order functions that return operator functions for pipe syntax compatibility
+- Return new Stream instances rather than modifying existing ones
+- Implement proper type inference for input/output stream types
+- Use StreamTupleValues type for operators that work with multiple streams
 
-### 3. Type Safety
+#### Error Handling and Propagation
 
-- Strengthen TypeScript strict mode settings
-- Add more specific type definitions
-- Use branded types for better type safety
+- Implement comprehensive error handling for all operator scenarios
+- Properly propagate errors from input streams to output streams
+- Handle Promise rejections and exceptions within operator logic
+- Use Promise.reject() for error propagation in stream emissions
 
-### 4. Performance Optimizations
+#### Concurrency and Timing
 
-- Add performance monitoring
-- Implement lazy loading where applicable
-- Optimize memory usage in stream operations
+- Consider concurrent execution scenarios for multiple stream inputs
+- Handle timing-dependent operations with proper synchronization
+- Use appropriate delay mechanisms (utils.sleep) for testing time-dependent behavior
+- Implement proper debouncing, throttling, and buffering where needed
 
-### 5. Developer Experience
+#### Cleanup and Resource Management
 
-- Add VS Code extension recommendations
-- Create development setup guide
-- Add debugging configuration
-- Implement better error messages
+- Implement afterUnsubscribe callbacks for proper cleanup
+- Use offUnsubscribe and offComplete to remove callbacks during cleanup
+- Handle nested observable subscriptions and their cleanup
+- Ensure all timers and async operations are properly cleaned up
 
-### 6. CI/CD Improvements
+#### Testing Requirements for Operators
 
-- Add automated security scanning
-- Implement automated dependency updates
-- Add cross-platform testing
-- Add bundle size monitoring
+- Test with both Stream and Observable inputs
+- Test with already finished streams
+- Test unsubscribe behavior and cleanup
+- Test error propagation and rejection scenarios
+- Test edge cases like empty inputs, single inputs, and mixed scenarios
+- Verify proper finishCount and status tracking
 
-### 7. Code Organization
+## Test Rules
 
-- Consider splitting large files into smaller modules
-- Implement barrel exports for better tree-shaking
-- Add architectural decision records (ADRs)
+### Test Coverage Requirements
 
----
+- Tests should cover all function functionalities including normal cases, exception cases, and boundary cases
+- Each public API must have corresponding test cases
+- Error handling and edge cases should be thoroughly tested
+- Input validation should be tested with both valid and invalid inputs
 
-_This document describes the overall architecture and organizational rules of the Fluth project, helping developers understand the project structure and contribute code effectively._
+### Test Organization and Structure
+
+- Test cases should be generated around function features and logically ordered
+- Tests should be structured so that function capabilities can be quickly understood through test cases
+- Group related test cases using descriptive test names
+- Avoid nested describe blocks (user preference)
+- Use clear, descriptive test descriptions that explain what is being tested
+
+### Test Quality Standards
+
+- Tests should be deterministic and repeatable
+- Use appropriate test utilities like `streamFactory`, `sleep`, `consoleSpy`
+- Mock external dependencies appropriately
+- Test both success and failure scenarios
+- Verify expected behavior through assertions, not just absence of errors
+
+### Test operator rules
+
+- test operators with stream inputs and outputs, consider the impact of input streams that are already finished on the output stream
+- test operators with stream inputs and outputs, consider the impact of input stream unsubscription on the output stream
+- test operators with stream inputs and outputs, consider the impact of output stream unsubscription on the input stream
+- test operators with stream inputs and outputs, consider the impact of input empty
+- test operators with stream inputs and outputs, consider the impact of input stream that is not finished on the output stream
+
+### Debugging and Problem Resolution
+
+- **Critical Rule**: If generated test cases cannot pass, investigate whether there are issues with the function implementation rather than constantly adjusting test cases to make them pass
+- When tests fail, analyze the root cause systematically
+- Document and report actual vs expected behavior clearly
+- Use test failures as indicators of potential bugs in the implementation
+
+### Project-Specific Guidelines
+
+- For operators, test with pipe syntax as required by the project
+- Use `utils.sleep` instead of manual Promise-based delays
+- Use `streamFactory` to create Stream instances consistently
+- When testing `observable$.execute()`, always use `stream$.next('test value')` to trigger execution
+- Test unsubscribe behavior and cleanup mechanisms
+- Verify proper status propagation (RESOLVED/REJECTED/PENDING)
+- Test completion callbacks and afterComplete/afterUnsubscribe hooks
+
+### Test Environment Setup
+
+- Use fake timers when testing time-dependent behavior
+- Clean up spies and mocks between tests
+- Handle unhandled promise rejections appropriately
+- Set appropriate process limits for concurrent operations
+
+### Code Quality in Tests
+
+- All test code comments must be written in English
+- Use TypeScript types appropriately in test code
+- Follow the same code quality standards as production code
+- Keep tests maintainable and readable

@@ -239,9 +239,10 @@ describe('finish operator test', async () => {
     await sleep(1)
 
     // Should immediately emit with all finished values
-    expect(result).toEqual([])
-    expect(completed).toBe(false)
-    expect(stream$.value).toStrictEqual(['finished1', 'finished2', 'finished3'])
+    expect(result).toEqual(['finished1', 'finished2', 'finished3'])
+    expect(completed).toBe(true)
+    expect(consoleSpy).toHaveBeenNthCalledWith(1, 'finish-completed')
+    expect(consoleSpy).toHaveBeenNthCalledWith(2, 'all-finished:', 'finished1,finished2,finished3')
   })
 
   // Tests for reject status tracking

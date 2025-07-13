@@ -1,7 +1,7 @@
 import { Observable } from '../observable'
 import { Stream } from '../stream'
 import { useUnsubscribeCallback } from '../utils'
-import { StreamTupleValues } from '../types'
+import { StreamTupleValues, PromiseStatus } from '../types'
 
 /**
  * combine takes multiple streams or Observable, and return a stream that emits values from all the input streams.
@@ -13,32 +13,51 @@ import { StreamTupleValues } from '../types'
 export const combine = <T extends (Stream | Observable)[]>(...args$: T) => {
   const stream$ = new Stream<StreamTupleValues<T>>()
   const payload: StreamTupleValues<T> = [] as any
-  const promiseStatus = [...Array(args$.length)].map(() => 'pending')
+  const promiseStatus = [...Array(args$.length)].map(() => PromiseStatus.PENDING)
   let finishCount = 0
   const { unsubscribeCallback } = useUnsubscribeCallback(stream$, args$.length)
   const completeCallback = () => (finishCount += 1)
 
+  // check input type
+  if (args$.some((arg$) => !(arg$ instanceof Stream) && !(arg$ instanceof Observable))) {
+    throw new Error('combine operator only accepts Stream or Observable as input')
+  }
+
+  // if no input, return an empty stream
+  if (args$.length === 0) {
+    return stream$
+  }
+
   const next = () => {
-    if (promiseStatus.every((status) => status !== 'pending'))
+    if (promiseStatus.every((status) => status !== PromiseStatus.PENDING))
       stream$.next(
-        promiseStatus.some((status) => status === 'rejected')
+        promiseStatus.some((status) => status === PromiseStatus.REJECTED)
           ? Promise.reject([...payload])
           : [...payload],
         finishCount === args$.length,
       )
   }
 
+  // if any input is finished, finishCount should be increased
+  args$.forEach((arg$, index) => {
+    if (arg$._getFlag('_finishFlag')) {
+      promiseStatus[index] = arg$.status as PromiseStatus
+      payload[index] = arg$.value
+      finishCount += 1
+    }
+  })
+
   args$.forEach((arg$, index) => {
     arg$.afterUnsubscribe(unsubscribeCallback)
     arg$.afterComplete(completeCallback)
-    arg$.then(
+    const observable$ = arg$.then(
       (value) => {
-        promiseStatus[index] = 'resolved'
+        promiseStatus[index] = PromiseStatus.RESOLVED
         payload[index] = value
         next()
       },
       (value) => {
-        promiseStatus[index] = 'rejected'
+        promiseStatus[index] = PromiseStatus.REJECTED
         payload[index] = value
         next()
       },
@@ -46,12 +65,18 @@ export const combine = <T extends (Stream | Observable)[]>(...args$: T) => {
     stream$.afterUnsubscribe(() => {
       arg$.offUnsubscribe(unsubscribeCallback)
       arg$.offComplete(completeCallback)
+      observable$.unsubscribe()
     })
   })
 
   stream$.afterComplete(() => {
     payload.length = 0
     promiseStatus.length = 0
+  })
+
+  // if all input is finished, the output stream should be finished
+  Promise.resolve().then(() => {
+    if (finishCount === args$.length) stream$.complete()
   })
 
   return stream$

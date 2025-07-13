@@ -22,10 +22,15 @@ export const finish = <T extends (Stream | Observable)[]>(...args$: T) => {
     throw new Error('finish operator only accepts Stream or Observable as input')
   }
 
+  // if no input, return an empty stream
+  if (args$.length === 0) {
+    return stream$
+  }
+
   const { unsubscribeCallback } = useUnsubscribeCallback(stream$, args$.length)
   const completeCallback = (_v: any, status: PromiseStatus) => {
     finishCount += 1
-    if (status === 'rejected') rejectFlag = true
+    if (status === PromiseStatus.REJECTED) rejectFlag = true
   }
   const next = () => {
     if (finishCount === args$.length) {
@@ -39,8 +44,6 @@ export const finish = <T extends (Stream | Observable)[]>(...args$: T) => {
       payload[index] = arg$.value
       finishCount += 1
       if (arg$.status === PromiseStatus.REJECTED) rejectFlag = true
-      next()
-      return
     }
 
     arg$.afterUnsubscribe(unsubscribeCallback)
@@ -64,6 +67,11 @@ export const finish = <T extends (Stream | Observable)[]>(...args$: T) => {
   })
 
   stream$.afterComplete(() => (payload.length = 0))
+
+  // if all input is finished, emit the result in next tick
+  Promise.resolve().then(() => {
+    if (finishCount === args$.length) next()
+  })
 
   return stream$
 }

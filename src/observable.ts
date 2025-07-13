@@ -385,7 +385,7 @@ export class Observable<T = any> {
     observer.#condition = condition
     observer.#differ = differ
 
-    if (!this._root?._finishFlag) {
+    if (!this._finishFlag) {
       this.#children.push(observer)
     }
     this.#runThenPlugin(observer)
@@ -698,11 +698,6 @@ export class Observable<T = any> {
     rootValue?: any,
     active = false,
   ) {
-    if (rootPromise !== this._root?._rootPromise)
-      console.warn(
-        'stream emit new value, unexecuted child observable node will stop execute and wait new stream value',
-      )
-
     if (!rootPromise || this._root?._pauseFlag || rootPromise !== this._root?._rootPromise) return
 
     const status = this.status
