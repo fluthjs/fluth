@@ -13,6 +13,17 @@ import { StreamTupleValues } from '../types'
 export const merge = <T extends (Stream | Observable)[]>(...args$: T) => {
   const stream$ = new Stream<StreamTupleValues<T>[number]>()
   let finishCount = 0
+
+  // check input type
+  if (args$.some((arg$) => !(arg$ instanceof Stream) && !(arg$ instanceof Observable))) {
+    throw new Error('merge operator only accepts Stream or Observable as input')
+  }
+
+  // check input empty
+  if (args$.length === 0) {
+    return stream$
+  }
+
   const { unsubscribeCallback } = useUnsubscribeCallback(stream$, args$.length)
   const completeCallback = () => (finishCount += 1)
   const next = (data: any, promiseStatus: 'resolved' | 'rejected') => {
@@ -23,6 +34,10 @@ export const merge = <T extends (Stream | Observable)[]>(...args$: T) => {
   }
 
   args$.forEach((arg$) => {
+    if (arg$._getFlag('_finishFlag')) {
+      finishCount += 1
+    }
+
     arg$.afterUnsubscribe(unsubscribeCallback)
     arg$.afterComplete(completeCallback)
     const observable = arg$.then(
@@ -35,6 +50,11 @@ export const merge = <T extends (Stream | Observable)[]>(...args$: T) => {
       arg$.offComplete(completeCallback)
       observable.unsubscribe()
     })
+  })
+
+  // if all input is finished, the output stream should be finished
+  Promise.resolve().then(() => {
+    if (finishCount === args$.length) stream$.complete()
   })
   return stream$
 }

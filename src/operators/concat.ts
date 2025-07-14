@@ -1,6 +1,6 @@
 import { Observable } from '../observable'
 import { Stream } from '../stream'
-import { StreamTupleValues } from '../types'
+import { StreamTupleValues, PromiseStatus } from '../types'
 
 /**
  * concat takes multiple streams or Observable, and return a stream that emits values in the order of the input streams.
@@ -14,10 +14,21 @@ export const concat = <T extends (Stream | Observable)[]>(...args$: T) => {
   const stream$ = new Stream<StreamTupleValues<T>[number]>()
   const finishFlag = [...Array(args$.length)].map(() => false)
   const unsubscribeFlag = [...Array(args$.length)].map(() => false)
-  const next = (data: any, promiseStatus: 'resolved' | 'rejected', index: number) => {
+
+  // check input type
+  if (args$.some((arg$) => !(arg$ instanceof Stream) && !(arg$ instanceof Observable))) {
+    throw new Error('concat operator only accepts Stream or Observable as input')
+  }
+
+  // check input empty
+  if (args$.length === 0) {
+    return stream$
+  }
+
+  const next = (data: any, promiseStatus: PromiseStatus, index: number) => {
     if (index === 0 || finishFlag[index - 1]) {
       stream$.next(
-        promiseStatus === 'resolved' ? data : Promise.reject(data),
+        promiseStatus === PromiseStatus.RESOLVED ? data : Promise.reject(data),
         finishFlag.every((flag) => flag),
       )
       if (finishFlag[index] && unsubscribeFlag[index + 1]) {
@@ -26,6 +37,10 @@ export const concat = <T extends (Stream | Observable)[]>(...args$: T) => {
     }
   }
   args$.forEach((arg$, index) => {
+    if (arg$._getFlag('_finishFlag')) {
+      finishFlag[index] = true
+    }
+
     const unsubscribeCallback = () => {
       unsubscribeFlag[index] = true
       if ((index === 0 || finishFlag[index - 1]) && !finishFlag[index]) {
@@ -36,8 +51,8 @@ export const concat = <T extends (Stream | Observable)[]>(...args$: T) => {
     arg$.afterUnsubscribe(unsubscribeCallback)
     arg$.afterComplete(completeCallback)
     const observable = arg$.then(
-      (value) => next(value, 'resolved', index),
-      (value) => next(value, 'rejected', index),
+      (value) => next(value, PromiseStatus.RESOLVED, index),
+      (value) => next(value, PromiseStatus.REJECTED, index),
     )
 
     stream$.afterUnsubscribe(() => {
@@ -45,6 +60,11 @@ export const concat = <T extends (Stream | Observable)[]>(...args$: T) => {
       arg$.offComplete(completeCallback)
       observable.unsubscribe()
     })
+  })
+
+  // if all input is finished, the output stream should be finished
+  Promise.resolve().then(() => {
+    if (finishFlag.every((flag) => flag)) stream$.complete()
   })
   return stream$
 }

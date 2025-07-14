@@ -23,6 +23,16 @@ export const partition = <T>(
   let finishFlag = false
   let index = 1
 
+  // check input type
+  if (!(stream$ instanceof Stream) && !(stream$ instanceof Observable)) {
+    throw new Error('partition operator only accepts Stream or Observable as input')
+  }
+
+  // check input finished
+  if (stream$._getFlag('_finishFlag')) {
+    finishFlag = true
+  }
+
   const next = (data: any, promiseStatus: 'resolved' | 'rejected', flag: boolean) => {
     if (flag) {
       selectedStream$.next(promiseStatus === 'resolved' ? data : Promise.reject(data), finishFlag)
@@ -67,6 +77,14 @@ export const partition = <T>(
     stream$.offUnsubscribe(unsubscribeCallback)
     stream$.offComplete(completeCallback)
     observable$.unsubscribe()
+  })
+
+  // if input is finished, the output streams should be finished
+  Promise.resolve().then(() => {
+    if (finishFlag) {
+      selectedStream$.complete()
+      unselectedStream$.complete()
+    }
   })
 
   return [selectedStream$, unselectedStream$]

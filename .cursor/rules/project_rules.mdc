@@ -192,6 +192,7 @@ Git hooks configuration:
 
 - Tests should be deterministic and repeatable
 - Use appropriate test utilities like `streamFactory`, `sleep`, `consoleSpy`
+- **The stream does not need sleep when next synchronous data, but only when next asynchronous data**
 - Mock external dependencies appropriately
 - Test both success and failure scenarios
 - Verify expected behavior through assertions, not just absence of errors
