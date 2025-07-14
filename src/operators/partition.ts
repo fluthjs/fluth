@@ -1,6 +1,7 @@
 import { Observable } from '../observable'
 import { Stream } from '../stream'
 import { finish } from './finish'
+import { PromiseStatus } from '../types'
 
 /**
  * partition takes a stream or Observable, and a predicate function that takes value and index as arguments.
@@ -15,7 +16,7 @@ import { finish } from './finish'
  */
 export const partition = <T>(
   stream$: Stream<T> | Observable<T>,
-  predicate: (this: any, value: any, status: 'resolved' | 'rejected', index: number) => boolean,
+  predicate: (this: any, value: any, status: PromiseStatus, index: number) => boolean,
   thisArg?: any,
 ) => {
   const selectedStream$ = new Stream<T>()
@@ -33,11 +34,17 @@ export const partition = <T>(
     finishFlag = true
   }
 
-  const next = (data: any, promiseStatus: 'resolved' | 'rejected', flag: boolean) => {
+  const next = (data: any, promiseStatus: PromiseStatus, flag: boolean) => {
     if (flag) {
-      selectedStream$.next(promiseStatus === 'resolved' ? data : Promise.reject(data), finishFlag)
+      selectedStream$.next(
+        promiseStatus === PromiseStatus.RESOLVED ? data : Promise.reject(data),
+        finishFlag,
+      )
     } else {
-      unselectedStream$.next(promiseStatus === 'resolved' ? data : Promise.reject(data), finishFlag)
+      unselectedStream$.next(
+        promiseStatus === PromiseStatus.RESOLVED ? data : Promise.reject(data),
+        finishFlag,
+      )
     }
   }
 
@@ -45,17 +52,25 @@ export const partition = <T>(
     .then(
       (value: any) => {
         try {
-          next(value, 'resolved', predicate.call(thisArg, value, 'resolved', index))
+          next(
+            value,
+            PromiseStatus.RESOLVED,
+            predicate.call(thisArg, value, PromiseStatus.RESOLVED, index),
+          )
         } catch (error) {
-          next(value, 'resolved', false)
+          next(value, PromiseStatus.RESOLVED, false)
           console.log(error)
         }
       },
       (value) => {
         try {
-          next(value, 'rejected', predicate.call(thisArg, value, 'rejected', index))
+          next(
+            value,
+            PromiseStatus.REJECTED,
+            predicate.call(thisArg, value, PromiseStatus.REJECTED, index),
+          )
         } catch (error) {
-          next(value, 'rejected', false)
+          next(value, PromiseStatus.REJECTED, false)
           console.log(error)
         }
       },
