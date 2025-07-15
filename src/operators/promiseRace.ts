@@ -12,9 +12,23 @@ import { StreamTupleValues } from '../types'
 export const promiseRace = <T extends (Stream | Observable)[]>(...args$: T) => {
   const stream$ = new Stream<StreamTupleValues<T>[number]>()
   let finishFlag = false
+  let finishCount = 0
   let firstIndex: number | null = null
 
+  // check input type
+  if (!args$.every((arg$) => arg$ instanceof Stream || arg$ instanceof Observable)) {
+    throw new Error('promiseRace operator only accepts Stream or Observable as input')
+  }
+
+  // check input empty
+  if (args$.length === 0) {
+    return stream$
+  }
+
   args$.forEach((arg$, index) => {
+    if (arg$._getFlag('_finishFlag')) {
+      finishCount += 1
+    }
     const observable = arg$.then(
       (value) => {
         if (firstIndex === null) firstIndex = index
@@ -49,6 +63,12 @@ export const promiseRace = <T extends (Stream | Observable)[]>(...args$: T) => {
       arg$.offComplete(completeCallback)
       observable.unsubscribe()
     })
+  })
+
+  Promise.resolve().then(() => {
+    if (finishCount === args$.length) {
+      stream$.complete()
+    }
   })
   return stream$
 }

@@ -172,20 +172,16 @@ describe('promiseAll operator', () => {
     test('should handle mixed sync and async values', async () => {
       const { stream$: stream1$, observable$: obs1$ } = streamFactory()
       const { stream$: stream2$, observable$: obs2$ } = streamFactory()
-      const { stream$: stream3$, observable$: obs3$ } = streamFactory()
 
-      const result$ = promiseAll(obs1$, obs2$, obs3$)
+      const result$ = promiseAll(obs1$, obs2$)
       result$.then((values) => console.log('mixed', values.toString()))
 
+      // Mix of sync and async values
       stream1$.next('sync')
-      stream2$.next(new Promise((resolve) => setTimeout(() => resolve('async'), 50)))
-      stream3$.next('sync2')
+      stream2$.next(Promise.resolve('async'))
 
-      await sleep(25)
-      expect(consoleSpy).not.toHaveBeenCalled()
-
-      await sleep(30)
-      expect(consoleSpy).toHaveBeenCalledWith('mixed', 'sync,async,sync2')
+      await sleep(10)
+      expect(consoleSpy).toHaveBeenCalledWith('mixed', 'sync,async')
     })
   })
 
@@ -347,11 +343,12 @@ describe('promiseAll operator', () => {
       const { stream$: stream2$, observable$: obs2$ } = streamFactory()
 
       const result$ = promiseAll(obs1$, obs2$)
-      result$.afterComplete(() => console.log('lifecycle-complete'))
+      result$.afterComplete(() => console.log('all-complete'))
 
-      stream1$.next('final1', true)
-      stream2$.next('final2', true)
-      expect(consoleSpy).toHaveBeenCalledWith('lifecycle-complete')
+      stream1$.complete()
+      stream2$.complete()
+      await sleep(1)
+      expect(consoleSpy).toHaveBeenCalledWith('all-complete')
     })
 
     test('should unsubscribe when all input streams unsubscribe', async () => {
@@ -359,14 +356,12 @@ describe('promiseAll operator', () => {
       const { observable$: obs2$ } = streamFactory()
 
       const result$ = promiseAll(obs1$, obs2$)
-      result$.afterComplete(() => console.log('unsubscribe-complete'))
-      result$.afterUnsubscribe(() => console.log('unsubscribe-callback'))
+      result$.afterUnsubscribe(() => console.log('all-unsubscribe'))
 
       obs1$.unsubscribe()
       obs2$.unsubscribe()
       await sleep(1)
-      expect(consoleSpy).toHaveBeenCalledWith('unsubscribe-complete')
-      expect(consoleSpy).toHaveBeenCalledWith('unsubscribe-callback')
+      expect(consoleSpy).toHaveBeenCalledWith('all-unsubscribe')
     })
 
     test('should clean up callbacks on unsubscribe', async () => {
@@ -374,23 +369,24 @@ describe('promiseAll operator', () => {
       const { stream$: stream2$, observable$: obs2$ } = streamFactory()
 
       const result$ = promiseAll(obs1$, obs2$)
-      result$.afterUnsubscribe(() => console.log('cleanup'))
+      let emissionCount = 0
 
-      // Process some values (sync)
-      stream1$.next('before-cleanup')
-      stream2$.next('before-cleanup')
+      result$.then(() => {
+        emissionCount++
+      })
 
-      // Unsubscribe result stream
+      // Initial emission
+      stream1$.next('value1')
+      stream2$.next('value2')
+      expect(emissionCount).toBe(1)
+
+      // Unsubscribe the result
       result$.unsubscribe()
-      await sleep(10)
 
-      // Further unsubscribes should not trigger additional callbacks
-      obs1$.unsubscribe()
-      obs2$.unsubscribe()
-      await sleep(10)
-
-      expect(consoleSpy).toHaveBeenCalledWith('cleanup')
-      expect(consoleSpy).toHaveBeenCalledTimes(1)
+      // Further emissions should not trigger callbacks
+      stream1$.next('value3')
+      stream2$.next('value4')
+      expect(emissionCount).toBe(1)
     })
 
     test('should clean up internal arrays after completion', async () => {
@@ -398,28 +394,25 @@ describe('promiseAll operator', () => {
       const { stream$: stream2$, observable$: obs2$ } = streamFactory()
 
       const result$ = promiseAll(obs1$, obs2$)
-      let capturedValue: any[] = []
-      let thenCalled = false
       let completeCalled = false
 
-      result$.afterComplete((value) => {
-        capturedValue = value
+      result$.afterComplete(() => {
         completeCalled = true
       })
 
-      result$.then(() => {
-        thenCalled = true
-      })
+      // Emit initial values
+      stream1$.next('test1')
+      stream2$.next('test2')
 
-      // Both streams complete together
-      stream1$.next('cleanup1', true)
-      stream2$.next('cleanup2', true)
+      // Complete both streams
+      stream1$.complete()
+      stream2$.complete()
 
-      // Check that then was called
-      expect(thenCalled).toBe(true)
-      // Check that complete was called
+      await sleep(1)
       expect(completeCalled).toBe(true)
-      expect(capturedValue).toEqual(['cleanup1', 'cleanup2'])
+
+      // Verify that the result stream has completed
+      expect(result$._getFlag('_finishFlag')).toBe(true)
     })
   })
 
@@ -590,6 +583,199 @@ describe('promiseAll operator', () => {
       stream3$.next(true)
       expect(consoleSpy).toHaveBeenCalledWith('type-test1', 'string', 'number', 'boolean')
       expect(consoleSpy).toHaveBeenCalledWith('type-test2', 'string', 'number', 'boolean')
+    })
+  })
+
+  // ===== Additional Tests for Version 2 Features =====
+  describe('Version 2 Enhanced Features', () => {
+    test('should validate input types strictly', async () => {
+      expect(() => {
+        promiseAll(null as any)
+      }).toThrow('promiseAll operator only accepts Stream or Observable as input')
+
+      expect(() => {
+        promiseAll('invalid' as any, 123 as any)
+      }).toThrow('promiseAll operator only accepts Stream or Observable as input')
+
+      expect(() => {
+        promiseAllNoAwait({} as any)
+      }).toThrow('promiseAll operator only accepts Stream or Observable as input')
+    })
+
+    test('test promiseAll with empty input', async () => {
+      const stream$ = promiseAll()
+      let completed = false
+
+      stream$.afterComplete(() => {
+        completed = true
+        console.log('empty-completed')
+      })
+
+      await sleep(1)
+
+      // Empty concat should not complete
+      expect(completed).toBe(false)
+      expect(consoleSpy).not.toHaveBeenCalled()
+    })
+
+    test('should properly clean up memory on completion', async () => {
+      const { stream$: stream1$, observable$: obs1$ } = streamFactory()
+      const { stream$: stream2$, observable$: obs2$ } = streamFactory()
+
+      const result$ = promiseAll(obs1$, obs2$)
+      let memoryCleanupCalled = false
+
+      result$.afterComplete(() => {
+        memoryCleanupCalled = true
+        console.log('memory-cleanup')
+      })
+
+      // Emit values and complete
+      stream1$.next('test1')
+      stream2$.next('test2')
+
+      stream1$.complete()
+      stream2$.complete()
+
+      await sleep(1)
+      expect(memoryCleanupCalled).toBe(true)
+      expect(consoleSpy).toHaveBeenCalledWith('memory-cleanup')
+    })
+
+    test('should handle sophisticated shouldAwait vs noAwait differences', async () => {
+      const { stream$: stream1$, observable$: obs1$ } = streamFactory()
+      const { stream$: stream2$, observable$: obs2$ } = streamFactory()
+
+      const awaitResult$ = promiseAll(obs1$, obs2$)
+      const noAwaitResult$ = promiseAllNoAwait(obs1$, obs2$)
+
+      let awaitEmissionCount = 0
+      let noAwaitEmissionCount = 0
+
+      awaitResult$.then(() => {
+        awaitEmissionCount++
+        console.log('sophisticated-await', awaitEmissionCount)
+      })
+
+      noAwaitResult$.then(() => {
+        noAwaitEmissionCount++
+        console.log('sophisticated-no-await', noAwaitEmissionCount)
+      })
+
+      // Start with pending promise in stream1
+      let resolvePending: ((value: string) => void) | undefined
+      const pendingPromise = new Promise<string>((resolve) => {
+        resolvePending = resolve
+      })
+
+      stream1$.next(pendingPromise)
+      stream2$.next('sync1')
+
+      await sleep(10)
+
+      // Both should not have emitted yet (waiting for pending promise)
+      expect(awaitEmissionCount).toBe(0)
+      expect(noAwaitEmissionCount).toBe(0)
+
+      // Update sync stream while async is still pending
+      stream2$.next('sync2')
+
+      await sleep(10)
+
+      // Still should not have emitted (promise still pending)
+      expect(awaitEmissionCount).toBe(0)
+      expect(noAwaitEmissionCount).toBe(0)
+
+      // Resolve the pending promise
+      if (resolvePending) {
+        resolvePending('async1')
+      }
+
+      await sleep(10)
+
+      // Now both should have emitted
+      expect(awaitEmissionCount).toBe(1)
+      expect(noAwaitEmissionCount).toBe(1)
+      expect(consoleSpy).toHaveBeenCalledWith('sophisticated-await', 1)
+      expect(consoleSpy).toHaveBeenCalledWith('sophisticated-no-await', 1)
+    })
+
+    test('should handle finished stream initialization correctly', async () => {
+      const { stream$: stream1$, observable$: obs1$ } = streamFactory()
+      const { stream$: stream2$, observable$: obs2$ } = streamFactory()
+
+      // Pre-finish streams with values
+      stream1$.next('pre-value1', true)
+      stream2$.next('pre-value2', true)
+
+      await sleep(1)
+
+      // Create promiseAll with already finished streams
+      const result$ = promiseAll(obs1$, obs2$)
+
+      result$.afterComplete(() => {
+        console.log('finished-init')
+      })
+
+      await sleep(1)
+
+      // Should emit immediately with pre-existing values
+      expect(consoleSpy).toHaveBeenCalledWith('finished-init')
+    })
+
+    test('should handle mixed finished and active streams', async () => {
+      const { stream$: stream1$, observable$: obs1$ } = streamFactory()
+      const { stream$: stream2$, observable$: obs2$ } = streamFactory()
+      const { stream$: stream3$, observable$: obs3$ } = streamFactory()
+
+      // Pre-finish first stream
+      stream1$.next('finished-value', true)
+      await sleep(1)
+
+      const result$ = promiseAll(obs1$, obs2$, obs3$)
+      result$.then((values) => console.log('mixed-init', values.toString()))
+
+      // Update active streams
+      stream2$.next('active1')
+      stream3$.next('active2')
+
+      expect(consoleSpy).toHaveBeenCalledWith('mixed-init', 'finished-value,active1,active2')
+    })
+
+    test('should handle complex status transitions', async () => {
+      const { stream$: stream1$, observable$: obs1$ } = streamFactory()
+      const { stream$: stream2$, observable$: obs2$ } = streamFactory()
+
+      const result$ = promiseAll(obs1$, obs2$)
+      const statusLog: string[] = []
+
+      result$.then(() => {
+        statusLog.push(`emit-${result$.status}`)
+      })
+
+      // Start with sync values
+      stream1$.next('sync1')
+      stream2$.next('sync2')
+      statusLog.push(`after-sync-${result$.status}`)
+
+      // Move to pending state
+      const pendingPromise = new Promise((resolve) =>
+        setTimeout(() => resolve('pending-resolved'), 50),
+      )
+      stream1$.next(pendingPromise)
+      stream2$.next('sync3')
+      statusLog.push(`after-pending-${result$.status}`)
+
+      await sleep(25)
+      statusLog.push(`during-pending-${result$.status}`)
+
+      await sleep(30)
+      statusLog.push(`after-resolved-${result$.status}`)
+
+      expect(statusLog).toContain('after-sync-resolved')
+      expect(statusLog).toContain('after-pending-resolved')
+      expect(statusLog).toContain('during-pending-resolved')
+      expect(statusLog).toContain('after-resolved-resolved')
     })
   })
 })

@@ -34,6 +34,16 @@ const promiseAllImpl = <T extends (Stream | Observable)[]>(
     }
   }
 
+  // check input type
+  if (!args$.every((arg$) => arg$ instanceof Stream || arg$ instanceof Observable)) {
+    throw new Error('promiseAll operator only accepts Stream or Observable as input')
+  }
+
+  // check input empty
+  if (args$.length === 0) {
+    return stream$
+  }
+
   const resetPromiseStatus = () => {
     args$.forEach((arg$, index) => {
       if (arg$.status === PromiseStatus.PENDING && shouldAwait) {
@@ -44,6 +54,11 @@ const promiseAllImpl = <T extends (Stream | Observable)[]>(
   }
 
   args$.forEach((arg$, index) => {
+    if (arg$._getFlag('_finishFlag')) {
+      finishCount += 1
+      payload[index] = arg$.value
+      promiseStatus[index] = PromiseStatus.RESOLVED
+    }
     arg$.afterUnsubscribe(unsubscribeCallback)
     arg$.afterComplete(completeCallback)
     const observable$ = arg$.then(
@@ -70,6 +85,12 @@ const promiseAllImpl = <T extends (Stream | Observable)[]>(
   stream$.afterComplete(() => {
     payload.length = 0
     promiseStatus.length = 0
+  })
+
+  Promise.resolve().then(() => {
+    if (finishCount === args$.length) {
+      stream$.complete()
+    }
   })
 
   return stream$
