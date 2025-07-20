@@ -233,7 +233,7 @@ export class Observable<T = any> {
    */
   #cleanParent(parent: Observable | null) {
     // all children observer unsubscribe
-    if (parent && !parent.#children.length) {
+    if (parent && !parent.#children.length && parent._finishFlag) {
       parent.#clean()
     }
   }
@@ -272,18 +272,18 @@ export class Observable<T = any> {
     if (this._finishFlag) return
     this._finishFlag = true
     this._unsubscribeFlag = true
-    this.#unsubscribeObservable(true, false)
+    this.#unsubscribeObservable(true)
   }
 
   /**
    * There are two scenarios when #unsubscribeObservable will be called:
    * 1. executeFinish trigger unsubscribe(once or finish), active is false
    * 2. actively calling observable's unsubscribe method, active is true
-   * current observer is not root observer, should also have different behavior
+   * when node is pending and call unsubscribe，after resolve or reject
+   * the new emit data should not be received by children.
    * @param active active flag, indicate #unsubscribeObservable is called by active or not
-   * @param immediate immediate flag, indicate children should be clear immediately or later
    */
-  #unsubscribeObservable(active = false, immediate = false) {
+  #unsubscribeObservable(active = false) {
     if (this.status === PromiseStatus.PENDING) return
 
     if (this.#parent) {
@@ -307,16 +307,12 @@ export class Observable<T = any> {
       const childPending = this.#children.some((child) => child.status === PromiseStatus.PENDING)
 
       this.#children.slice().forEach((child) => {
-        child.#unsubscribeObservable(active)
+        child.unsubscribe()
       })
-      // after recursively unsubscribeObservable, if no childPending this.#children.length should be 0
-      // so call #clean to clear left property, if has childPending, #cleanParent will be called by child observer
+      // after recursively unsubscribeObservable
+      // if no childPending this.#children.length should be 0, so call #clean to clear left property
+      // if has childPending, #cleanParent will be called by child observer to clear left property
       if (!childPending) this.#clean()
-    } else {
-      if (immediate)
-        // clear all children
-        this.#children = []
-      this.#clean()
     }
   }
 
@@ -573,15 +569,16 @@ export class Observable<T = any> {
       (this.#parent && !this.#parent?._root)
     ) {
       const parent = this.#parent
-      this.#unsubscribeObservable(false, this._unsubscribeFlag)
-      if (!this._onceFlag && !this._unsubscribeFlag) this.#cleanParent(parent)
+      this.#unsubscribeObservable(this._unsubscribeFlag)
+      this.#cleanParent(parent)
     }
     // condition check
     if (this.#condition && !safeCallback(this.#condition)(this.value)) return
     // differ check
     if (this.#differ && differResult) return
-    // execute children observer
-    if (this.#children?.length) {
+    // execute children observer, when node is pending and call unsubscribe，after resolve or reject
+    // the new emit data should not be received by children.
+    if (this.#children?.length && !this._unsubscribeFlag) {
       this.#children.slice().forEach((child) => child._executeObserver(this._cacheRootPromise))
     }
   }

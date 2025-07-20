@@ -1,6 +1,6 @@
 import { expect, describe, test, vi, beforeEach } from 'vitest'
 import { consoleSpy, sleep } from '../utils'
-import { Stream, fork } from '../../index'
+import { $, fork } from '../../index'
 
 describe('fork operator test', async () => {
   beforeEach(() => {
@@ -11,7 +11,7 @@ describe('fork operator test', async () => {
   })
 
   test('test fork', async () => {
-    const promise$ = new Stream()
+    const promise$ = $()
     const promise1$ = fork(promise$)
     promise1$.then(
       (value) => console.log('resolve', value),
@@ -33,7 +33,7 @@ describe('fork operator test', async () => {
   })
 
   test('test fork with unsubscribe', async () => {
-    const promise$ = new Stream()
+    const promise$ = $()
     const promise1$ = fork(promise$)
     promise1$.afterUnsubscribe(() => console.log('unsubscribe'))
     promise$.unsubscribe()
@@ -42,7 +42,7 @@ describe('fork operator test', async () => {
   })
 
   test('test fork with multiple values', async () => {
-    const promise$ = new Stream()
+    const promise$ = $()
     const promise1$ = fork(promise$)
     const promise2$ = fork(promise$)
 
@@ -59,7 +59,7 @@ describe('fork operator test', async () => {
   })
 
   test('test fork with promise rejection', async () => {
-    const promise$ = new Stream()
+    const promise$ = $()
     const promise1$ = fork(promise$)
 
     promise1$.then(
@@ -87,7 +87,7 @@ describe('fork operator test', async () => {
   })
 
   test('test fork with valid input types', () => {
-    const stream$ = new Stream()
+    const stream$ = $()
     const observable$ = stream$.then((value) => value)
 
     // Should not throw for valid inputs
@@ -97,7 +97,7 @@ describe('fork operator test', async () => {
 
   // Tests for finished stream handling
   test('test fork with finished stream', async () => {
-    const promise$ = new Stream()
+    const promise$ = $()
 
     // First, complete the stream
     promise$.next('final-value', true)
@@ -117,7 +117,7 @@ describe('fork operator test', async () => {
   })
 
   test('test fork with finished stream returns empty stream', async () => {
-    const promise$ = new Stream()
+    const promise$ = $()
 
     // Complete the stream
     promise$.next('completed', true)
@@ -150,7 +150,7 @@ describe('fork operator test', async () => {
   })
 
   test('test fork with finished stream different autoUnsubscribe settings', async () => {
-    const promise$ = new Stream()
+    const promise$ = $()
 
     // Complete the stream
     promise$.next('completed', true)
@@ -178,7 +178,7 @@ describe('fork operator test', async () => {
 
   // New tests for autoUnsubscribe parameter
   test('test fork with autoUnsubscribe = true (default)', async () => {
-    const promise$ = new Stream()
+    const promise$ = $()
     const promise1$ = fork(promise$, true) // explicit true
     let unsubscribed = false
 
@@ -195,7 +195,7 @@ describe('fork operator test', async () => {
   })
 
   test('test fork with autoUnsubscribe = false', async () => {
-    const promise$ = new Stream()
+    const promise$ = $()
     const promise1$ = fork(promise$, false) // explicit false
     let unsubscribed = false
 
@@ -212,7 +212,7 @@ describe('fork operator test', async () => {
   })
 
   test('test fork autoUnsubscribe behavior with manual unsubscribe', async () => {
-    const promise$ = new Stream()
+    const promise$ = $()
     const promise1$ = fork(promise$, false)
     let unsubscribed = false
 
@@ -229,7 +229,7 @@ describe('fork operator test', async () => {
   })
 
   test('test fork cleanup behavior with autoUnsubscribe = true', async () => {
-    const promise$ = new Stream()
+    const promise$ = $()
     const promise1$ = fork(promise$, true)
 
     // Add some values to ensure fork is working
@@ -247,7 +247,7 @@ describe('fork operator test', async () => {
   })
 
   test('test fork cleanup behavior with autoUnsubscribe = false', async () => {
-    const promise$ = new Stream()
+    const promise$ = $()
     const promise1$ = fork(promise$, false)
 
     // Add some values to ensure fork is working
@@ -265,7 +265,7 @@ describe('fork operator test', async () => {
   })
 
   test('test fork with completion and autoUnsubscribe = true', async () => {
-    const promise$ = new Stream()
+    const promise$ = $()
     const promise1$ = fork(promise$, true)
     let completed = false
 
@@ -285,7 +285,7 @@ describe('fork operator test', async () => {
   })
 
   test('test fork with completion and autoUnsubscribe = false', async () => {
-    const promise$ = new Stream()
+    const promise$ = $()
     const promise1$ = fork(promise$, false)
     let completed = false
 
@@ -306,7 +306,7 @@ describe('fork operator test', async () => {
   })
 
   test('test fork with mixed autoUnsubscribe settings on completion', async () => {
-    const promise$ = new Stream()
+    const promise$ = $()
     const autoFork$ = fork(promise$, true)
     const manualFork$ = fork(promise$, false)
 
@@ -340,7 +340,7 @@ describe('fork operator test', async () => {
 
   // Additional tests for edge cases and complex scenarios
   test('test fork completion propagation with stream restart', async () => {
-    const promise$ = new Stream()
+    const promise$ = $()
     const autoFork$ = fork(promise$, true)
     const manualFork$ = fork(promise$, false)
 
@@ -375,7 +375,7 @@ describe('fork operator test', async () => {
   })
 
   test('test fork completion behavior with multiple fork instances', async () => {
-    const promise$ = new Stream()
+    const promise$ = $()
 
     // Create multiple forks before completion
     const autoFork1$ = fork(promise$, true)
@@ -414,7 +414,7 @@ describe('fork operator test', async () => {
   })
 
   test('test fork with nested fork chains', async () => {
-    const source$ = new Stream()
+    const source$ = $()
     const fork1$ = fork(source$, true)
     const fork2$ = fork(fork1$, false)
     const fork3$ = fork(fork2$, true)
@@ -453,7 +453,7 @@ describe('fork operator test', async () => {
   })
 
   test('test fork callback cleanup on early unsubscribe', async () => {
-    const promise$ = new Stream()
+    const promise$ = $()
     const autoFork$ = fork(promise$, true)
     const manualFork$ = fork(promise$, false)
 
@@ -483,7 +483,7 @@ describe('fork operator test', async () => {
   })
 
   test('test fork with simultaneous unsubscribe and completion', async () => {
-    const promise$ = new Stream()
+    const promise$ = $()
     const fork1$ = fork(promise$, true)
     const fork2$ = fork(promise$, false)
 
@@ -521,7 +521,7 @@ describe('fork operator test', async () => {
   })
 
   test('test fork completion timing with async operations', async () => {
-    const promise$ = new Stream()
+    const promise$ = $()
     const fork1$ = fork(promise$, true)
 
     const completionOrder: string[] = []
@@ -544,7 +544,7 @@ describe('fork operator test', async () => {
   })
 
   test('test fork with error during completion', async () => {
-    const promise$ = new Stream()
+    const promise$ = $()
     const fork1$ = fork(promise$, true)
     const fork2$ = fork(promise$, false)
 

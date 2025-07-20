@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest'
-import { Stream } from '../../src/stream'
-import { combine } from '../../src/operators/combine'
+import { $, combine } from '../../index'
 import { streamFactory, sleep, consoleSpy } from '../utils'
 
 describe('combine operator test', async () => {
@@ -91,7 +90,7 @@ describe('combine operator test', async () => {
   })
 
   test('test combine with mixed invalid and valid inputs', () => {
-    const stream$ = new Stream()
+    const stream$ = $()
     const observable$ = stream$.then((value) => value)
 
     // Mixed valid and invalid inputs should throw
@@ -105,7 +104,7 @@ describe('combine operator test', async () => {
   })
 
   test('test combine with valid input types', () => {
-    const stream$ = new Stream()
+    const stream$ = $()
     const observable$ = stream$.then((value) => value)
 
     // Should not throw for valid inputs

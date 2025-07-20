@@ -1,6 +1,6 @@
 import { expect, describe, test, vi, beforeEach } from 'vitest'
 import { consoleSpy, sleep, streamFactory } from '../utils'
-import { finish, Stream } from '../../index'
+import { finish, $ } from '../../index'
 
 describe('finish operator test', async () => {
   beforeEach(() => {
@@ -120,7 +120,7 @@ describe('finish operator test', async () => {
   })
 
   test('test finish with mixed invalid and valid inputs', () => {
-    const stream$ = new Stream()
+    const stream$ = $()
     const observable$ = stream$.then((value) => value)
 
     // Mixed valid and invalid inputs should throw
@@ -134,7 +134,7 @@ describe('finish operator test', async () => {
   })
 
   test('test finish with valid input types', () => {
-    const stream$ = new Stream()
+    const stream$ = $()
     const observable$ = stream$.then((value) => value)
 
     // Should not throw for valid inputs

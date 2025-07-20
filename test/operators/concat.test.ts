@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest'
-import { Stream } from '../../src/stream'
-import { concat } from '../../src/operators/concat'
+import { $, concat } from '../../index'
 import { streamFactory, sleep, consoleSpy } from '../utils'
 
 describe('concat operator test', async () => {
@@ -187,7 +186,7 @@ describe('concat operator test', async () => {
   })
 
   test('test concat with mixed invalid and valid inputs', () => {
-    const stream$ = new Stream()
+    const stream$ = $()
     const observable$ = stream$.then((value) => value)
 
     expect(() => {
@@ -196,7 +195,7 @@ describe('concat operator test', async () => {
   })
 
   test('test concat with valid input types', () => {
-    const stream$ = new Stream()
+    const stream$ = $()
     const observable$ = stream$.then((value) => value)
 
     expect(() => concat(stream$)).not.toThrow()

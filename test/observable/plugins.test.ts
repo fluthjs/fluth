@@ -1,8 +1,6 @@
 import { expect, describe, test, vi, beforeEach } from 'vitest'
-import { consoleSpy, sleep, promiseFactory } from '../utils'
+import { consoleSpy, sleep, promiseFactory, streamFactory } from '../utils'
 import { $ } from '../../index'
-import { Observable } from '../../src/observable'
-import { Stream } from '../../src/stream'
 
 describe('Observable plugins methods (use, remove)', () => {
   beforeEach(() => {
@@ -50,47 +48,42 @@ describe('Observable plugins methods (use, remove)', () => {
 
   // Edge cases tests
   test('should handle use with empty plugins array', () => {
-    const stream = new Stream()
-    const observable = new Observable(stream)
-    const result = observable.use()
-    expect(result).toBe(observable)
+    const { observable$ } = streamFactory()
+    const result = observable$.use()
+    expect(result).toBe(observable$)
   })
 
   test('should handle use with null/undefined plugins', () => {
-    const stream = new Stream()
-    const observable = new Observable(stream)
+    const { observable$ } = streamFactory()
 
-    const result = observable.use({} as any, {} as any)
-    expect(result).toBe(observable)
+    const result = observable$.use({} as any, {} as any)
+    expect(result).toBe(observable$)
   })
 
   test('should handle use with plugins containing empty arrays', () => {
-    const stream = new Stream()
-    const observable = new Observable(stream)
-    const result = observable.use(
+    const { observable$ } = streamFactory()
+    const result = observable$.use(
       { then: [], execute: [], thenAll: [], executeAll: [] },
       { then: [], execute: [], thenAll: [], executeAll: [] },
     )
-    expect(result).toBe(observable)
+    expect(result).toBe(observable$)
   })
 
   test('should handle use with duplicate plugins', () => {
-    const stream = new Stream()
-    const observable = new Observable(stream)
+    const { observable$ } = streamFactory()
     const plugin1 = () => console.log('plugin1')
     const plugin2 = () => console.log('plugin2')
 
-    observable.use({ then: [plugin1, plugin2] })
-    observable.use({ then: [plugin1, plugin2] }) // Duplicate plugins
+    observable$.use({ then: [plugin1, plugin2] })
+    observable$.use({ then: [plugin1, plugin2] }) // Duplicate plugins
 
     // Should deduplicate plugins - check that plugins are added
-    expect(observable).toBeDefined()
+    expect(observable$).toBeDefined()
   })
 
   test('should throw error when child observable uses thenAll plugin', () => {
-    const stream = new Stream()
-    const parentObservable = new Observable(stream)
-    const childObservable = new Observable(parentObservable)
+    const { observable$: parentObservable } = streamFactory()
+    const childObservable = parentObservable.then((value) => value)
 
     expect(() => {
       childObservable.use({ thenAll: [() => console.log('test')] })
@@ -98,9 +91,8 @@ describe('Observable plugins methods (use, remove)', () => {
   })
 
   test('should throw error when child observable uses executeAll plugin', () => {
-    const stream = new Stream()
-    const parentObservable = new Observable(stream)
-    const childObservable = new Observable(parentObservable)
+    const { observable$: parentObservable } = streamFactory()
+    const childObservable = parentObservable.then((value) => value)
 
     expect(() => {
       childObservable.use({ executeAll: [() => console.log('test')] })
@@ -108,55 +100,51 @@ describe('Observable plugins methods (use, remove)', () => {
   })
 
   test('should handle remove with empty plugins array', () => {
-    const stream = new Stream()
-    const observable = new Observable(stream)
-    const result = observable.remove()
-    expect(result).toBe(observable)
+    const { observable$ } = streamFactory()
+    const result = observable$.remove()
+    expect(result).toBe(observable$)
   })
 
   test('should handle remove with non-existent plugins', () => {
-    const stream = new Stream()
-    const observable = new Observable(stream)
+    const { observable$ } = streamFactory()
     const plugin1 = () => console.log('plugin1')
     const plugin2 = () => console.log('plugin2')
 
-    observable.use({ then: [plugin1] })
-    observable.remove({ then: [plugin2] }) // Remove non-existent plugin
+    observable$.use({ then: [plugin1] })
+    observable$.remove({ then: [plugin2] }) // Remove non-existent plugin
 
     // Should not throw error
-    expect(observable).toBeDefined()
+    expect(observable$).toBeDefined()
   })
 
   test('should handle remove with partial plugin matches', () => {
-    const stream = new Stream()
-    const observable = new Observable(stream)
+    const { observable$ } = streamFactory()
     const plugin1 = () => console.log('plugin1')
     const plugin2 = () => console.log('plugin2')
     const plugin3 = () => console.log('plugin3')
 
-    observable.use({ then: [plugin1, plugin2, plugin3] })
-    observable.remove({ then: [plugin2] }) // Remove only plugin2
+    observable$.use({ then: [plugin1, plugin2, plugin3] })
+    observable$.remove({ then: [plugin2] }) // Remove only plugin2
 
     // Should not throw error
-    expect(observable).toBeDefined()
+    expect(observable$).toBeDefined()
   })
 
   test('should handle plugins with mixed valid and invalid entries', () => {
-    const stream = new Stream()
-    const observable = new Observable(stream)
+    const { observable$ } = streamFactory()
     const validPlugin = () => console.log('valid')
 
-    observable.use({
+    observable$.use({
       then: [validPlugin, null as any, undefined as any, false as any, 0 as any, '' as any],
       execute: [validPlugin, null as any, undefined as any],
     })
 
     // Should not throw error
-    expect(observable).toBeDefined()
+    expect(observable$).toBeDefined()
   })
 
   test('should handle plugin execution order', async () => {
-    const stream = new Stream()
+    const { stream$ } = streamFactory()
     const executionOrder: string[] = []
 
     const plugin1 = ({ result }: any) => {
@@ -172,11 +160,11 @@ describe('Observable plugins methods (use, remove)', () => {
       return result
     }
 
-    stream.use({ execute: [plugin1, plugin2] })
-    stream.use({ execute: [plugin3] })
+    stream$.use({ execute: [plugin1, plugin2] })
+    stream$.use({ execute: [plugin3] })
 
-    stream.then(() => 'test')
-    stream.next('test') // Trigger execution by sending data to stream
+    stream$.then(() => 'test')
+    stream$.next('test') // Trigger execution by sending data to stream
 
     // Wait for plugins to execute
     await sleep(10)
@@ -186,23 +174,22 @@ describe('Observable plugins methods (use, remove)', () => {
   })
 
   test('should handle plugin that throws error', () => {
-    const stream = new Stream()
-    const observable = new Observable(stream)
+    const { observable$ } = streamFactory()
     const errorPlugin = () => {
       throw new Error('Plugin error')
     }
 
-    observable.use({ execute: [errorPlugin] })
-    observable.then(() => 'test')
+    observable$.use({ execute: [errorPlugin] })
+    observable$.then(() => 'test')
 
     // Should not throw error, should be handled gracefully
     expect(() => {
-      observable.execute()
+      observable$.execute()
     }).not.toThrow()
   })
 
   test('should handle plugin with async function', async () => {
-    const stream = new Stream()
+    const { stream$ } = streamFactory()
     let executed = false
 
     const asyncPlugin = async ({ result }: any) => {
@@ -211,9 +198,9 @@ describe('Observable plugins methods (use, remove)', () => {
       return result
     }
 
-    stream.use({ execute: [asyncPlugin] })
-    stream.then(() => 'test')
-    stream.next('test') // Trigger execution by sending data to stream
+    stream$.use({ execute: [asyncPlugin] })
+    stream$.then(() => 'test')
+    stream$.next('test') // Trigger execution by sending data to stream
 
     // Wait for async plugin to complete
     await sleep(20)

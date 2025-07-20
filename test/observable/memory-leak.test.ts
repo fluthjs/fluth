@@ -1,5 +1,5 @@
 import { expect, describe, test, vi, beforeEach } from 'vitest'
-import { consoleSpy, sleep, streamFactory } from '../utils'
+import { consoleSpy, sleep, streamFactory, setTimeoutSleep } from '../utils'
 
 describe('Observable memory leak and cleanup edge cases', () => {
   beforeEach(() => {
@@ -382,5 +382,67 @@ describe('Observable memory leak and cleanup edge cases', () => {
     stream$.next('another value')
     expect((observable$ as any)._getFlag('_cleanFlag')).toBe(true)
     expect((child as any)._getFlag('_cleanFlag')).toBe(true)
+  })
+
+  test('should handle unsubscribe with complex nested async children', async () => {
+    const { stream$, observable$ } = streamFactory()
+    const child1$ = observable$.then(async () => {
+      await setTimeoutSleep(50)
+      return true
+    })
+    const child2$ = observable$.then(() => {
+      return true
+    })
+
+    const child11$ = child1$.then(async () => {
+      await setTimeoutSleep(100)
+      return true
+    })
+
+    const child111$ = child11$.then(() => {
+      return true
+    })
+
+    const child12$ = child1$.then(async () => {
+      await setTimeoutSleep(50)
+      return true
+    })
+
+    stream$.next('test1')
+
+    await sleep(60)
+    stream$.next('test2', true)
+
+    await sleep(150)
+    expect((child1$ as any)._getFlag('_cleanFlag')).toBe(true)
+    expect((child2$ as any)._getFlag('_cleanFlag')).toBe(true)
+    expect((child11$ as any)._getFlag('_cleanFlag')).toBe(true)
+    expect((child111$ as any)._getFlag('_cleanFlag')).toBe(true)
+    expect((child12$ as any)._getFlag('_cleanFlag')).toBe(true)
+  })
+
+  test('should handle unsubscribe children with pending status', async () => {
+    const { stream$, observable$ } = streamFactory()
+    const child1$ = observable$.then(async () => {
+      await setTimeoutSleep(50)
+      return true
+    })
+
+    const child11$ = child1$.then(() => {
+      return true
+    })
+
+    const child111$ = child11$.then(() => {
+      return true
+    })
+
+    stream$.next('test1')
+    await sleep(10)
+    child1$.unsubscribe()
+    await sleep(40)
+
+    expect((child1$ as any)._getFlag('_cleanFlag')).toBe(true)
+    expect((child11$ as any)._getFlag('_cleanFlag')).toBe(true)
+    expect((child111$ as any)._getFlag('_cleanFlag')).toBe(true)
   })
 })
