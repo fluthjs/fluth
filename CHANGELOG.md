@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.3.16](https://github.com/fluthjs/fluth/compare/v0.3.15...v0.3.16) (2025-07-20)
+
+
+### Features
+
+* enhance observable unsubscribe ([f6bf0b1](https://github.com/fluthjs/fluth/commit/f6bf0b11b0c153d505f863dc895099a0ccb92a25))
+* optimization promiseAll and promiseRace operator ([b8f5d61](https://github.com/fluthjs/fluth/commit/b8f5d61c2a4192c703e5d3540e47ec3edde88485))
+* update concat merge partition operator boundary processing ([0746204](https://github.com/fluthjs/fluth/commit/07462048c078a6be70ac9286286540950ce3ffaa))
+
 ### [0.3.15](https://github.com/fluthjs/fluth/compare/v0.3.14...v0.3.15) (2025-07-13)
 
 
