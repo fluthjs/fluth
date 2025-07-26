@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.3.17](https://github.com/fluthjs/fluth/compare/v0.3.16...v0.3.17) (2025-07-26)
+
+
+### Bug Fixes
+
+* debounce not work after emit ([f82aa3b](https://github.com/fluthjs/fluth/commit/f82aa3bf9009b0e80a874be74cb47f62e37f8359))
+
 ### [0.3.16](https://github.com/fluthjs/fluth/compare/v0.3.15...v0.3.16) (2025-07-20)
 
 
