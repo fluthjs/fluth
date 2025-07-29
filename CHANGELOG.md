@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.3.18](https://github.com/fluthjs/fluth/compare/v0.3.17...v0.3.18) (2025-07-29)
+
+
+### Features
+
+* consoleAll add ignoreUndefined params ([e28f16f](https://github.com/fluthjs/fluth/commit/e28f16fec0c44133a61373dad9fc31e2a53fae7e))
+
 ### [0.3.17](https://github.com/fluthjs/fluth/compare/v0.3.16...v0.3.17) (2025-07-26)
 
 
