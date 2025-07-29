@@ -3,8 +3,8 @@ import { Observable } from './observable'
 import { isObjectLike, isPromiseLike, isAsyncFunction } from './utils'
 import { PromiseStatus } from './types'
 
-export class Stream<T = any, I extends boolean = false> extends Observable<T> {
-  declare value: I extends true ? T : T | undefined
+export class Stream<T = any> extends Observable<T> {
+  declare value: T
   constructor(data?: T) {
     super()
     if (data instanceof Promise) {
@@ -56,8 +56,8 @@ export class Stream<T = any, I extends boolean = false> extends Observable<T> {
   }
 }
 
-export function $<T = any>(): Stream<T, false>
-export function $<T = any>(data: T): Stream<T, true>
+export function $<T = any>(): Stream<T | undefined>
+export function $<T = any>(data: T): Stream<T>
 export function $<T = any>(data?: T) {
-  return new Stream<T, boolean>(data)
+  return new Stream<T>(data)
 }
