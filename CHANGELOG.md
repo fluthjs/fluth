@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.3.20](https://github.com/fluthjs/fluth/compare/v0.3.19...v0.3.20) (2025-07-29)
+
+
+### Features
+
+* optimize observable node reject process ([0dc7264](https://github.com/fluthjs/fluth/commit/0dc7264304aa532116a9c36addfc5096acd27bb5))
+* optimize Stream type ([8a650cc](https://github.com/fluthjs/fluth/commit/8a650cc6b55e3078eb456195911b474c8c88acca))
+
 ### [0.3.19](https://github.com/fluthjs/fluth/compare/v0.3.18...v0.3.19) (2025-07-29)
 
 
