@@ -122,9 +122,9 @@ describe('consoleAll plugins test', async () => {
     stream$.next(null)
     expect(consoleSpy).toHaveBeenCalledWith('resolve', null)
 
-    // Test with undefined
+    // Test with undefined - should be ignored due to ignoreUndefined=true (default)
     stream$.next(undefined)
-    expect(consoleSpy).toHaveBeenCalledWith('resolve', undefined)
+    // undefined should not be logged due to default ignoreUndefined=true
 
     // Test with empty string
     stream$.next('')
@@ -138,7 +138,7 @@ describe('consoleAll plugins test', async () => {
     stream$.next(false)
     expect(consoleSpy).toHaveBeenCalledWith('resolve', false)
 
-    expect(consoleSpy).toHaveBeenCalledTimes(5)
+    expect(consoleSpy).toHaveBeenCalledTimes(4) // undefined is ignored
   })
 
   test('test consoleAll plugin returns original result', async () => {
@@ -287,5 +287,124 @@ describe('consoleAll plugins test', async () => {
     expect(consoleSpy).toHaveBeenCalledTimes(3) // No new calls
 
     expect(consoleSpy).toHaveBeenCalledTimes(3)
+  })
+
+  test('test consoleAll with ignoreUndefined default behavior', async () => {
+    const stream$ = $()
+    stream$.use(consoleAll()) // ignoreUndefined defaults to true
+
+    // Test synchronous undefined value - should be ignored
+    stream$.next(undefined)
+    expect(consoleSpy).not.toHaveBeenCalled()
+
+    // Test non-undefined value - should be logged
+    stream$.next('test-value')
+    expect(consoleSpy).toHaveBeenCalledWith('resolve', 'test-value')
+
+    // Test Promise that resolves to undefined - should be ignored
+    const resolveUndefinedPromise = Promise.resolve(undefined)
+    stream$.next(resolveUndefinedPromise)
+    await resolveUndefinedPromise
+    expect(consoleSpy).toHaveBeenCalledTimes(1) // Only the 'test-value' call
+
+    // Test Promise that rejects with undefined - should be ignored
+    const rejectUndefinedPromise = Promise.reject(undefined)
+    stream$.next(rejectUndefinedPromise)
+    try {
+      await rejectUndefinedPromise
+    } catch {
+      // Expected to reject
+    }
+    expect(consoleSpy).toHaveBeenCalledTimes(1) // Still only the 'test-value' call
+  })
+
+  test('test consoleAll with ignoreUndefined set to false', async () => {
+    const stream$ = $()
+    stream$.use(consoleAll('resolve', 'reject', false)) // ignoreUndefined = false
+
+    // Test synchronous undefined value - should be logged
+    stream$.next(undefined)
+    expect(consoleSpy).toHaveBeenCalledWith('resolve', undefined)
+
+    // Test Promise that resolves to undefined - should be logged
+    const resolveUndefinedPromise = Promise.resolve(undefined)
+    stream$.next(resolveUndefinedPromise)
+    await resolveUndefinedPromise
+    expect(consoleSpy).toHaveBeenCalledWith('resolve', undefined)
+
+    // Test Promise that rejects with undefined - should be logged
+    const rejectUndefinedPromise = Promise.reject(undefined)
+    stream$.next(rejectUndefinedPromise)
+    try {
+      await rejectUndefinedPromise
+    } catch {
+      // Expected to reject
+    }
+    expect(consoleSpy).toHaveBeenCalledWith('reject', undefined)
+
+    expect(consoleSpy).toHaveBeenCalledTimes(3)
+  })
+
+  test('test consoleAll ignoreUndefined with mixed values', async () => {
+    const stream$ = $()
+    stream$.use(consoleAll('resolve', 'reject', true)) // ignoreUndefined = true
+
+    // Mix undefined and defined values
+    stream$.next(undefined) // should be ignored
+    stream$.next(null) // should be logged
+    stream$.next(0) // should be logged
+    stream$.next('') // should be logged
+    stream$.next(false) // should be logged
+    stream$.next(undefined) // should be ignored again
+
+    expect(consoleSpy).toHaveBeenCalledWith('resolve', null)
+    expect(consoleSpy).toHaveBeenCalledWith('resolve', 0)
+    expect(consoleSpy).toHaveBeenCalledWith('resolve', '')
+    expect(consoleSpy).toHaveBeenCalledWith('resolve', false)
+    expect(consoleSpy).toHaveBeenCalledTimes(4) // undefined values are ignored
+  })
+
+  test('test consoleAll ignoreUndefined with custom prefixes', async () => {
+    const stream$ = $()
+    stream$.use(consoleAll('custom-resolve', 'custom-reject', true))
+
+    // Test undefined with custom prefixes
+    stream$.next(undefined) // should be ignored
+    stream$.next('valid-value') // should be logged with custom prefix
+
+    const rejectPromise = Promise.reject('error-value')
+    stream$.next(rejectPromise)
+    try {
+      await rejectPromise
+    } catch {
+      // Expected to reject
+    }
+
+    expect(consoleSpy).toHaveBeenCalledWith('custom-resolve', 'valid-value')
+    expect(consoleSpy).toHaveBeenCalledWith('custom-reject', 'error-value')
+    expect(consoleSpy).toHaveBeenCalledTimes(2)
+  })
+
+  test('test consoleAll ignoreUndefined with executeAll direct call', async () => {
+    const plugin = consoleAll('resolve', 'reject', true)
+
+    // Test undefined value with root=true (should be ignored)
+    const undefinedResult = plugin.executeAll({
+      result: undefined,
+      status: PromiseStatus.RESOLVED,
+      root: true,
+    })
+    expect(undefinedResult).toBe(undefined)
+    expect(consoleSpy).not.toHaveBeenCalled()
+
+    // Test defined value with root=true (should be logged)
+    const definedResult = plugin.executeAll({
+      result: 'defined-value',
+      status: PromiseStatus.RESOLVED,
+      root: true,
+    })
+    expect(definedResult).toBe('defined-value')
+    expect(consoleSpy).toHaveBeenCalledWith('resolve', 'defined-value')
+    expect(consoleSpy).toHaveBeenCalledTimes(1)
   })
 })

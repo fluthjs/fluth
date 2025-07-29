@@ -3,9 +3,14 @@ import { OnFulfilled, OnRejected, PromiseStatus } from '../types'
  * @description console node executeAll plugin
  * @param resolvePrefix prefix for resolve console prefix
  * @param rejectPrefix prefix for reject console prefix
+ * @param ignoreUndefined ignore undefined value
  * @returns executeAll Plugin
  */
-export const consoleAll = (resolvePrefix = 'resolve', rejectPrefix = 'reject') => ({
+export const consoleAll = (
+  resolvePrefix = 'resolve',
+  rejectPrefix = 'reject',
+  ignoreUndefined = true,
+) => ({
   executeAll: ({
     result,
     status,
@@ -30,13 +35,22 @@ export const consoleAll = (resolvePrefix = 'resolve', rejectPrefix = 'reject') =
     if (result instanceof Promise) {
       result.then(
         (value) => {
+          if (ignoreUndefined && value === undefined) {
+            return
+          }
           console.log(resolvePrefix, value)
         },
         (error) => {
+          if (ignoreUndefined && error === undefined) {
+            return
+          }
           console.log(rejectPrefix, error)
         },
       )
     } else {
+      if (ignoreUndefined && result === undefined) {
+        return
+      }
       console.log(resolvePrefix, result)
     }
     return result

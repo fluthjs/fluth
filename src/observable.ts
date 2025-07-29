@@ -426,7 +426,7 @@ export class Observable<T = any> {
    * @returns Observable
    */
   thenImmediate<F = T>(
-    onFulfilled?: OnFulfilled<T>,
+    onFulfilled?: OnFulfilled<T, F>,
     onRejected?: OnRejected,
     condition?: (value: T) => boolean,
     differ?: (value: T) => any,
@@ -446,7 +446,7 @@ export class Observable<T = any> {
    * @param [onRejected] - Function to execute when the parent node is rejected (optional)
    * @returns
    */
-  thenOnce<F = T>(onFulfilled?: OnFulfilled<T>, onRejected?: OnRejected) {
+  thenOnce<F = T>(onFulfilled?: OnFulfilled<T, F>, onRejected?: OnRejected) {
     return this.#thenObserver<F>({
       once: true,
       onfulfilled: onFulfilled,
