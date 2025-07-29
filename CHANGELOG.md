@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.3.19](https://github.com/fluthjs/fluth/compare/v0.3.18...v0.3.19) (2025-07-29)
+
+
+### Features
+
+* support promiseLike Observable node ([2a23325](https://github.com/fluthjs/fluth/commit/2a233258f2c08c497bc465f735c31da6d24e469d))
+
 ### [0.3.18](https://github.com/fluthjs/fluth/compare/v0.3.17...v0.3.18) (2025-07-29)
 
 
