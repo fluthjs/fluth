@@ -1,6 +1,6 @@
 import { produce, createDraft, finishDraft } from 'limu'
 import { Stream } from './stream'
-import { safeCallback, isObjectLike, isAsyncFunction } from './utils'
+import { safeCallback, isObjectLike, isAsyncFunction, isPromiseLike } from './utils'
 import {
   OnFulfilled,
   OnRejected,
@@ -477,7 +477,7 @@ export class Observable<T = any> {
     })
   }
 
-  #set(value: T, setter: (value: T) => void | Promise<void>): Promise<T> | T {
+  #set(value: T, setter: (value: T) => void | PromiseLike<void>): PromiseLike<T> | T {
     if (isObjectLike(this.value)) {
       if (isAsyncFunction(setter)) {
         const draft = createDraft(value)
@@ -535,7 +535,7 @@ export class Observable<T = any> {
     const context = {
       result,
       status: this.status,
-      set: (setter: (value: T) => void | Promise<void>) => this.#set(result, setter),
+      set: (setter: (value: T) => void | PromiseLike<void>) => this.#set(result, setter),
       root: !this.#parent,
       onfulfilled: this.#resolve,
       onrejected: this.#reject,
@@ -589,33 +589,39 @@ export class Observable<T = any> {
    * @param status last promise status
    */
   #executeResult(
-    result: any | Promise<any>,
+    result: any | PromiseLike<any>,
     status: PromiseStatus | null,
     rootPromise: PromiseLike<any>,
   ) {
     let differResult = false
-    const handlePromiseResult = (result: Promise<any>) =>
-      result.then(
-        (data) => {
-          if (this._root?._rootPromise !== rootPromise) return
-          this.status = PromiseStatus.RESOLVED
-          // first time skip differ check
-          if (this.#differ && status !== null)
-            differResult =
-              safeCallback(this.#differ)(this.value) === safeCallback(this.#differ)(data)
-          this.value = data
-        },
-        (error) => {
-          if (this._root?._rootPromise !== rootPromise) return
-          this.status = PromiseStatus.REJECTED
-          this.value = error
-        },
+
+    // handle promiseLike result to promise
+    const handlePromiseResult = (result: PromiseLike<any>) =>
+      new Promise((resolve) =>
+        result.then(
+          (data) => {
+            if (this._root?._rootPromise !== rootPromise) return
+            this.status = PromiseStatus.RESOLVED
+            // first time skip differ check
+            if (this.#differ && status !== null)
+              differResult =
+                safeCallback(this.#differ)(this.value) === safeCallback(this.#differ)(data)
+            this.value = data
+            resolve(data)
+          },
+          (error) => {
+            if (this._root?._rootPromise !== rootPromise) return
+            this.status = PromiseStatus.REJECTED
+            this.value = error
+            resolve(error)
+          },
+        ),
       )
     const handleExecuteFinish = () => {
       if (this._root?._rootPromise !== rootPromise) return
       this.#executeFinish(differResult)
     }
-    if (result instanceof Promise) {
+    if (result instanceof Promise || isPromiseLike(result)) {
       // promise handler
       const promise = handlePromiseResult(result)
       // finally handler when promise is resolved or rejected
@@ -624,7 +630,7 @@ export class Observable<T = any> {
           .finally(() => {
             try {
               const finallyResult = this.#finally?.() as any
-              if (finallyResult instanceof Promise) {
+              if (finallyResult instanceof Promise || isPromiseLike(finallyResult)) {
                 return handlePromiseResult(finallyResult)
               }
             } catch (error) {
@@ -645,7 +651,7 @@ export class Observable<T = any> {
       if (this.#finally) {
         try {
           const finallyResult = this.#finally?.() as any
-          if (finallyResult instanceof Promise) {
+          if (finallyResult instanceof Promise || isPromiseLike(finallyResult)) {
             return handlePromiseResult(finallyResult).finally(handleExecuteFinish)
           }
         } catch (error) {
@@ -667,7 +673,7 @@ export class Observable<T = any> {
    * - Caches the root promise reference
    */
   #executeNode(
-    nodeProcessor: () => any | Promise<any>,
+    nodeProcessor: () => any | PromiseLike<any>,
     rootPromise: PromiseLike<any>,
     status: PromiseStatus | null,
   ) {

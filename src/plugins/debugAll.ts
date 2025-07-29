@@ -1,4 +1,5 @@
 import { OnFulfilled, OnRejected } from '../types'
+import { isPromiseLike } from '../utils'
 /**
  * @description debug node executeAll plugin
  * @returns executeAll Plugin
@@ -20,7 +21,7 @@ export const debugAll = () => ({
       return result
     }
     // empty node skip console log
-    if (result instanceof Promise) {
+    if (result instanceof Promise || isPromiseLike(result)) {
       result.then(
         () => {
           // eslint-disable-next-line

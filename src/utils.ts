@@ -32,8 +32,11 @@ export const isPromiseLike = <T>(payload: T | PromiseLike<T>): payload is Promis
   )
 }
 
-export const isAsyncFunction = (fn: any): fn is (...args: any[]) => Promise<any> => {
-  return typeof fn === 'function' && Object.prototype.toString.call(fn) === '[object AsyncFunction]'
+export const isAsyncFunction = (fn: any): fn is (...args: any[]) => PromiseLike<any> => {
+  return (
+    typeof fn === 'function' &&
+    (Object.prototype.toString.call(fn) === '[object AsyncFunction]' || isPromiseLike(fn))
+  )
 }
 
 export const useUnsubscribeCallback = (stream$: Stream, length: number) => {

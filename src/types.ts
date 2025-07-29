@@ -1,8 +1,8 @@
 import { Observable } from './observable'
 import { Stream } from './stream'
 
-export type OnFulfilled<T = any, V = any> = (data: T) => V | Promise<V>
-export type OnRejected<V = any> = (reason: any) => V | Promise<V>
+export type OnFulfilled<T = any, V = any> = (data: T) => V | PromiseLike<V>
+export type OnRejected<V = any> = (reason: any) => V | PromiseLike<V>
 export type OnFinally = Parameters<Promise<any>['finally']>[0]
 export type thenPluginFn<T> = (unsubscribe: () => void, observable: Observable<T>) => void
 /**
@@ -10,8 +10,8 @@ export type thenPluginFn<T> = (unsubscribe: () => void, observable: Observable<T
  * @returns return promise will reset observer value
  */
 export type executePlugin<T> = (params: {
-  result: Promise<T> | T
-  set: (setter: (state: T) => Promise<void> | void) => Promise<T> | T
+  result: PromiseLike<T> | T
+  set: (setter: (state: T) => PromiseLike<void> | void) => PromiseLike<T> | T
   root: boolean
   status: PromiseStatus | null
   onfulfilled?: OnFulfilled

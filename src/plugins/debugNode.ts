@@ -1,3 +1,5 @@
+import { isPromiseLike } from '../utils'
+
 /**
  * @param condition condition function, if return true will debug resolve
  * @param conditionError condition function, if return true will debug error
@@ -8,9 +10,9 @@ export const debugNode = (
   condition?: (value: any) => boolean,
   conditionError?: (value: any) => boolean,
 ) => ({
-  execute: ({ result }: { result: Promise<any> | any }) => {
+  execute: ({ result }: { result: PromiseLike<any> | any }) => {
     // empty node skip console log
-    if (result instanceof Promise) {
+    if (result instanceof Promise || isPromiseLike(result)) {
       result.then(
         (data) => {
           // eslint-disable-next-line

@@ -1,4 +1,5 @@
 import { OnFulfilled, OnRejected, PromiseStatus } from '../types'
+import { isPromiseLike } from '../utils'
 /**
  * @description console node executeAll plugin
  * @param resolvePrefix prefix for resolve console prefix
@@ -18,7 +19,7 @@ export const consoleAll = (
     onrejected,
     root,
   }: {
-    result: Promise<any> | any
+    result: PromiseLike<any> | any
     status: PromiseStatus | null
     onfulfilled?: OnFulfilled
     onrejected?: OnRejected
@@ -32,7 +33,7 @@ export const consoleAll = (
     }
 
     // log the result
-    if (result instanceof Promise) {
+    if (result instanceof Promise || isPromiseLike(result)) {
       result.then(
         (value) => {
           if (ignoreUndefined && value === undefined) {
