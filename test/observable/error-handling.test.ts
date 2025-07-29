@@ -72,6 +72,7 @@ describe('Observable error handling edge cases', () => {
       })
 
     stream.next('test')
+
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'Success')
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'Caught finally error:', 'Finally error')
   })
@@ -113,7 +114,7 @@ describe('Observable error handling edge cases', () => {
       return observable // Circular reference
     }
 
-    observable.then(circularHandler).catch((error) => {
+    observable.then(circularHandler as any).catch((error) => {
       console.log('Caught circular error:', error.message)
     })
 

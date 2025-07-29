@@ -554,8 +554,9 @@ export class Observable<T = any> {
    * if condition is set, and condition check is false, return
    * and execute all children observer
    * @param differResult
+   * @param presetValue
    */
-  #executeFinish(differResult = false) {
+  #executeFinish(differResult = false, presetValue?: any) {
     // finish flag check
     if (this._root?._finishFlag) {
       this.#finishCallbackList.forEach((fn) => safeCallback(fn)(this.value, this.status))
@@ -579,19 +580,26 @@ export class Observable<T = any> {
     // execute children observer, when node is pending and call unsubscribe，after resolve or reject
     // the new emit data should not be received by children.
     if (this.#children?.length && !this._unsubscribeFlag) {
-      this.#children.slice().forEach((child) => child._executeObserver(this._cacheRootPromise))
+      this.#children
+        .slice()
+        .forEach((child) => child._executeObserver(this._cacheRootPromise, presetValue, false))
     }
   }
 
   /**
-   * Execute node process result, if result is a promise, it will add a catch handler
+   * Execute node process result
    * @param result result to execute
    * @param status last promise status
+   * @param rootPromise root promise
+   * @param skipResult skip result process, only for presetValue
+   * @param presetValue preset value
    */
   #executeResult(
     result: any | PromiseLike<any>,
     status: PromiseStatus | null,
     rootPromise: PromiseLike<any>,
+    skipResult = false,
+    presetValue?: any,
   ) {
     let differResult = false
 
@@ -600,7 +608,7 @@ export class Observable<T = any> {
       new Promise((resolve) =>
         result.then(
           (data) => {
-            if (this._root?._rootPromise !== rootPromise) return
+            if (this._root?._rootPromise !== rootPromise || skipResult) return resolve(data)
             this.status = PromiseStatus.RESOLVED
             // first time skip differ check
             if (this.#differ && status !== null)
@@ -610,7 +618,7 @@ export class Observable<T = any> {
             resolve(data)
           },
           (error) => {
-            if (this._root?._rootPromise !== rootPromise) return
+            if (this._root?._rootPromise !== rootPromise || skipResult) return resolve(error)
             this.status = PromiseStatus.REJECTED
             this.value = error
             resolve(error)
@@ -619,7 +627,7 @@ export class Observable<T = any> {
       )
     const handleExecuteFinish = () => {
       if (this._root?._rootPromise !== rootPromise) return
-      this.#executeFinish(differResult)
+      this.#executeFinish(differResult, presetValue)
     }
     if (result instanceof Promise || isPromiseLike(result)) {
       // promise handler
@@ -642,10 +650,14 @@ export class Observable<T = any> {
           .finally(handleExecuteFinish)
       else promise.finally(handleExecuteFinish)
     } else {
-      this.status = PromiseStatus.RESOLVED
-      if (this.#differ && status !== null)
-        differResult = safeCallback(this.#differ)(this.value) === safeCallback(this.#differ)(result)
-      this.value = result
+      // if skipResult is true, node should not process result
+      if (!skipResult) {
+        this.status = PromiseStatus.RESOLVED
+        if (this.#differ && status !== null)
+          differResult =
+            safeCallback(this.#differ)(this.value) === safeCallback(this.#differ)(result)
+        this.value = result
+      }
 
       // finally handler when not promise
       if (this.#finally) {
@@ -655,11 +667,12 @@ export class Observable<T = any> {
             return handlePromiseResult(finallyResult).finally(handleExecuteFinish)
           }
         } catch (error) {
+          console.error(error)
           this.status = PromiseStatus.REJECTED
           this.value = error as any
         }
       }
-      this.#executeFinish(differResult)
+      this.#executeFinish(differResult, presetValue)
     }
   }
 
@@ -682,6 +695,7 @@ export class Observable<T = any> {
       const result = this.#runExecutePlugin(nodeProcessor())
       this.#executeResult(result, status, rootPromise)
     } catch (error) {
+      console.error(error)
       this.status = PromiseStatus.REJECTED
       this.#executeResult(Promise.reject(error), status, rootPromise)
     }
@@ -690,15 +704,15 @@ export class Observable<T = any> {
   /**
    * Execute observer with optional root promise or value
    * @param rootPromise - Root promise to observe (optional)
-   * @param rootValue - Immediate value to use instead of promise (optional)
+   * @param presetValue - presetValue value to use instead of promise (optional)
    * @param active - Whether called by execute function
    * @remarks
-   * - If rootValue provided, will use it immediately
+   * - If presetValue provided, will use it immediately
    * - Only executes if not paused and promise matches root promise
    */
   protected _executeObserver(
     rootPromise: PromiseLike<any> | null = this._cacheRootPromise,
-    rootValue?: any,
+    presetValue?: any,
     active = false,
   ) {
     if (!rootPromise || this._root?._pauseFlag || rootPromise !== this._root?._rootPromise) return
@@ -709,7 +723,7 @@ export class Observable<T = any> {
     // root node
     if (!this.#parent) {
       // if rootValue is provided, execute rootValue immediately instead of waiting for the rootPromise to resolve
-      this.#executeNode(() => (active ? rootPromise : rootValue), rootPromise, status)
+      this.#executeNode(() => (active ? rootPromise : presetValue), rootPromise, status)
       // child node
     } else if (this.#parent.status === PromiseStatus.RESOLVED) {
       this.#executeNode(
@@ -717,13 +731,19 @@ export class Observable<T = any> {
         rootPromise,
         status,
       )
+      // if presetValue is provided in this case, only reason is parent noe has no #reject
+      // but unstream happen reject, so reject value bypass to current node by presetValue
     } else if (this.#parent.status === PromiseStatus.REJECTED) {
-      this.#executeNode(
-        () =>
-          this.#reject ? this.#reject(this.#parent?.value) : Promise.reject(this.#parent?.value),
-        rootPromise,
-        status,
-      )
+      const rejectValuePromise = presetValue ?? this.#parent?.value
+      if (this.#reject) {
+        this.#executeNode(() => this.#reject?.(rejectValuePromise), rootPromise, status)
+        // if #reject is not set, node should skip execute result, value should not be changed
+        // but status should be changed to reject, and node should process #finally and complete
+      } else {
+        this._cacheRootPromise = rootPromise
+        this.status = PromiseStatus.REJECTED
+        this.#executeResult(rejectValuePromise, status, rootPromise, true, rejectValuePromise)
+      }
     }
   }
 

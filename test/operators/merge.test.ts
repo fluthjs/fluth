@@ -247,6 +247,7 @@ describe('merge operator test', async () => {
 
     // More mixed emissions
     promise1$.next(Promise.reject('error-2'))
+    await sleep(1)
     promise2$.next(Promise.resolve('success-2'), true)
     await sleep(1)
 
