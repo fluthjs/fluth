@@ -2,6 +2,7 @@ import { Observable } from '../observable'
 import { Stream } from '../stream'
 import { useUnsubscribeCallback } from '../utils'
 import { StreamTupleValues, PromiseStatus } from '../types'
+import { getGlobalFluthFactory } from '../utils'
 
 /**
  * combine takes multiple streams or Observable, and return a stream that emits values from all the input streams.
@@ -11,7 +12,9 @@ import { StreamTupleValues, PromiseStatus } from '../types'
  * @returns {Stream}
  */
 export const combine = <T extends (Stream | Observable)[]>(...args$: T) => {
-  const stream$ = new Stream<StreamTupleValues<T>>()
+  const stream$ = (getGlobalFluthFactory()?.() || new Stream<StreamTupleValues<T>>()) as Stream<
+    StreamTupleValues<T>
+  >
   const payload: StreamTupleValues<T> = [] as any
   const promiseStatus = [...Array(args$.length)].map(() => PromiseStatus.PENDING)
   let finishCount = 0

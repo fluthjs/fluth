@@ -1,5 +1,6 @@
 import { Observable } from '../observable'
 import { Stream } from '../stream'
+import { getGlobalFluthFactory } from '../utils'
 
 /**
  * fork takes a stream or Observable, and returns a stream that emits the same value as the input stream.
@@ -12,7 +13,7 @@ import { Stream } from '../stream'
  **/
 
 export const fork = <T>(arg$: Stream<T> | Observable<T>, autoUnsubscribe = true): Stream<T> => {
-  const stream$ = new Stream<T>()
+  const stream$ = (getGlobalFluthFactory()?.() || new Stream<T>()) as Stream<T>
   let finishFlag = false
 
   // check input type

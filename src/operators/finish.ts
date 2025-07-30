@@ -2,6 +2,7 @@ import { Observable } from '../observable'
 import { Stream } from '../stream'
 import { useUnsubscribeCallback } from '../utils'
 import { StreamTupleValues, PromiseStatus } from '../types'
+import { getGlobalFluthFactory } from '../utils'
 
 /**
  * @description
@@ -12,7 +13,9 @@ import { StreamTupleValues, PromiseStatus } from '../types'
  * @returns {Stream}
  */
 export const finish = <T extends (Stream | Observable)[]>(...args$: T) => {
-  const stream$ = new Stream<StreamTupleValues<T>>()
+  const stream$ = (getGlobalFluthFactory()?.() || new Stream<StreamTupleValues<T>>()) as Stream<
+    StreamTupleValues<T>
+  >
   const payload: StreamTupleValues<T> = [] as any
   let finishCount = 0
   let rejectFlag = false

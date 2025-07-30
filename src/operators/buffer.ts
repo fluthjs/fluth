@@ -1,6 +1,7 @@
 import { Observable } from '../observable'
 import { Stream } from '../stream'
 import { PromiseStatus } from '../types'
+import { getGlobalFluthFactory } from '../utils'
 
 /**
  * This function creates a buffer that collects values from the observable based on the trigger observable.
@@ -15,7 +16,7 @@ export const buffer =
   (observable$: Observable<T>): Observable<T[]> => {
     const tempValue: T[] = []
     let finished = false
-    const newObservable = new Stream<T[]>()
+    const newObservable = (getGlobalFluthFactory()?.() || new Stream<T[]>()) as Stream<T[]>
     let pendingObservable$: Observable | undefined
 
     const dataObservable$ = observable$.then((value) => tempValue.push(value))

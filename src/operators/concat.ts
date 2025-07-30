@@ -1,6 +1,7 @@
 import { Observable } from '../observable'
 import { Stream } from '../stream'
 import { StreamTupleValues, PromiseStatus } from '../types'
+import { getGlobalFluthFactory } from '../utils'
 
 /**
  * concat takes multiple streams or Observable, and return a stream that emits values in the order of the input streams.
@@ -11,7 +12,8 @@ import { StreamTupleValues, PromiseStatus } from '../types'
  * @returns {Stream}
  */
 export const concat = <T extends (Stream | Observable)[]>(...args$: T) => {
-  const stream$ = new Stream<StreamTupleValues<T>[number]>()
+  const stream$ = (getGlobalFluthFactory()?.() ||
+    new Stream<StreamTupleValues<T>[number]>()) as Stream<StreamTupleValues<T>[number]>
   const finishFlag = [...Array(args$.length)].map(() => false)
   const unsubscribeFlag = [...Array(args$.length)].map(() => false)
 

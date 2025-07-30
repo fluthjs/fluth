@@ -1,6 +1,7 @@
 import { Observable } from '../observable'
 import { Stream } from '../stream'
 import { StreamTupleValues } from '../types'
+import { getGlobalFluthFactory } from '../utils'
 
 /**
  * race takes multiple streams or Observable, and returns a stream that emits the first value of all the input streams.
@@ -10,7 +11,8 @@ import { StreamTupleValues } from '../types'
  * @returns {Stream}
  */
 export const promiseRace = <T extends (Stream | Observable)[]>(...args$: T) => {
-  const stream$ = new Stream<StreamTupleValues<T>[number]>()
+  const stream$ = (getGlobalFluthFactory()?.() ||
+    new Stream<StreamTupleValues<T>[number]>()) as Stream<StreamTupleValues<T>[number]>
   let finishFlag = false
   let finishCount = 0
   let firstIndex: number | null = null

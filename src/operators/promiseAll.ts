@@ -2,6 +2,7 @@ import { Observable } from '../observable'
 import { Stream } from '../stream'
 import { StreamTupleValues, PromiseStatus } from '../types'
 import { useUnsubscribeCallback } from '../utils'
+import { getGlobalFluthFactory } from '../utils'
 
 /**
  * Internal implementation function for promiseAll variants
@@ -13,7 +14,9 @@ const promiseAllImpl = <T extends (Stream | Observable)[]>(
   args$: T,
   shouldAwait = true,
 ): Stream<StreamTupleValues<T>> => {
-  const stream$ = new Stream<StreamTupleValues<T>>()
+  const stream$ = (getGlobalFluthFactory()?.() || new Stream<StreamTupleValues<T>>()) as Stream<
+    StreamTupleValues<T>
+  >
   const payload: StreamTupleValues<T> = [] as any
   const promiseStatus: PromiseStatus[] = [...Array(args$.length)].map(() => PromiseStatus.PENDING)
   let finishCount = 0

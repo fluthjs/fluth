@@ -2,6 +2,7 @@ import { Observable } from '../observable'
 import { Stream } from '../stream'
 import { useUnsubscribeCallback } from '../utils'
 import { StreamTupleValues } from '../types'
+import { getGlobalFluthFactory } from '../utils'
 
 /**
  * merge takes multiple streams or Observable, and return a stream that emits values from all the input streams.
@@ -11,7 +12,8 @@ import { StreamTupleValues } from '../types'
  * @returns {Stream}
  */
 export const merge = <T extends (Stream | Observable)[]>(...args$: T) => {
-  const stream$ = new Stream<StreamTupleValues<T>[number]>()
+  const stream$ = (getGlobalFluthFactory()?.() ||
+    new Stream<StreamTupleValues<T>[number]>()) as Stream<StreamTupleValues<T>[number]>
   let finishCount = 0
 
   // check input type

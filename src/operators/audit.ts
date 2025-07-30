@@ -1,6 +1,7 @@
 import { Observable } from '../observable'
 import { Stream } from '../stream'
 import { PromiseStatus } from '../types'
+import { getGlobalFluthFactory } from '../utils'
 
 /**
  * A function that audits the data stream and triggers certain actions based on completion.
@@ -16,7 +17,7 @@ export const audit =
     let finished = false
     let currentValue: T | undefined = observable$.value
     let pendingObservable$: Observable | undefined
-    const newObservable = new Stream<T>()
+    const newObservable = (getGlobalFluthFactory()?.() || new Stream<T>()) as Stream<T>
 
     // Only track resolved values, ignore rejected ones
     const dataObservable$ = observable$.then((value) => (currentValue = value))

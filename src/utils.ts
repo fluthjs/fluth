@@ -51,3 +51,17 @@ export const useUnsubscribeCallback = (stream$: Stream, length: number) => {
   }
   return { unsubscribeCallback }
 }
+
+export const getGlobalFluthFactory = () => {
+  if (typeof window !== 'undefined') {
+    // @ts-expect-error window is not defined in node
+    return window.__fluth_global_factory__
+  }
+  // @ts-expect-error global is not defined in browser
+  else if (typeof global !== 'undefined') {
+    // @ts-expect-error global is not defined in browser
+    return global.__fluth_global_factory__
+  } else {
+    return undefined
+  }
+}

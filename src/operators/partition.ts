@@ -2,6 +2,7 @@ import { Observable } from '../observable'
 import { Stream } from '../stream'
 import { finish } from './finish'
 import { PromiseStatus } from '../types'
+import { getGlobalFluthFactory } from '../utils'
 
 /**
  * partition takes a stream or Observable, and a predicate function that takes value and index as arguments.
@@ -19,8 +20,8 @@ export const partition = <T>(
   predicate: (this: any, value: any, status: PromiseStatus, index: number) => boolean,
   thisArg?: any,
 ) => {
-  const selectedStream$ = new Stream<T>()
-  const unselectedStream$ = new Stream<T>()
+  const selectedStream$ = (getGlobalFluthFactory()?.() || new Stream<T>()) as Stream<T>
+  const unselectedStream$ = (getGlobalFluthFactory()?.() || new Stream<T>()) as Stream<T>
   let finishFlag = false
   let index = 1
 
