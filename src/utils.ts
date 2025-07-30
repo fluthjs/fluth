@@ -56,8 +56,7 @@ export const getGlobalFluthFactory = () => {
   if (typeof globalThis !== 'undefined') {
     // @ts-expect-error globalThis is not defined in browser
     return globalThis.__fluth_global_factory__
-  }
-  if (typeof window !== 'undefined') {
+  } else if (typeof window !== 'undefined') {
     // @ts-expect-error window is not defined in node
     return window.__fluth_global_factory__
   }

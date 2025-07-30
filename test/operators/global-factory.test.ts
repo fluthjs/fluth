@@ -35,15 +35,15 @@ describe('Global Factory Test', () => {
     mockStream = new Stream()
     mockFactory = vi.fn(() => mockStream)
 
-    // Setup mock environment
-    ;(globalThis as any).window = {
-      __fluth_global_factory__: mockFactory,
-    }
-    delete (globalThis as any).global
+    // Setup mock environment - use globalThis for highest priority
+    ;(globalThis as any).__fluth_global_factory__ = mockFactory
   })
 
   afterEach(() => {
     vi.useRealTimers()
+
+    // Clean up globalThis factory
+    delete (globalThis as any).__fluth_global_factory__
 
     // Restore original values
     if (originalWindow !== undefined) {
@@ -172,9 +172,7 @@ describe('Global Factory Test', () => {
         return stream
       }
 
-      ;(globalThis as any).window = {
-        __fluth_global_factory__: trackingFactory,
-      }
+      ;(globalThis as any).__fluth_global_factory__ = trackingFactory
 
       const source$ = $()
       const forked$ = fork(source$)
@@ -209,9 +207,7 @@ describe('Global Factory Test', () => {
       }
 
       const reactiveFactory = () => new ReactiveStream()
-      ;(globalThis as any).window = {
-        __fluth_global_factory__: reactiveFactory,
-      }
+      ;(globalThis as any).__fluth_global_factory__ = reactiveFactory
 
       const source$ = $()
       const reactive$ = fork(source$) as ReactiveStream<string>
@@ -232,9 +228,7 @@ describe('Global Factory Test', () => {
       }
 
       const customFactory = vi.fn(() => new CustomStream())
-      ;(globalThis as any).window = {
-        __fluth_global_factory__: customFactory,
-      }
+      ;(globalThis as any).__fluth_global_factory__ = customFactory
 
       const source$ = $()
       const result$ = fork(source$) as CustomStream<any>
@@ -259,9 +253,7 @@ describe('Global Factory Test', () => {
       }
 
       const advancedFactory = () => new AdvancedStream()
-      ;(globalThis as any).window = {
-        __fluth_global_factory__: advancedFactory,
-      }
+      ;(globalThis as any).__fluth_global_factory__ = advancedFactory
 
       const source$ = $()
       const enhanced$ = fork(source$) as AdvancedStream<string>
@@ -278,9 +270,11 @@ describe('Global Factory Test', () => {
 
   describe('Fallback Behavior Tests', () => {
     test('operators should fall back to default Stream when no global factory', () => {
-      // Remove global factory
+      // Remove global factory from all environments
+      delete (globalThis as any).__fluth_global_factory__
       delete (globalThis as any).window
       delete (globalThis as any).global
+      delete (globalThis as any).self
 
       const source$ = $()
       const result$ = fork(source$)
@@ -293,9 +287,11 @@ describe('Global Factory Test', () => {
     })
 
     test('operators work correctly without global factory', async () => {
-      // Ensure no global factory
+      // Ensure no global factory in all environments
+      delete (globalThis as any).__fluth_global_factory__
       delete (globalThis as any).window
       delete (globalThis as any).global
+      delete (globalThis as any).self
 
       const source$ = $()
       const forked$ = fork(source$)
@@ -310,9 +306,7 @@ describe('Global Factory Test', () => {
     test('factory returning null should fall back to default Stream', () => {
       const nullFactory = () => null
 
-      ;(globalThis as any).window = {
-        __fluth_global_factory__: nullFactory,
-      }
+      ;(globalThis as any).__fluth_global_factory__ = nullFactory
 
       const source$ = $()
       const result$ = fork(source$)
@@ -323,9 +317,7 @@ describe('Global Factory Test', () => {
     test('factory returning undefined should fall back to default Stream', () => {
       const undefinedFactory = () => undefined
 
-      ;(globalThis as any).window = {
-        __fluth_global_factory__: undefinedFactory,
-      }
+      ;(globalThis as any).__fluth_global_factory__ = undefinedFactory
 
       const source$ = $()
       const result$ = fork(source$)
@@ -351,9 +343,7 @@ describe('Global Factory Test', () => {
         return instance
       }
 
-      ;(globalThis as any).window = {
-        __fluth_global_factory__: multiInstanceFactory,
-      }
+      ;(globalThis as any).__fluth_global_factory__ = multiInstanceFactory
 
       const source$ = $()
       const fork1$ = fork(source$)
