@@ -59,6 +59,8 @@ export class Observable<T = any> {
   protected _onceFlag = false
   // root promise of root observable
   protected _rootPromise: PromiseLike<T> | null = null
+  // skip vue flag
+  protected __v_skip = true
 
   // value of observable node
   value: T | undefined
