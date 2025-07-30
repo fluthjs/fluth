@@ -53,6 +53,10 @@ export const useUnsubscribeCallback = (stream$: Stream, length: number) => {
 }
 
 export const getGlobalFluthFactory = () => {
+  if (typeof globalThis !== 'undefined') {
+    // @ts-expect-error globalThis is not defined in browser
+    return globalThis.__fluth_global_factory__
+  }
   if (typeof window !== 'undefined') {
     // @ts-expect-error window is not defined in node
     return window.__fluth_global_factory__
@@ -61,6 +65,9 @@ export const getGlobalFluthFactory = () => {
   else if (typeof global !== 'undefined') {
     // @ts-expect-error global is not defined in browser
     return global.__fluth_global_factory__
+  } else if (typeof self !== 'undefined') {
+    // @ts-expect-error self is not defined in browser
+    return self.__fluth_global_factory__
   } else {
     return undefined
   }
