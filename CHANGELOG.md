@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.3.21](https://github.com/fluthjs/fluth/compare/v0.3.20...v0.3.21) (2025-07-30)
+
+
+### Features
+
+* skip vue proxy ([582b1f8](https://github.com/fluthjs/fluth/commit/582b1f86cc1ceeebcfc43b88debafa83eb6fb39f))
+
 ### [0.3.20](https://github.com/fluthjs/fluth/compare/v0.3.19...v0.3.20) (2025-07-29)
 
 
