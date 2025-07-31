@@ -534,7 +534,7 @@ export class Observable<T = any> {
 
     const context = {
       result,
-      status: this.status,
+      status: this.#parent?.status as PromiseStatus | null,
       set: (setter: (value: T) => void | PromiseLike<void>) => this.#set(result, setter),
       root: !this.#parent,
       onfulfilled: this.#resolve,
