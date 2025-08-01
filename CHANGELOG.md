@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.3.23](https://github.com/fluthjs/fluth/compare/v0.3.22...v0.3.23) (2025-08-01)
+
+
+### Features
+
+* debugAll add condition params ([c786d6b](https://github.com/fluthjs/fluth/commit/c786d6b8cc2e63df80387c8c12a3ac1939388847))
+
 ### [0.3.22](https://github.com/fluthjs/fluth/compare/v0.3.21...v0.3.22) (2025-07-30)
 
 
