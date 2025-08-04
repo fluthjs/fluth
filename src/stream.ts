@@ -3,7 +3,7 @@ import { Observable } from './observable'
 import { isObjectLike, isPromiseLike, isAsyncFunction } from './utils'
 import { PromiseStatus } from './types'
 
-export class Stream<T = any> extends Observable<T> {
+export class Stream<T = any, E = object> extends Observable<T, E> {
   declare value: T
   constructor(data?: T) {
     super()
@@ -56,8 +56,8 @@ export class Stream<T = any> extends Observable<T> {
   }
 }
 
-export function $<T = any>(): Stream<T | undefined>
-export function $<T = any>(data: T): Stream<T>
-export function $<T = any>(data?: T) {
-  return new Stream<T>(data)
+export function $<T = any, E = object>(): Stream<T | undefined, E>
+export function $<T = any, E = object>(data: T): Stream<T, E>
+export function $<T = any, E = object>(data?: T) {
+  return new Stream<T, E>(data)
 }

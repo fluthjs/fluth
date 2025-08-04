@@ -7,9 +7,9 @@ import { Observable } from '../observable'
  * @returns Observable containing the extracted values
  */
 export const get =
-  <T, F>(getter: (value: T | undefined) => F) =>
-  (observable$: Observable<T>): Observable<F> =>
+  <T, F, E = object>(getter: (value: T | undefined) => F) =>
+  (observable$: Observable<T, E>): Observable<F, E> =>
     observable$
       // getter as differ, so the get observer will be executed only when getter result is changed
       .thenImmediate<T>(undefined, undefined, undefined, getter)
-      .thenImmediate<F>(getter as any) as Observable<F>
+      .thenImmediate<F>(getter as any) as Observable<F, E>

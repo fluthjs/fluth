@@ -6,8 +6,8 @@ import { Observable } from '../observable'
  * @returns Observable
  */
 export const skip =
-  <T>(skipTime: number) =>
-  (observable$: Observable<T>): Observable<T> => {
+  <T, E = object>(skipTime: number) =>
+  (observable$: Observable<T, E>): Observable<T, E> => {
     let time = skipTime
     const newObservable$ = observable$.then(undefined, undefined, () => {
       if (time > 0) {
@@ -15,5 +15,5 @@ export const skip =
         return false
       } else return true
     })
-    return newObservable$ as Observable<T>
+    return newObservable$ as Observable<T, E>
   }

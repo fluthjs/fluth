@@ -6,13 +6,13 @@ import { Observable } from '../observable'
  * @returns Observable
  */
 export const delay =
-  <T>(delayTime: number) =>
-  (observable$: Observable<T>) => {
+  <T, E = object>(delayTime: number) =>
+  (observable$: Observable<T, E>) => {
     return observable$.then((value) => {
       return new Promise((resolve) => {
         setTimeout(() => {
           resolve(value)
         }, delayTime)
       })
-    }) as unknown as Observable<T>
+    }) as unknown as Observable<T, E>
   }
