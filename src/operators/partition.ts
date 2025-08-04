@@ -31,7 +31,7 @@ export const partition = <T, E = object>(
   }
 
   // check input finished
-  if (stream$._getFlag('_finishFlag')) {
+  if (stream$._getProtectedProperty('_finishFlag')) {
     finishFlag = true
   }
 

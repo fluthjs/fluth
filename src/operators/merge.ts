@@ -36,7 +36,7 @@ export const merge = <T extends (Stream | Observable)[]>(...args$: T) => {
   }
 
   args$.forEach((arg$) => {
-    if (arg$._getFlag('_finishFlag')) {
+    if (arg$._getProtectedProperty('_finishFlag')) {
       finishCount += 1
     }
 

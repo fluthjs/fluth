@@ -4,14 +4,14 @@ import { isObjectLike, isPromiseLike, isAsyncFunction } from './utils'
 import { PromiseStatus } from './types'
 
 export class Stream<T = any, E = object> extends Observable<T, E> {
-  declare value: T
+  declare _v: T
   constructor(data?: T) {
     super()
     if (data instanceof Promise) {
       throw new Error('Stream data cannot be a Promise')
     }
     this._root = this as Stream
-    this.value = data as T
+    this._v = data as T
     this._rootPromise = Promise.resolve(data as T)
     // new stream should be resolved
     this.status = PromiseStatus.RESOLVED
@@ -19,17 +19,22 @@ export class Stream<T = any, E = object> extends Observable<T, E> {
     this._cacheRootPromise = this._rootPromise
   }
 
+  // value of stream node
+  get value() {
+    return this._v
+  }
+
   set(setter: (state: T) => void, finishFlag = this._finishFlag) {
-    if (isObjectLike(this.value)) {
+    if (isObjectLike(this._v)) {
       if (isAsyncFunction(setter)) {
-        const draft = createDraft(this.value)
+        const draft = createDraft(this._v)
         setter(draft).then(() => {
-          this.value = finishDraft(draft)
-          this.next(this.value as T, finishFlag)
+          this._v = finishDraft(draft)
+          this.next(this._v as T, finishFlag)
         })
       } else {
-        this.value = produce(this.value, setter)
-        this.next(this.value as T, finishFlag)
+        this._v = produce(this._v, setter)
+        this.next(this._v as T, finishFlag)
       }
     }
   }

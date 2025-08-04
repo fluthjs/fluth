@@ -57,9 +57,9 @@ const promiseAllImpl = <T extends (Stream | Observable)[]>(
   }
 
   args$.forEach((arg$, index) => {
-    if (arg$._getFlag('_finishFlag')) {
+    if (arg$._getProtectedProperty('_finishFlag')) {
       finishCount += 1
-      payload[index] = arg$.value
+      payload[index] = arg$._getProtectedProperty('_v') as StreamTupleValues<T>[number]
       promiseStatus[index] = PromiseStatus.RESOLVED
     }
     arg$.afterUnsubscribe(unsubscribeCallback)

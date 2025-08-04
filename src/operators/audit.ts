@@ -15,7 +15,7 @@ export const audit =
   <T, E = object>(trigger$: Stream | Observable, shouldAwait = true) =>
   (observable$: Observable<T, E>): Observable<T, E> => {
     let finished = false
-    let currentValue: T | undefined = observable$.value
+    let currentValue: T | undefined = observable$._getProtectedProperty('_v') as T | undefined
     let pendingObservable$: Observable<any, E> | undefined
     const newObservable = (getGlobalFluthFactory()?.() || new Stream<T>()) as Stream<T, E>
 

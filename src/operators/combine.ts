@@ -43,9 +43,9 @@ export const combine = <T extends (Stream | Observable)[]>(...args$: T) => {
 
   // if any input is finished, finishCount should be increased
   args$.forEach((arg$, index) => {
-    if (arg$._getFlag('_finishFlag')) {
+    if (arg$._getProtectedProperty('_finishFlag')) {
       promiseStatus[index] = arg$.status as PromiseStatus
-      payload[index] = arg$.value
+      payload[index] = arg$._getProtectedProperty('_v') as StreamTupleValues<T>[number]
       finishCount += 1
     }
   })

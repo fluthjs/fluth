@@ -28,7 +28,7 @@ export const promiseRace = <T extends (Stream | Observable)[]>(...args$: T) => {
   }
 
   args$.forEach((arg$, index) => {
-    if (arg$._getFlag('_finishFlag')) {
+    if (arg$._getProtectedProperty('_finishFlag')) {
       finishCount += 1
     }
     const observable = arg$.then(

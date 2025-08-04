@@ -59,11 +59,14 @@ export class Observable<T = any, E = object> {
   protected _onceFlag = false
   // root promise of root observable
   protected _rootPromise: PromiseLike<T> | null = null
-
   // value of observable node
-  value: T | undefined
+  protected _v: T | undefined
   // status of observable node
   status: PromiseStatus | null = null
+  // value of observable node
+  get value() {
+    return this._v
+  }
 
   constructor(streamOrParent?: Stream | Observable) {
     if (!streamOrParent) return
@@ -82,7 +85,9 @@ export class Observable<T = any, E = object> {
    * @param flag flag name, one of `_finishFlag`, `_unsubscribeFlag`, `_onceFlag`, `_cleanFlag`
    * @returns the flag value
    */
-  _getFlag(flag: '_finishFlag' | '_unsubscribeFlag' | '_onceFlag' | '_cleanFlag') {
+  _getProtectedProperty(
+    flag: '_finishFlag' | '_unsubscribeFlag' | '_onceFlag' | '_cleanFlag' | '_v',
+  ) {
     return this[flag]
   }
 
@@ -293,7 +298,7 @@ export class Observable<T = any, E = object> {
       }
     }
     if (active) {
-      this.#finishCallbackList.forEach((fn) => safeCallback(fn)(this.value, this.status))
+      this.#finishCallbackList.forEach((fn) => safeCallback(fn)(this._v, this.status))
       this._finishFlag = true
     }
 
@@ -480,13 +485,13 @@ export class Observable<T = any, E = object> {
   }
 
   #set(value: T, setter: (value: T) => void | PromiseLike<void>): PromiseLike<T> | T {
-    if (isObjectLike(this.value)) {
+    if (isObjectLike(this._v)) {
       if (isAsyncFunction(setter)) {
         const draft = createDraft(value)
         return setter(draft).then(() => {
           return finishDraft(draft)
         })
-      } else return produce(this.value, setter)
+      } else return produce(this._v, setter)
     } else {
       return value
     }
@@ -561,7 +566,7 @@ export class Observable<T = any, E = object> {
   #executeFinish(differResult = false, presetValue?: any) {
     // finish flag check
     if (this._root?._finishFlag) {
-      this.#finishCallbackList.forEach((fn) => safeCallback(fn)(this.value, this.status))
+      this.#finishCallbackList.forEach((fn) => safeCallback(fn)(this._v, this.status))
       this._finishFlag = true
     }
     // unsubscribe check
@@ -576,7 +581,7 @@ export class Observable<T = any, E = object> {
       this.#cleanParent(parent)
     }
     // condition check
-    if (this.#condition && !safeCallback(this.#condition)(this.value)) return
+    if (this.#condition && !safeCallback(this.#condition)(this._v)) return
     // differ check
     if (this.#differ && differResult) return
     // execute children observer, when node is pending and call unsubscribe，after resolve or reject
@@ -615,14 +620,14 @@ export class Observable<T = any, E = object> {
             // first time skip differ check
             if (this.#differ && status !== null)
               differResult =
-                safeCallback(this.#differ)(this.value) === safeCallback(this.#differ)(data)
-            this.value = data
+                safeCallback(this.#differ)(this._v) === safeCallback(this.#differ)(data)
+            this._v = data
             resolve(data)
           },
           (error) => {
             if (this._root?._rootPromise !== rootPromise || skipResult) return resolve(error)
             this.status = PromiseStatus.REJECTED
-            this.value = error
+            this._v = error
             resolve(error)
           },
         ),
@@ -645,7 +650,7 @@ export class Observable<T = any, E = object> {
               }
             } catch (error) {
               if (this._root?._rootPromise !== rootPromise) return
-              this.value = error as any
+              this._v = error as any
               this.status = PromiseStatus.REJECTED
             }
           })
@@ -656,9 +661,8 @@ export class Observable<T = any, E = object> {
       if (!skipResult) {
         this.status = PromiseStatus.RESOLVED
         if (this.#differ && status !== null)
-          differResult =
-            safeCallback(this.#differ)(this.value) === safeCallback(this.#differ)(result)
-        this.value = result
+          differResult = safeCallback(this.#differ)(this._v) === safeCallback(this.#differ)(result)
+        this._v = result
       }
 
       // finally handler when not promise
@@ -671,7 +675,7 @@ export class Observable<T = any, E = object> {
         } catch (error) {
           console.error(error)
           this.status = PromiseStatus.REJECTED
-          this.value = error as any
+          this._v = error as any
         }
       }
       this.#executeFinish(differResult, presetValue)
@@ -729,14 +733,14 @@ export class Observable<T = any, E = object> {
       // child node
     } else if (this.#parent.status === PromiseStatus.RESOLVED) {
       this.#executeNode(
-        () => (this.#resolve ? this.#resolve(this.#parent?.value) : this.#parent?.value),
+        () => (this.#resolve ? this.#resolve(this.#parent?._v) : this.#parent?._v),
         rootPromise,
         status,
       )
       // if presetValue is provided in this case, only reason is parent noe has no #reject
       // but unstream happen reject, so reject value bypass to current node by presetValue
     } else if (this.#parent.status === PromiseStatus.REJECTED) {
-      const rejectValuePromise = presetValue ?? this.#parent?.value
+      const rejectValuePromise = presetValue ?? this.#parent?._v
       if (this.#reject) {
         this.#executeNode(() => this.#reject?.(rejectValuePromise), rootPromise, status)
         // if #reject is not set, node should skip execute result, value should not be changed

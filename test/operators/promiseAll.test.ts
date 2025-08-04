@@ -412,7 +412,7 @@ describe('promiseAll operator', () => {
       expect(completeCalled).toBe(true)
 
       // Verify that the result stream has completed
-      expect(result$._getFlag('_finishFlag')).toBe(true)
+      expect(result$._getProtectedProperty('_finishFlag')).toBe(true)
     })
   })
 

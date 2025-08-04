@@ -43,8 +43,8 @@ export const finish = <T extends (Stream | Observable)[]>(...args$: T) => {
 
   args$.forEach((arg$, index) => {
     // if input is finished,
-    if (arg$._getFlag('_finishFlag')) {
-      payload[index] = arg$.value
+    if (arg$._getProtectedProperty('_finishFlag')) {
+      payload[index] = arg$._getProtectedProperty('_v') as StreamTupleValues<T>[number]
       finishCount += 1
       if (arg$.status === PromiseStatus.REJECTED) rejectFlag = true
     }

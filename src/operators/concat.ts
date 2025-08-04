@@ -39,7 +39,7 @@ export const concat = <T extends (Stream | Observable)[]>(...args$: T) => {
     }
   }
   args$.forEach((arg$, index) => {
-    if (arg$._getFlag('_finishFlag')) {
+    if (arg$._getProtectedProperty('_finishFlag')) {
       finishFlag[index] = true
     }
 

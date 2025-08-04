@@ -25,7 +25,7 @@ export const fork = <T, E = object>(
   }
 
   // if arg$ is finished, should not fork
-  if (arg$._getFlag('_finishFlag')) {
+  if (arg$._getProtectedProperty('_finishFlag')) {
     return stream$
   }
 

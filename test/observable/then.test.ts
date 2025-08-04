@@ -288,7 +288,7 @@ describe('Observable then method', () => {
     expect(cleanup).toContain('obs2-error-handled')
     expect(cleanup).toContain('obs1-cleanup')
     expect(obs1.status).toEqual(PromiseStatus.REJECTED)
-    expect(obs1._getFlag('_unsubscribeFlag')).toBe(true)
+    expect(obs1._getProtectedProperty('_unsubscribeFlag')).toBe(true)
   })
 
   test('test presetValue parameter propagation in error scenarios', async () => {

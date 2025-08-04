@@ -26,10 +26,10 @@ describe('Observable memory leak and cleanup edge cases', () => {
     parent.unsubscribe()
 
     // Check that all observables are cleaned up using _cleanFlag
-    expect((parent as any)._getFlag('_cleanFlag')).toBe(true)
-    expect((child1 as any)._getFlag('_cleanFlag')).toBe(true)
-    expect((child2 as any)._getFlag('_cleanFlag')).toBe(true)
-    expect((grandchild as any)._getFlag('_cleanFlag')).toBe(true)
+    expect((parent as any)._getProtectedProperty('_cleanFlag')).toBe(true)
+    expect((child1 as any)._getProtectedProperty('_cleanFlag')).toBe(true)
+    expect((child2 as any)._getProtectedProperty('_cleanFlag')).toBe(true)
+    expect((grandchild as any)._getProtectedProperty('_cleanFlag')).toBe(true)
   })
 
   test('should not clean up parent when all children are unsubscribed', () => {
@@ -47,15 +47,15 @@ describe('Observable memory leak and cleanup edge cases', () => {
     expect(child2.status).not.toBe(null)
 
     child1.unsubscribe()
-    expect((child1 as any)._getFlag('_cleanFlag')).toBe(true)
-    expect((parent as any)._getFlag('_cleanFlag')).toBe(false) // Parent still has one child
+    expect((child1 as any)._getProtectedProperty('_cleanFlag')).toBe(true)
+    expect((parent as any)._getProtectedProperty('_cleanFlag')).toBe(false) // Parent still has one child
 
     child2.unsubscribe()
-    expect((child2 as any)._getFlag('_cleanFlag')).toBe(true)
+    expect((child2 as any)._getProtectedProperty('_cleanFlag')).toBe(true)
 
     // Parent should NOT be cleaned up when all children are unsubscribed
     // Parent can still be used for future operations
-    expect((parent as any)._getFlag('_cleanFlag')).toBe(false)
+    expect((parent as any)._getProtectedProperty('_cleanFlag')).toBe(false)
   })
 
   test('should handle multiple unsubscribe calls', () => {
@@ -89,7 +89,7 @@ describe('Observable memory leak and cleanup edge cases', () => {
     observable$.unsubscribe()
 
     // Observable should be cleaned up using _cleanFlag
-    expect((observable$ as any)._getFlag('_cleanFlag')).toBe(true)
+    expect((observable$ as any)._getProtectedProperty('_cleanFlag')).toBe(true)
   })
 
   test('should handle unsubscribe during execution', async () => {
@@ -102,14 +102,14 @@ describe('Observable memory leak and cleanup edge cases', () => {
     })
 
     // Verify initial clean state - should be false initially
-    expect((observable$ as any)._getFlag('_cleanFlag')).toBe(false)
+    expect((observable$ as any)._getProtectedProperty('_cleanFlag')).toBe(false)
 
     // Trigger execution by setting a new value
     stream$.next('new value')
 
     expect(consoleSpy).toHaveBeenCalledWith('executing')
     expect((observable$ as any)._finishFlag).toBe(true)
-    expect((observable$ as any)._getFlag('_cleanFlag')).toBe(true)
+    expect((observable$ as any)._getProtectedProperty('_cleanFlag')).toBe(true)
   })
 
   test('should handle unsubscribe during async execution', async () => {
@@ -123,7 +123,7 @@ describe('Observable memory leak and cleanup edge cases', () => {
     })
 
     // Verify initial clean state - should be false initially
-    expect((observable$ as any)._getFlag('_cleanFlag')).toBe(false)
+    expect((observable$ as any)._getProtectedProperty('_cleanFlag')).toBe(false)
 
     // Trigger execution by setting a new value
     stream$.next('new value')
@@ -133,7 +133,7 @@ describe('Observable memory leak and cleanup edge cases', () => {
 
     expect(consoleSpy).toHaveBeenCalledWith('async executing')
     expect((observable$ as any)._finishFlag).toBe(true)
-    expect((observable$ as any)._getFlag('_cleanFlag')).toBe(true)
+    expect((observable$ as any)._getProtectedProperty('_cleanFlag')).toBe(true)
   })
 
   test('should handle unsubscribe with pending children', async () => {
@@ -193,10 +193,10 @@ describe('Observable memory leak and cleanup edge cases', () => {
     level1.unsubscribe()
 
     // All levels should be cleaned up using _cleanFlag
-    expect((level1 as any)._getFlag('_cleanFlag')).toBe(true)
-    expect((level2 as any)._getFlag('_cleanFlag')).toBe(true)
-    expect((level3 as any)._getFlag('_cleanFlag')).toBe(true)
-    expect((level4 as any)._getFlag('_cleanFlag')).toBe(true)
+    expect((level1 as any)._getProtectedProperty('_cleanFlag')).toBe(true)
+    expect((level2 as any)._getProtectedProperty('_cleanFlag')).toBe(true)
+    expect((level3 as any)._getProtectedProperty('_cleanFlag')).toBe(true)
+    expect((level4 as any)._getProtectedProperty('_cleanFlag')).toBe(true)
   })
 
   test('should handle unsubscribe with circular references', () => {
@@ -269,7 +269,7 @@ describe('Observable memory leak and cleanup edge cases', () => {
     observable$.unsubscribe()
 
     // Observable should be cleaned up using _cleanFlag
-    expect((observable$ as any)._getFlag('_cleanFlag')).toBe(true)
+    expect((observable$ as any)._getProtectedProperty('_cleanFlag')).toBe(true)
   })
 
   test('should handle unsubscribe with duplicate callbacks', () => {
@@ -284,7 +284,7 @@ describe('Observable memory leak and cleanup edge cases', () => {
     observable$.unsubscribe()
 
     // Observable should be cleaned up using _cleanFlag
-    expect((observable$ as any)._getFlag('_cleanFlag')).toBe(true)
+    expect((observable$ as any)._getProtectedProperty('_cleanFlag')).toBe(true)
   })
 
   test('should handle unsubscribe with removed callbacks', () => {
@@ -354,15 +354,15 @@ describe('Observable memory leak and cleanup edge cases', () => {
     const { stream$, observable$ } = streamFactory()
 
     // Initially should not be cleaned
-    expect((observable$ as any)._getFlag('_cleanFlag')).toBe(false)
+    expect((observable$ as any)._getProtectedProperty('_cleanFlag')).toBe(false)
 
     // After execution should still not be cleaned
     stream$.next('test value')
-    expect((observable$ as any)._getFlag('_cleanFlag')).toBe(false)
+    expect((observable$ as any)._getProtectedProperty('_cleanFlag')).toBe(false)
 
     // Only after unsubscribe should be cleaned
     observable$.unsubscribe()
-    expect((observable$ as any)._getFlag('_cleanFlag')).toBe(true)
+    expect((observable$ as any)._getProtectedProperty('_cleanFlag')).toBe(true)
   })
 
   test('should maintain _cleanFlag after multiple operations', () => {
@@ -375,13 +375,13 @@ describe('Observable memory leak and cleanup edge cases', () => {
     observable$.unsubscribe()
 
     // Both should be cleaned
-    expect((observable$ as any)._getFlag('_cleanFlag')).toBe(true)
-    expect((child as any)._getFlag('_cleanFlag')).toBe(true)
+    expect((observable$ as any)._getProtectedProperty('_cleanFlag')).toBe(true)
+    expect((child as any)._getProtectedProperty('_cleanFlag')).toBe(true)
 
     // Try to trigger more operations - should remain cleaned
     stream$.next('another value')
-    expect((observable$ as any)._getFlag('_cleanFlag')).toBe(true)
-    expect((child as any)._getFlag('_cleanFlag')).toBe(true)
+    expect((observable$ as any)._getProtectedProperty('_cleanFlag')).toBe(true)
+    expect((child as any)._getProtectedProperty('_cleanFlag')).toBe(true)
   })
 
   test('should handle unsubscribe with complex nested async children', async () => {
@@ -414,11 +414,11 @@ describe('Observable memory leak and cleanup edge cases', () => {
     stream$.next('test2', true)
 
     await sleep(150)
-    expect((child1$ as any)._getFlag('_cleanFlag')).toBe(true)
-    expect((child2$ as any)._getFlag('_cleanFlag')).toBe(true)
-    expect((child11$ as any)._getFlag('_cleanFlag')).toBe(true)
-    expect((child111$ as any)._getFlag('_cleanFlag')).toBe(true)
-    expect((child12$ as any)._getFlag('_cleanFlag')).toBe(true)
+    expect((child1$ as any)._getProtectedProperty('_cleanFlag')).toBe(true)
+    expect((child2$ as any)._getProtectedProperty('_cleanFlag')).toBe(true)
+    expect((child11$ as any)._getProtectedProperty('_cleanFlag')).toBe(true)
+    expect((child111$ as any)._getProtectedProperty('_cleanFlag')).toBe(true)
+    expect((child12$ as any)._getProtectedProperty('_cleanFlag')).toBe(true)
   })
 
   test('should handle unsubscribe children with pending status', async () => {
@@ -441,8 +441,8 @@ describe('Observable memory leak and cleanup edge cases', () => {
     child1$.unsubscribe()
     await sleep(40)
 
-    expect((child1$ as any)._getFlag('_cleanFlag')).toBe(true)
-    expect((child11$ as any)._getFlag('_cleanFlag')).toBe(true)
-    expect((child111$ as any)._getFlag('_cleanFlag')).toBe(true)
+    expect((child1$ as any)._getProtectedProperty('_cleanFlag')).toBe(true)
+    expect((child11$ as any)._getProtectedProperty('_cleanFlag')).toBe(true)
+    expect((child111$ as any)._getProtectedProperty('_cleanFlag')).toBe(true)
   })
 })
