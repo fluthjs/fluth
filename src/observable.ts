@@ -34,8 +34,10 @@ export class Observable<T = any, E = object> {
   #finally?: OnFinally
   // after unsubscribe callback
   #unsubscribeCallbackList: (() => void)[] = []
-  // only root Observable finished will call this callback
+  // observable finished will call this callback
   #finishCallbackList: ((value: T, status: PromiseStatus) => void)[] = []
+  // after set value callback
+  #afterSetValueCallbackList: ((value: T) => void)[] = []
   // observer children of current observable
   #children: Observable<any, any>[] = []
   // parent observable node
@@ -274,7 +276,10 @@ export class Observable<T = any, E = object> {
    * unsubscribe observable node
    */
   unsubscribe() {
-    if (this._finishFlag) return
+    if (this._finishFlag) {
+      this._unsubscribeFlag = true
+      return
+    }
     this._finishFlag = true
     this._unsubscribeFlag = true
     this.#unsubscribeObservable(true)
@@ -337,6 +342,24 @@ export class Observable<T = any, E = object> {
     this.#unsubscribeCallbackList = this.#unsubscribeCallbackList.filter((fn) => fn !== callback)
   }
 
+  /**
+   * set after set value callback, will trigger after set value
+   * @param callback callback function
+   */
+  afterSetValue(callback: (value: T) => void) {
+    if (!this.#afterSetValueCallbackList.includes(callback))
+      this.#afterSetValueCallbackList.push(callback)
+  }
+
+  /**
+   * remove after set value callback
+   * @param callback callback function
+   */
+  offAfterSetValue(callback: (value: T) => void) {
+    this.#afterSetValueCallbackList = this.#afterSetValueCallbackList.filter(
+      (fn) => fn !== callback,
+    )
+  }
   /**
    * set finish callback, will trigger before children observer
    * @param callback callback function
@@ -622,12 +645,14 @@ export class Observable<T = any, E = object> {
               differResult =
                 safeCallback(this.#differ)(this._v) === safeCallback(this.#differ)(data)
             this._v = data
+            this.#afterSetValueCallbackList.forEach((fn) => safeCallback(fn)(data))
             resolve(data)
           },
           (error) => {
             if (this._root?._rootPromise !== rootPromise || skipResult) return resolve(error)
             this.status = PromiseStatus.REJECTED
             this._v = error
+            this.#afterSetValueCallbackList.forEach((fn) => safeCallback(fn)(error))
             resolve(error)
           },
         ),
@@ -651,6 +676,7 @@ export class Observable<T = any, E = object> {
             } catch (error) {
               if (this._root?._rootPromise !== rootPromise) return
               this._v = error as any
+              this.#afterSetValueCallbackList.forEach((fn) => safeCallback(fn)(error))
               this.status = PromiseStatus.REJECTED
             }
           })
@@ -663,6 +689,7 @@ export class Observable<T = any, E = object> {
         if (this.#differ && status !== null)
           differResult = safeCallback(this.#differ)(this._v) === safeCallback(this.#differ)(result)
         this._v = result
+        this.#afterSetValueCallbackList.forEach((fn) => safeCallback(fn)(result))
       }
 
       // finally handler when not promise
@@ -676,6 +703,7 @@ export class Observable<T = any, E = object> {
           console.error(error)
           this.status = PromiseStatus.REJECTED
           this._v = error as any
+          this.#afterSetValueCallbackList.forEach((fn) => safeCallback(fn)(error))
         }
       }
       this.#executeFinish(differResult, presetValue)
