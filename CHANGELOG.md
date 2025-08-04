@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.3.25](https://github.com/fluthjs/fluth/compare/v0.3.24...v0.3.25) (2025-08-04)
+
+
+### Features
+
+* extend Stream and Observable type ([6772c89](https://github.com/fluthjs/fluth/commit/6772c894bcb759e08e8e19d164a65c2fd110c2da))
+
 ### [0.3.24](https://github.com/fluthjs/fluth/compare/v0.3.23...v0.3.24) (2025-08-03)
 
 ### [0.3.23](https://github.com/fluthjs/fluth/compare/v0.3.22...v0.3.23) (2025-08-01)
