@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.3.26](https://github.com/fluthjs/fluth/compare/v0.3.25...v0.3.26) (2025-08-04)
+
+
+### Features
+
+* add afterSetValue callback functionality to Observable ([b2a73d5](https://github.com/fluthjs/fluth/commit/b2a73d5089dd058341a9398ede89d4935b2260bd))
+* make stream or observable value readonly ([7b16107](https://github.com/fluthjs/fluth/commit/7b16107677836ce6cd1a73a969562621957b932e))
+
 ### [0.3.25](https://github.com/fluthjs/fluth/compare/v0.3.24...v0.3.25) (2025-08-04)
 
 
