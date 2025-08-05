@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.3.27](https://github.com/fluthjs/fluth/compare/v0.3.26...v0.3.27) (2025-08-05)
+
+
+### Features
+
+* remove Stream and ObservabDle extend type ([22b2c50](https://github.com/fluthjs/fluth/commit/22b2c50787c9a0e13e279d76048a0db4a4eb803b))
+
 ### [0.3.26](https://github.com/fluthjs/fluth/compare/v0.3.25...v0.3.26) (2025-08-04)
 
 
