@@ -6,6 +6,6 @@ import { Observable } from '../observable'
  * @returns Observable
  */
 export const filter =
-  <T, E = object>(condition: (value: T) => boolean) =>
-  (observable$: Observable<T, E>): Observable<T, E> =>
-    observable$.then(undefined, undefined, condition) as Observable<T, E>
+  <T>(condition: (value: T) => boolean) =>
+  (observable$: Observable<T>): Observable<T> =>
+    observable$.then(undefined, undefined, condition) as Observable<T>

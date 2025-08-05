@@ -12,12 +12,12 @@ import { getGlobalFluthFactory } from '../utils'
  * @return {Observable<T[]>} A new observable containing arrays of collected values.
  */
 export const buffer =
-  <T, E = object>(trigger$: Stream | Observable, shouldAwait = true) =>
-  (observable$: Observable<T, E>): Observable<T[], E> => {
+  <T>(trigger$: Stream | Observable, shouldAwait = true) =>
+  (observable$: Observable<T>): Observable<T[]> => {
     const tempValue: T[] = []
     let finished = false
-    const newObservable = (getGlobalFluthFactory()?.() || new Stream<T[]>()) as Stream<T[], E>
-    let pendingObservable$: Observable<any, E> | undefined
+    const newObservable = (getGlobalFluthFactory()?.() || new Stream<T[]>()) as Stream<T[]>
+    let pendingObservable$: Observable | undefined
 
     const dataObservable$ = observable$.then((value) => tempValue.push(value))
 

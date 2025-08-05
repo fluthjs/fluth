@@ -15,13 +15,13 @@ import { getGlobalFluthFactory } from '../utils'
  * @param {any} [thisArg] the this of the predicate function
  * @returns {[Stream, Stream]} an array of two streams
  */
-export const partition = <T, E = object>(
-  stream$: Stream<T, E> | Observable<T, E>,
+export const partition = <T>(
+  stream$: Stream<T> | Observable<T>,
   predicate: (this: any, value: any, status: PromiseStatus, index: number) => boolean,
   thisArg?: any,
 ) => {
-  const selectedStream$ = (getGlobalFluthFactory()?.() || new Stream<T>()) as Stream<T, E>
-  const unselectedStream$ = (getGlobalFluthFactory()?.() || new Stream<T>()) as Stream<T, E>
+  const selectedStream$ = (getGlobalFluthFactory()?.() || new Stream<T>()) as Stream<T>
+  const unselectedStream$ = (getGlobalFluthFactory()?.() || new Stream<T>()) as Stream<T>
   let finishFlag = false
   let index = 1
 
@@ -89,7 +89,7 @@ export const partition = <T, E = object>(
   stream$.afterUnsubscribe(unsubscribeCallback)
   stream$.afterComplete(completeCallback)
 
-  finish(selectedStream$ as any, unselectedStream$ as any).afterComplete(() => {
+  finish(selectedStream$, unselectedStream$).afterComplete(() => {
     stream$.offUnsubscribe(unsubscribeCallback)
     stream$.offComplete(completeCallback)
     observable$.unsubscribe()

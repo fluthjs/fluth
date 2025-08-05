@@ -4,10 +4,7 @@ import { Stream } from './stream'
 export type OnFulfilled<T = any, V = any> = (data: T) => V | PromiseLike<V>
 export type OnRejected<V = any> = (reason: any) => V | PromiseLike<V>
 export type OnFinally = Parameters<Promise<any>['finally']>[0]
-export type thenPluginFn<T, E = object> = (
-  unsubscribe: () => void,
-  observable: Observable<T, E>,
-) => void
+export type thenPluginFn<T> = (unsubscribe: () => void, observable: Observable<T>) => void
 /**
  * @param params
  * @returns return promise will reset observer value
@@ -25,24 +22,24 @@ export type executePlugin<T> = (params: {
 /**
  * @description use or remove plugins params
  */
-export interface PluginParams<T, E = object> {
-  then?: thenPluginFn<T, E> | thenPluginFn<T, E>[]
+export interface PluginParams<T> {
+  then?: thenPluginFn<T> | thenPluginFn<T>[]
   execute?: executePlugin<T> | executePlugin<T>[]
-  thenAll?: thenPluginFn<T, E> | thenPluginFn<T, E>[]
+  thenAll?: thenPluginFn<T> | thenPluginFn<T>[]
   executeAll?: executePlugin<T> | executePlugin<T>[]
 }
 
 /**
  * @description plugin of observable
  */
-export interface Plugin<T, E = object> {
-  then: thenPluginFn<T, E>[]
+export interface Plugin<T> {
+  then: thenPluginFn<T>[]
   execute: executePlugin<T>[]
-  thenAll: thenPluginFn<T, E>[]
+  thenAll: thenPluginFn<T>[]
   executeAll: executePlugin<T>[]
 }
 
-export type Operator<T = any, E = object> = (observable: Observable<T, E>) => Observable<T, E>
+export type Operator<T = any> = (observable: Observable<T>) => Observable<T>
 
 export enum PromiseStatus {
   PENDING = 'pending',
@@ -54,9 +51,7 @@ export type StreamTupleValues<T extends (Stream | Observable)[]> = {
   [K in keyof T]: T[K] extends Stream<infer U> | Observable<infer U> ? U : never
 }
 
-export type OperatorFunction<T = any, R = any, E = any> = (
-  observable: Observable<T, E>,
-) => Observable<R, E>
+export type OperatorFunction<T = any, R = any> = (observable: Observable<T>) => Observable<R>
 
 // recursive type of pipe result
 export type PipeResult<T, Ops extends any[]> = Ops extends []

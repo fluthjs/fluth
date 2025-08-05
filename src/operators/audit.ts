@@ -12,12 +12,12 @@ import { getGlobalFluthFactory } from '../utils'
  * @return {Observable<T[]>} A new observable containing arrays of collected values.
  */
 export const audit =
-  <T, E = object>(trigger$: Stream | Observable, shouldAwait = true) =>
-  (observable$: Observable<T, E>): Observable<T, E> => {
+  <T>(trigger$: Stream | Observable, shouldAwait = true) =>
+  (observable$: Observable<T>): Observable<T> => {
     let finished = false
     let currentValue: T | undefined = observable$._getProtectedProperty('_v') as T | undefined
-    let pendingObservable$: Observable<any, E> | undefined
-    const newObservable = (getGlobalFluthFactory()?.() || new Stream<T>()) as Stream<T, E>
+    let pendingObservable$: Observable | undefined
+    const newObservable = (getGlobalFluthFactory()?.() || new Stream<T>()) as Stream<T>
 
     // Only track resolved values, ignore rejected ones
     const dataObservable$ = observable$.then((value) => (currentValue = value))
@@ -41,5 +41,5 @@ export const audit =
       dataObservable$.unsubscribe()
     })
 
-    return newObservable.then() as Observable<T, E>
+    return newObservable.then() as Observable<T>
   }

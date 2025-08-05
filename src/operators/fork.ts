@@ -12,11 +12,8 @@ import { getGlobalFluthFactory } from '../utils'
  * @returns {Stream} A stream that emits the same values as the input stream
  **/
 
-export const fork = <T, E = object>(
-  arg$: Stream<T, E> | Observable<T, E>,
-  autoUnsubscribe = true,
-): Stream<T, E> => {
-  const stream$ = (getGlobalFluthFactory()?.() || new Stream<T>()) as Stream<T, E>
+export const fork = <T>(arg$: Stream<T> | Observable<T>, autoUnsubscribe = true): Stream<T> => {
+  const stream$ = (getGlobalFluthFactory()?.() || new Stream<T>()) as Stream<T>
   let finishFlag = false
 
   // check input type

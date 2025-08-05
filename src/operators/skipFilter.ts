@@ -5,13 +5,11 @@ import { Observable } from '../observable'
  * @param filter filter function
  * @returns Observable
  */
-export const skipFilter =
-  <T, E = object>(filter: (time: number) => boolean) =>
-  (observable$: Observable<T, E>): Observable<T, E> => {
-    let time = 0
-    const newObservable = observable$.then(undefined, undefined, () => {
-      time += 1
-      return filter(time)
-    })
-    return newObservable as Observable<T, E>
-  }
+export const skipFilter = (filter: (time: number) => boolean) => (observable$: Observable) => {
+  let time = 0
+  const newObservable = observable$.then(undefined, undefined, () => {
+    time += 1
+    return filter(time)
+  })
+  return newObservable
+}

@@ -6,6 +6,6 @@ import { Observable } from '../observable'
  * @returns Observable that emits only when the extracted value changes
  */
 export const change =
-  <T, E = object>(getter: (value: T | undefined) => any) =>
-  (observable$: Observable<T, E>): Observable<T, E> =>
-    observable$.then<T>(undefined, undefined, undefined, getter) as Observable<T, E>
+  <T>(getter: (value: T | undefined) => any) =>
+  (observable$: Observable<T>): Observable<T> =>
+    observable$.then<T>(undefined, undefined, undefined, getter) as Observable<T>

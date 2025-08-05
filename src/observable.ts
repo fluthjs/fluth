@@ -21,7 +21,7 @@ import {
  * @template T the type of the value
  * @template E the type of the chain plugin
  */
-export class Observable<T = any, E = object> {
+export class Observable<T = any> {
   // resolve of observer
   #resolve?: OnFulfilled
   // reject of observer
@@ -39,14 +39,14 @@ export class Observable<T = any, E = object> {
   // after set value callback
   #afterSetValueCallbackList: ((value: T) => void)[] = []
   // observer children of current observable
-  #children: Observable<any, any>[] = []
+  #children: Observable[] = []
   // parent observable node
-  #parent: Observable<any, any> | null = null
+  #parent: Observable | null = null
   // plugin of current observable
-  #plugin: Plugin<T, E> = { then: [], execute: [], thenAll: [], executeAll: [] }
+  #plugin: Plugin<T> = { then: [], execute: [], thenAll: [], executeAll: [] }
 
   // root observable node
-  protected _root: Stream<any, any> | null = null
+  protected _root: Stream | null = null
   // cache root promise, for execute fn
   protected _cacheRootPromise: PromiseLike<any> | null = null
   // pause flag of root observable, no use for child observable
@@ -154,84 +154,84 @@ export class Observable<T = any, E = object> {
   /**
    * pipe operator
    */
-  pipe(): Observable<T, E>
-  pipe<A>(op1: OperatorFunction<T, A, E>): Observable<A, E>
-  pipe<A, B>(op1: OperatorFunction<T, A, E>, op2: OperatorFunction<A, B, E>): Observable<B, E>
+  pipe(): Observable<T>
+  pipe<A>(op1: OperatorFunction<T, A>): Observable<A>
+  pipe<A, B>(op1: OperatorFunction<T, A>, op2: OperatorFunction<A, B>): Observable<B>
   pipe<A, B, C>(
-    op1: OperatorFunction<T, A, E>,
-    op2: OperatorFunction<A, B, E>,
-    op3: OperatorFunction<B, C, E>,
-  ): Observable<C, E>
+    op1: OperatorFunction<T, A>,
+    op2: OperatorFunction<A, B>,
+    op3: OperatorFunction<B, C>,
+  ): Observable<C>
   pipe<A, B, C, D>(
-    op1: OperatorFunction<T, A, E>,
-    op2: OperatorFunction<A, B, E>,
-    op3: OperatorFunction<B, C, E>,
-    op4: OperatorFunction<C, D, E>,
-  ): Observable<D, E>
+    op1: OperatorFunction<T, A>,
+    op2: OperatorFunction<A, B>,
+    op3: OperatorFunction<B, C>,
+    op4: OperatorFunction<C, D>,
+  ): Observable<D>
   pipe<A, B, C, D, E>(
-    op1: OperatorFunction<T, A, E>,
-    op2: OperatorFunction<A, B, E>,
-    op3: OperatorFunction<B, C, E>,
-    op4: OperatorFunction<C, D, E>,
-    op5: OperatorFunction<D, E, E>,
-  ): Observable<E, E>
+    op1: OperatorFunction<T, A>,
+    op2: OperatorFunction<A, B>,
+    op3: OperatorFunction<B, C>,
+    op4: OperatorFunction<C, D>,
+    op5: OperatorFunction<D, E>,
+  ): Observable<E>
   pipe<A, B, C, D, E, F>(
-    op1: OperatorFunction<T, A, E>,
-    op2: OperatorFunction<A, B, E>,
-    op3: OperatorFunction<B, C, E>,
-    op4: OperatorFunction<C, D, E>,
-    op5: OperatorFunction<D, E, E>,
-    op6: OperatorFunction<E, F, E>,
-  ): Observable<F, E>
+    op1: OperatorFunction<T, A>,
+    op2: OperatorFunction<A, B>,
+    op3: OperatorFunction<B, C>,
+    op4: OperatorFunction<C, D>,
+    op5: OperatorFunction<D, E>,
+    op6: OperatorFunction<E, F>,
+  ): Observable<F>
   pipe<A, B, C, D, E, F, G>(
-    op1: OperatorFunction<T, A, E>,
-    op2: OperatorFunction<A, B, E>,
-    op3: OperatorFunction<B, C, E>,
-    op4: OperatorFunction<C, D, E>,
-    op5: OperatorFunction<D, E, E>,
-    op6: OperatorFunction<E, F, E>,
-    op7: OperatorFunction<F, G, E>,
-  ): Observable<G, E>
+    op1: OperatorFunction<T, A>,
+    op2: OperatorFunction<A, B>,
+    op3: OperatorFunction<B, C>,
+    op4: OperatorFunction<C, D>,
+    op5: OperatorFunction<D, E>,
+    op6: OperatorFunction<E, F>,
+    op7: OperatorFunction<F, G>,
+  ): Observable<G>
   pipe<A, B, C, D, E, F, G, H>(
-    op1: OperatorFunction<T, A, E>,
-    op2: OperatorFunction<A, B, E>,
-    op3: OperatorFunction<B, C, E>,
-    op4: OperatorFunction<C, D, E>,
-    op5: OperatorFunction<D, E, E>,
-    op6: OperatorFunction<E, F, E>,
-    op7: OperatorFunction<F, G, E>,
-    op8: OperatorFunction<G, H, E>,
-  ): Observable<H, E>
+    op1: OperatorFunction<T, A>,
+    op2: OperatorFunction<A, B>,
+    op3: OperatorFunction<B, C>,
+    op4: OperatorFunction<C, D>,
+    op5: OperatorFunction<D, E>,
+    op6: OperatorFunction<E, F>,
+    op7: OperatorFunction<F, G>,
+    op8: OperatorFunction<G, H>,
+  ): Observable<H>
   pipe<A, B, C, D, E, F, G, H, I>(
-    op1: OperatorFunction<T, A, E>,
-    op2: OperatorFunction<A, B, E>,
-    op3: OperatorFunction<B, C, E>,
-    op4: OperatorFunction<C, D, E>,
-    op5: OperatorFunction<D, E, E>,
-    op6: OperatorFunction<E, F, E>,
-    op7: OperatorFunction<F, G, E>,
-    op8: OperatorFunction<G, H, E>,
-    op9: OperatorFunction<H, I, E>,
-  ): Observable<I, E>
+    op1: OperatorFunction<T, A>,
+    op2: OperatorFunction<A, B>,
+    op3: OperatorFunction<B, C>,
+    op4: OperatorFunction<C, D>,
+    op5: OperatorFunction<D, E>,
+    op6: OperatorFunction<E, F>,
+    op7: OperatorFunction<F, G>,
+    op8: OperatorFunction<G, H>,
+    op9: OperatorFunction<H, I>,
+  ): Observable<I>
   pipe<A, B, C, D, E, F, G, H, I>(
-    op1: OperatorFunction<T, A, E>,
-    op2: OperatorFunction<A, B, E>,
-    op3: OperatorFunction<B, C, E>,
-    op4: OperatorFunction<C, D, E>,
-    op5: OperatorFunction<D, E, E>,
-    op6: OperatorFunction<E, F, E>,
-    op7: OperatorFunction<F, G, E>,
-    op8: OperatorFunction<G, H, E>,
-    op9: OperatorFunction<H, I, E>,
-    ...ops: OperatorFunction<any, any, E>[]
-  ): Observable<T, E>
-  pipe<Ops extends OperatorFunction<any, any, E>[]>(
+    op1: OperatorFunction<T, A>,
+    op2: OperatorFunction<A, B>,
+    op3: OperatorFunction<B, C>,
+    op4: OperatorFunction<C, D>,
+    op5: OperatorFunction<D, E>,
+    op6: OperatorFunction<E, F>,
+    op7: OperatorFunction<F, G>,
+    op8: OperatorFunction<G, H>,
+    op9: OperatorFunction<H, I>,
+    ...ops: OperatorFunction<any, any>[]
+  ): Observable
+  pipe<Ops extends OperatorFunction<any, any>[]>(
     ...operators: Ops
-  ): Observable<PipeResult<T, Ops>, E> {
+  ): Observable<PipeResult<T, Ops>> {
     return operators.reduce(
       (observable, operator) => operator(observable),
-      this as Observable<T, E>,
-    ) as Observable<PipeResult<T, Ops>, E>
+      this as Observable<T>,
+    ) as Observable<PipeResult<T, Ops>>
   }
 
   /**
@@ -376,9 +376,9 @@ export class Observable<T = any, E = object> {
     this.#finishCallbackList = this.#finishCallbackList.filter((fn) => fn !== callback)
   }
 
-  #runThenPlugin(observer: Observable<any, any>) {
+  #runThenPlugin(observer: Observable) {
     const thenPlugins = this._root
-      ? this._root.#plugin.thenAll.concat(this.#plugin.then as any)
+      ? this._root.#plugin.thenAll.concat(this.#plugin.then)
       : this.#plugin.then
     thenPlugins.forEach((fn) => {
       safeCallback(fn)(() => observer.#unsubscribeObservable(), observer)
@@ -421,9 +421,7 @@ export class Observable<T = any, E = object> {
       observer._executeObserver.call(observer, this._cacheRootPromise)
     }
 
-    return observer as Observable<F extends PromiseLike<infer V> ? V : F, E> & {
-      [key in keyof E]: E[key]
-    }
+    return observer
   }
 
   /**
