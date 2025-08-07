@@ -407,4 +407,19 @@ describe('consoleAll plugins test', async () => {
     expect(consoleSpy).toHaveBeenCalledWith('resolve', 'defined-value')
     expect(consoleSpy).toHaveBeenCalledTimes(1)
   })
+  test('test consoleAll with observable node throw error', async () => {
+    const stream$ = $().use(consoleAll())
+    stream$
+      .pipe(debounce(300))
+      .then((value) => {
+        throw new Error(value + 1)
+      })
+      .then(undefined, (error: Error) => ({ current: Number(error.message) }))
+
+    stream$.next(1)
+
+    await vi.runAllTimersAsync()
+
+    expect(consoleSpy).toHaveBeenCalledWith('reject', expect.any(Error))
+  })
 })

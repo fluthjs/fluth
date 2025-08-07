@@ -729,7 +729,10 @@ export class Observable<T = any> {
     } catch (error) {
       console.error(error)
       this.status = PromiseStatus.REJECTED
-      this.#executeResult(Promise.reject(error), status, rootPromise)
+      // plugin run in safeCallback so error only happen in nodeProcess
+      // once error happen, plugin should process error as Promise.reject
+      const result = this.#runExecutePlugin(Promise.reject(error))
+      this.#executeResult(result, status, rootPromise)
     }
   }
 
