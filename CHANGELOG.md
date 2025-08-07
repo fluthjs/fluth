@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.3.28](https://github.com/fluthjs/fluth/compare/v0.3.27...v0.3.28) (2025-08-07)
+
+
+### Features
+
+* optimize observable node handle throw error ([5169147](https://github.com/fluthjs/fluth/commit/51691475df481a6609e73f0a2054483b7cb34932))
+
 ### [0.3.27](https://github.com/fluthjs/fluth/compare/v0.3.26...v0.3.27) (2025-08-05)
 
 
