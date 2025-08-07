@@ -1,5 +1,5 @@
 import { expect, describe, test, vi, beforeEach } from 'vitest'
-import { consoleSpy, sleep } from '../utils'
+import { consoleSpy } from '../utils'
 import { $ } from '../../index'
 
 describe('Observable afterComplete and offComplete methods', () => {
@@ -15,7 +15,7 @@ describe('Observable afterComplete and offComplete methods', () => {
     promise1$.afterComplete((value) => console.log(`finish1: ${value}`))
     promise1$.afterComplete((value) => console.log(`finish2: ${value}`))
     promise$.next(1, true)
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'finish1: 1')
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'finish2: 1')
   })
@@ -34,7 +34,7 @@ describe('Observable afterComplete and offComplete methods', () => {
     promise1$.offComplete(callback2)
 
     promise$.next(1, true)
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'finish1: 1')
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'finish3: 1')
     expect(consoleSpy).toHaveBeenCalledTimes(2)
@@ -53,7 +53,7 @@ describe('Observable afterComplete and offComplete methods', () => {
     promise1$.offComplete(nonExistentCallback)
 
     promise$.next(1, true)
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'finish1: 1')
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'finish2: 1')
     expect(consoleSpy).toHaveBeenCalledTimes(2)
@@ -71,7 +71,7 @@ describe('Observable afterComplete and offComplete methods', () => {
     promise1$.offComplete(callback2)
 
     promise$.next(1, true)
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'finish1: error, status: rejected')
     expect(consoleSpy).toHaveBeenCalledTimes(1)
   })
@@ -82,7 +82,7 @@ describe('Observable afterComplete and offComplete methods', () => {
     promise1$.afterComplete(() => console.log('finish'))
     promise1$.then(() => console.log('then'))
     promise$.next(Promise.resolve(), true)
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'finish')
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'then')
   })

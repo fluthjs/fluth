@@ -61,7 +61,7 @@ describe('Stream inherited methods from Observable', () => {
     const promise$ = $()
     promise$.catch(() => console.log('catch'))
     promise$.next(Promise.reject())
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'catch')
   })
 
@@ -69,7 +69,7 @@ describe('Stream inherited methods from Observable', () => {
     const promise$ = $<number>()
     promise$.catch((err) => err).then((value) => console.log(value))
     promise$.next(Promise.reject(1))
-    await sleep(1)
+    await vi.runAllTimersAsync()
 
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 1)
   })
@@ -78,10 +78,10 @@ describe('Stream inherited methods from Observable', () => {
     const promise$ = $()
     promise$.finally(() => console.log('finally'))
     promise$.next(Promise.resolve())
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'finally')
     promise$.next(Promise.reject())
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'finally')
   })
 
@@ -89,7 +89,7 @@ describe('Stream inherited methods from Observable', () => {
     const promise$ = $()
     promise$.afterComplete((value, status) => console.log(value, status))
     promise$.next(Promise.resolve('1'), true)
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenNthCalledWith(1, '1', 'resolved')
   })
 

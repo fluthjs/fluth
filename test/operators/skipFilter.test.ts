@@ -1,5 +1,5 @@
 import { expect, describe, test, vi, beforeEach } from 'vitest'
-import { consoleSpy, sleep } from '../utils'
+import { consoleSpy } from '../utils'
 import { $, skipFilter } from '../../index'
 
 describe('skipFilter operator test', async () => {
@@ -21,26 +21,22 @@ describe('skipFilter operator test', async () => {
 
     // 1st emission - should be skipped (time=1, odd)
     stream$.next('first')
-    await sleep(1)
     expect(consoleSpy).not.toHaveBeenCalled()
 
     // 2nd emission - should pass through (time=2, even)
     stream$.next('second')
-    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'filtered:', 'second')
 
     // 3rd emission - should be skipped (time=3, odd)
     stream$.next('third')
-    await sleep(1)
     expect(consoleSpy).toHaveBeenCalledTimes(1)
 
     // 4th emission - should pass through (time=4, even)
     stream$.next('fourth')
-    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'filtered:', 'fourth')
   })
 
-  test('test skipFilter with always true filter', async () => {
+  test('test skipFilter with always true filter', () => {
     const stream$ = $()
     const filteredStream$ = stream$.pipe(skipFilter(() => true))
 
@@ -50,15 +46,12 @@ describe('skipFilter operator test', async () => {
 
     // All emissions should pass through
     stream$.next(1)
-    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'always pass:', 1)
 
     stream$.next(2)
-    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'always pass:', 2)
 
     stream$.next(3)
-    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(3, 'always pass:', 3)
   })
 
@@ -74,11 +67,11 @@ describe('skipFilter operator test', async () => {
     stream$.next(1)
     stream$.next(2)
     stream$.next(3)
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).not.toHaveBeenCalled()
   })
 
-  test('test skipFilter with time-based filter', async () => {
+  test('test skipFilter with time-based filter', () => {
     const stream$ = $()
     // Only allow emissions after the 3rd one
     const filteredStream$ = stream$.pipe(skipFilter((time) => time > 3))
@@ -90,15 +83,12 @@ describe('skipFilter operator test', async () => {
     stream$.next('first') // time=1, should be skipped
     stream$.next('second') // time=2, should be skipped
     stream$.next('third') // time=3, should be skipped
-    await sleep(1)
     expect(consoleSpy).not.toHaveBeenCalled()
 
     stream$.next('fourth') // time=4, should pass through
-    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'after 3rd:', 'fourth')
 
     stream$.next('fifth') // time=5, should pass through
-    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'after 3rd:', 'fifth')
   })
 
@@ -114,21 +104,20 @@ describe('skipFilter operator test', async () => {
 
     // First emission (rejected) should be skipped
     stream$.next(Promise.reject('error1'))
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).not.toHaveBeenCalled()
 
     // Second emission should pass through
     stream$.next(Promise.reject('error2'))
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'rejected:', 'error2')
 
     // Third emission should also pass through
     stream$.next('success')
-    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'resolved:', 'success')
   })
 
-  test('test skipFilter with modulo filter', async () => {
+  test('test skipFilter with modulo filter', () => {
     const stream$ = $()
     // Only allow every 3rd emission (3, 6, 9, etc.)
     const filteredStream$ = stream$.pipe(skipFilter((time) => time % 3 === 0))
@@ -141,14 +130,13 @@ describe('skipFilter operator test', async () => {
       stream$.next(`value${i}`)
     }
 
-    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'every 3rd:', 'value3')
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'every 3rd:', 'value6')
     expect(consoleSpy).toHaveBeenNthCalledWith(3, 'every 3rd:', 'value9')
     expect(consoleSpy).toHaveBeenCalledTimes(3)
   })
 
-  test('test skipFilter with unsubscribe', async () => {
+  test('test skipFilter with unsubscribe', () => {
     const stream$ = $()
     const filteredStream$ = stream$.pipe(skipFilter((time) => time > 1))
 
@@ -162,7 +150,6 @@ describe('skipFilter operator test', async () => {
     // Should not emit even after unsubscribe
     stream$.next('second')
     stream$.next('third')
-    await sleep(1)
     expect(consoleSpy).not.toHaveBeenCalled()
   })
 })

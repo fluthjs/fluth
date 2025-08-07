@@ -1,5 +1,5 @@
 import { expect, describe, test, vi, beforeEach } from 'vitest'
-import { consoleSpy, sleep } from '../utils'
+import { consoleSpy } from '../utils'
 import { $ } from '../../index'
 
 describe('Observable thenImmediate method', () => {
@@ -13,9 +13,8 @@ describe('Observable thenImmediate method', () => {
     const promise$ = $()
     const observable$ = promise$.then((value) => Promise.resolve(value))
     promise$.next(Promise.resolve('1'))
-    await sleep(1)
+    await vi.runAllTimersAsync()
     observable$.thenImmediate((value) => console.log(value))
-    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(1, '1')
   })
 })

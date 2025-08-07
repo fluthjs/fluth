@@ -23,7 +23,7 @@ describe('fork operator test', async () => {
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'resolve', 'a')
 
     promise$.next(Promise.reject('b'))
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'reject', 'b')
 
     // finish case
@@ -37,7 +37,7 @@ describe('fork operator test', async () => {
     const promise1$ = fork(promise$)
     promise1$.afterUnsubscribe(() => console.log('unsubscribe'))
     promise$.unsubscribe()
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'unsubscribe')
   })
 
@@ -71,7 +71,7 @@ describe('fork operator test', async () => {
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'resolved:', 'success')
 
     promise$.next(Promise.reject('error'))
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'rejected:', 'error')
   })
 
@@ -188,13 +188,13 @@ describe('fork operator test', async () => {
     })
 
     promise$.unsubscribe()
-    await sleep(1)
+    await vi.runAllTimersAsync()
 
     expect(unsubscribed).toBe(true)
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'fork unsubscribed')
   })
 
-  test('test fork with autoUnsubscribe = false', async () => {
+  test('test fork with autoUnsubscribe = false', () => {
     const promise$ = $()
     const promise1$ = fork(promise$, false) // explicit false
     let unsubscribed = false
@@ -205,7 +205,6 @@ describe('fork operator test', async () => {
     })
 
     promise$.unsubscribe()
-    await sleep(1)
 
     expect(unsubscribed).toBe(false)
     expect(consoleSpy).not.toHaveBeenCalled()
@@ -482,7 +481,7 @@ describe('fork operator test', async () => {
     expect(manualUnsubscribed).toBe(true)
   })
 
-  test('test fork with simultaneous unsubscribe and completion', async () => {
+  test('test fork with simultaneous unsubscribe and completion', () => {
     const promise$ = $()
     const fork1$ = fork(promise$, true)
     const fork2$ = fork(promise$, false)
@@ -508,8 +507,6 @@ describe('fork operator test', async () => {
     // Simulate simultaneous operations
     promise$.next('final', true)
     promise$.unsubscribe()
-
-    await sleep(1)
 
     // fork1 should be completed and unsubscribed
     expect(fork1_completed).toBe(true)
@@ -537,7 +534,7 @@ describe('fork operator test', async () => {
     // Complete with async operation
     promise$.next(Promise.resolve('async-value'), true)
 
-    await sleep(1)
+    await vi.runAllTimersAsync()
 
     // Check the order of operations
     expect(completionOrder).toEqual(['fork completed', 'received: async-value'])
@@ -571,7 +568,7 @@ describe('fork operator test', async () => {
     // Complete with rejection
     promise$.next(Promise.reject('completion-error'), true)
 
-    await sleep(1)
+    await vi.runAllTimersAsync()
 
     // Both should receive the error, but only fork1 should be completed
     expect(fork1_completed).toBe(true)

@@ -26,10 +26,10 @@ describe('Observable then method', () => {
     const promise$ = $()
     promise$.then((value) => console.log(value)).then((value) => console.log(value))
     promise$.next(Promise.resolve())
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenCalledTimes(2)
     promise$.next(Promise.reject())
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenCalledTimes(2)
   })
 
@@ -45,7 +45,7 @@ describe('Observable then method', () => {
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'resolve')
     consoleSpy.mockClear()
     promise$.next(Promise.reject('error'))
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'error')
   })
 
@@ -55,7 +55,7 @@ describe('Observable then method', () => {
       throw new Error('error')
     })
     promise$.next(Promise.resolve())
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(observable$.status).toEqual(PromiseStatus.REJECTED)
     expect(observable$.value).toEqual(new Error('error'))
   })
@@ -96,7 +96,7 @@ describe('Observable then method', () => {
     )
 
     promise$.next('initial')
-    await sleep(1)
+    await vi.runAllTimersAsync()
 
     expect(results).toEqual(['obs1-resolve', 'obs2-resolve', 'obs4-reject'])
     expect(obs2.status).toEqual(PromiseStatus.REJECTED)
@@ -136,7 +136,7 @@ describe('Observable then method', () => {
     )
 
     promise$.next('start')
-    await sleep(1)
+    await vi.runAllTimersAsync()
 
     expect(results).toEqual(['obs1', 'obs3-reject'])
     expect(obs1.status).toEqual(PromiseStatus.REJECTED)
@@ -178,7 +178,7 @@ describe('Observable then method', () => {
     )
 
     promise$.next('trigger')
-    await sleep(1)
+    await vi.runAllTimersAsync()
 
     expect(errorLog).toEqual(['level1-caught', 'level2-caught'])
     expect(obs1.status).toEqual(PromiseStatus.REJECTED)
@@ -251,7 +251,7 @@ describe('Observable then method', () => {
     })
 
     promise$.next('trigger')
-    await sleep(1)
+    await vi.runAllTimersAsync()
 
     expect(results).toEqual(['obs2-reject', 'obs3-handled'])
     expect(obs3.value).toBe('handled')
@@ -283,7 +283,7 @@ describe('Observable then method', () => {
     })
 
     promise$.next('trigger')
-    await sleep(1)
+    await vi.runAllTimersAsync()
 
     expect(cleanup).toContain('obs2-error-handled')
     expect(cleanup).toContain('obs1-cleanup')
@@ -324,7 +324,7 @@ describe('Observable then method', () => {
     )
 
     promise$.next('start')
-    await sleep(1)
+    await vi.runAllTimersAsync()
 
     expect(propagationLog).toEqual(['obs1-execute', 'obs4-reject'])
     expect(obs1.status).toEqual(PromiseStatus.REJECTED)
@@ -368,7 +368,7 @@ describe('Observable then method', () => {
     )
 
     promise$.next('start')
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(executionOrder).toEqual(['obs1-sync', 'obs2-async-start'])
 
     await sleep(10)
@@ -400,14 +400,14 @@ describe('Observable then method', () => {
 
     // First execution
     promise$.next('first')
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(results).toEqual(['obs1', 'obs2-reject'])
     expect(obs2.value).toBe('handled')
 
     // Second execution with different root promise
     results.length = 0
     promise$.next('second')
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(results).toEqual(['obs1', 'obs2-reject'])
     expect(obs2.value).toBe('handled')
   })

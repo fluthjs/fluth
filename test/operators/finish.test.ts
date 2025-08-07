@@ -47,7 +47,7 @@ describe('finish operator test', async () => {
     await sleep(30)
     promise2$.next(Promise.resolve('g'), true)
     expect(consoleSpy).toHaveBeenCalledTimes(0)
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'finish', 'c,g,n')
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'resolve', 'c,g,n')
   })
@@ -89,7 +89,7 @@ describe('finish operator test', async () => {
     await sleep(30)
     promise2$.next(Promise.reject('g'), true)
     expect(consoleSpy).toHaveBeenCalledTimes(0)
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'finish', 'c,g,n')
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'reject', 'c,g,n')
   })
@@ -104,7 +104,7 @@ describe('finish operator test', async () => {
     observable1$.unsubscribe()
     observable2$.unsubscribe()
     observable3$.unsubscribe()
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'unsubscribe')
   })
 
@@ -169,14 +169,13 @@ describe('finish operator test', async () => {
 
     // Now complete the remaining stream
     promise3$.next('value3', true)
-    await sleep(1)
 
     // Should get all values including the pre-finished ones
     expect(result).toEqual(['value1', 'value2', 'value3'])
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'result:', 'value1,value2,value3')
   })
 
-  test('test finish with finished streams having different statuses', async () => {
+  test('test finish with finished streams having different statuses', () => {
     const { stream$: promise1$, observable$: observable1$ } = streamFactory()
     const { stream$: promise2$, observable$: observable2$ } = streamFactory()
     const { stream$: promise3$, observable$: observable3$ } = streamFactory()
@@ -204,8 +203,6 @@ describe('finish operator test', async () => {
 
     // Complete the remaining stream
     promise3$.next('resolved3', true)
-    await sleep(1)
-
     // Should get all final values
     expect(result).toEqual(['resolved1', 'resolved2', 'resolved3'])
     expect(isRejected).toBe(false)
@@ -236,7 +233,7 @@ describe('finish operator test', async () => {
       console.log('finish-completed')
     })
 
-    await sleep(1)
+    await vi.runAllTimersAsync()
 
     // Should immediately emit with all finished values
     expect(result).toEqual(['finished1', 'finished2', 'finished3'])
@@ -273,7 +270,7 @@ describe('finish operator test', async () => {
     // Complete the last stream with rejected final value
     promise3$.next(Promise.reject('final-error'), true)
 
-    await sleep(1)
+    await vi.runAllTimersAsync()
 
     // Should be rejected because one stream finished with rejected status
     expect(isRejected).toBe(true)
@@ -312,7 +309,7 @@ describe('finish operator test', async () => {
     // Third stream completes normally
     promise3$.next('value3', true)
 
-    await sleep(1)
+    await vi.runAllTimersAsync()
 
     // Should be rejected because one stream finished with rejected status
     expect(isRejected).toBe(true)
@@ -321,7 +318,7 @@ describe('finish operator test', async () => {
   })
 
   // Tests for edge cases
-  test('test finish with single stream', async () => {
+  test('test finish with single stream', () => {
     const { stream$: promise1$, observable$: observable1$ } = streamFactory()
 
     const stream$ = finish(observable1$)
@@ -333,7 +330,6 @@ describe('finish operator test', async () => {
     })
 
     promise1$.next('single-value', true)
-    await sleep(1)
 
     expect(result).toBe('single-value')
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'single:', 'single-value')
@@ -360,7 +356,7 @@ describe('finish operator test', async () => {
     expect(completed).toBe(false)
   })
 
-  test('test finish with combination of finished and active streams', async () => {
+  test('test finish with combination of finished and active streams', () => {
     const { stream$: promise1$, observable$: observable1$ } = streamFactory()
     const { stream$: promise2$, observable$: observable2$ } = streamFactory()
     const { stream$: promise3$, observable$: observable3$ } = streamFactory()
@@ -380,8 +376,6 @@ describe('finish operator test', async () => {
     // Complete the remaining active streams
     promise2$.next('final-active', true)
     promise3$.next('last-stream', true)
-
-    await sleep(1)
 
     expect(result).toEqual(['pre-finished', 'final-active', 'last-stream'])
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'mixed:', 'pre-finished,final-active,last-stream')

@@ -1,5 +1,5 @@
 import { expect, describe, test, vi, beforeEach } from 'vitest'
-import { consoleSpy, sleep, streamFactory } from '../utils'
+import { consoleSpy, streamFactory } from '../utils'
 import { partition } from '../../index'
 
 describe('partition operator test', async () => {
@@ -29,31 +29,27 @@ describe('partition operator test', async () => {
       (value: string) => console.log('unselected', 'reject', value),
     )
     stream$.next('1')
-    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'selected', 'resolve', '1')
 
     stream$.next('2')
-    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'unselected', 'resolve', '2')
 
     stream$.next(Promise.reject('3'))
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenNthCalledWith(3, 'selected', 'reject', '3')
 
     stream$.next(Promise.reject('4'))
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenNthCalledWith(4, 'unselected', 'reject', '4')
 
     stream$.next('5')
-    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(5, 'selected', 'resolve', '5')
 
     stream$.next('6')
-    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(6, 'unselected', 'resolve', '6')
 
     stream$.next(Promise.reject('7'), true)
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenNthCalledWith(7, 'selected finish', '7')
     expect(consoleSpy).toHaveBeenNthCalledWith(8, 'selected', 'reject', '7')
   })
@@ -80,23 +76,21 @@ describe('partition operator test', async () => {
     )
 
     stream$.next('1') // resolved odd -> selected
-    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'selected', 'resolve', '1')
 
     stream$.next('2') // resolved even -> unselected
-    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'unselected', 'resolve', '2')
 
     stream$.next(Promise.reject('3')) // rejected odd -> unselected
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenNthCalledWith(3, 'unselected', 'reject', '3')
 
     stream$.next(Promise.reject('4')) // rejected even -> selected
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenNthCalledWith(4, 'selected', 'reject', '4')
   })
 
-  test('test partition with index parameter', async () => {
+  test('test partition with index parameter', () => {
     const { stream$, observable$ } = streamFactory()
 
     const indices: number[] = []
@@ -113,13 +107,9 @@ describe('partition operator test', async () => {
     unselectedStream$.then((value: string) => console.log('unselected', value))
 
     stream$.next('a')
-    await sleep(1)
     stream$.next('b')
-    await sleep(1)
     stream$.next('c')
-    await sleep(1)
     stream$.next('d')
-    await sleep(1)
 
     expect(indices).toEqual([1, 2, 3, 4])
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'selected', 'a') // index 1
@@ -128,7 +118,7 @@ describe('partition operator test', async () => {
     expect(consoleSpy).toHaveBeenNthCalledWith(4, 'unselected', 'd') // index 4
   })
 
-  test('test partition with thisArg', async () => {
+  test('test partition with thisArg', () => {
     const { stream$, observable$ } = streamFactory()
 
     const context = {
@@ -151,15 +141,12 @@ describe('partition operator test', async () => {
     shortStrings$.then((value: string) => console.log('short:', value))
 
     stream$.next('hi')
-    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'short:', 'hi')
 
     stream$.next('hello')
-    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'long:', 'hello')
 
     stream$.next('bye')
-    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(3, 'short:', 'bye')
   })
 
@@ -176,13 +163,13 @@ describe('partition operator test', async () => {
     unselectedStream$.afterUnsubscribe(() => console.log('unselected unsubscribe'))
 
     observable$.unsubscribe()
-    await sleep(1)
+    await vi.runAllTimersAsync()
 
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'selected unsubscribe')
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'unselected unsubscribe')
   })
 
-  test('test partition with predicate error', async () => {
+  test('test partition with predicate error', () => {
     const { stream$, observable$ } = streamFactory()
 
     // Predicate that throws error
@@ -201,11 +188,9 @@ describe('partition operator test', async () => {
     unselected$.then((value: string) => console.log('unselected:', value))
 
     stream$.next(1)
-    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'selected:', 1)
 
     stream$.next('error')
-    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'unselected:', 'error')
   })
 
@@ -226,7 +211,7 @@ describe('partition operator test', async () => {
 
     // Complete the stream first
     stream$.complete()
-    await sleep(1)
+    await vi.runAllTimersAsync()
 
     const [selectedStream$, unselectedStream$] = partition(
       observable$,
@@ -237,7 +222,7 @@ describe('partition operator test', async () => {
     selectedStream$.afterComplete(() => console.log('selected already finished'))
     unselectedStream$.afterComplete(() => console.log('unselected already finished'))
 
-    await sleep(1)
+    await vi.runAllTimersAsync()
 
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'selected already finished')
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'unselected already finished')
@@ -261,19 +246,16 @@ describe('partition operator test', async () => {
     )
 
     stream$.next('test1') // string, resolved, index 1 -> selected
-    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'selected:', 'test1')
 
     stream$.next('test2') // string, resolved, index 2 -> unselected
-    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'unselected:', 'test2')
 
     stream$.next(Promise.reject('test3')) // string, rejected, index 3 -> unselected
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenNthCalledWith(3, 'unselected reject:', 'test3')
 
     stream$.next(123) // number, resolved, index 4 -> unselected
-    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(4, 'unselected:', 123)
   })
 })

@@ -19,7 +19,7 @@ describe('Observable error handling edge cases', () => {
       })
 
     stream.next('test')
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenCalledWith('Caught error:', 'Then handler error')
   })
 
@@ -53,7 +53,7 @@ describe('Observable error handling edge cases', () => {
 
     stream.next('test')
 
-    await sleep(1)
+    await vi.runAllTimersAsync()
 
     expect(consoleSpy).toHaveBeenCalledWith('Final catch:', 'Catch handler error')
   })

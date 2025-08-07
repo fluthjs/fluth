@@ -140,13 +140,13 @@ describe('buffer operator test', async () => {
     // Mix of successful values and rejections
     source$.next(1)
     source$.next(Promise.reject('error'))
-    await sleep(1)
+    await vi.runAllTimersAsync()
     source$.next(2)
-    await sleep(1)
+    await vi.runAllTimersAsync()
     source$.next(Promise.resolve(3))
-    await sleep(1)
+    await vi.runAllTimersAsync()
     source$.next(Promise.reject('another error'))
-    await sleep(1)
+    await vi.runAllTimersAsync()
     source$.next(4)
 
     trigger$.next('trigger')
@@ -169,7 +169,7 @@ describe('buffer operator test', async () => {
     source$.next(1)
     source$.next(Promise.reject('error')) // This rejection is filtered out
 
-    await sleep(1)
+    await vi.runAllTimersAsync()
 
     trigger$.next('trigger')
 
@@ -192,7 +192,7 @@ describe('buffer operator test', async () => {
     source$.next(Promise.reject('error2')) // This will be filtered out
     source$.next(3)
 
-    await sleep(1)
+    await vi.runAllTimersAsync()
 
     trigger$.next('trigger')
 

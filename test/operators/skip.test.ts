@@ -1,5 +1,5 @@
 import { expect, describe, test, vi, beforeEach } from 'vitest'
-import { consoleSpy, sleep } from '../utils'
+import { consoleSpy } from '../utils'
 import { $, skip } from '../../index'
 
 describe('skip operator test', () => {
@@ -103,12 +103,12 @@ describe('skip operator test', () => {
 
     // First emission (rejected) should be skipped
     stream$.next(Promise.reject('error1'))
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).not.toHaveBeenCalled()
 
     // Second emission should pass through
     stream$.next(Promise.reject('error2'))
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'rejected:', 'error2')
 
     // Third emission should also pass through

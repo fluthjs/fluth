@@ -261,7 +261,7 @@ describe('Observable concurrency and race condition edge cases', () => {
     observable.catch(() => console.log('catch2'))
     observable.catch(() => console.log('catch3'))
     stream.next('test')
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'catch1')
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'catch2')
     expect(consoleSpy).toHaveBeenNthCalledWith(3, 'catch3')

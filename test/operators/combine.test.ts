@@ -33,33 +33,33 @@ describe('combine operator test', async () => {
     await sleep(30)
     promise2$.next(Promise.reject('e'))
     expect(consoleSpy).toHaveBeenCalledTimes(0)
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'reject', 'a,e,l')
     await sleep(30)
 
     promise1$.next(Promise.resolve('b'))
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'reject', 'b,e,l')
     await sleep(30)
     promise3$.next(Promise.reject('m'))
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenNthCalledWith(3, 'reject', 'b,e,m')
     await sleep(30)
     promise2$.next(Promise.resolve('f'))
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenNthCalledWith(4, 'reject', 'b,f,m')
     await sleep(30)
 
     promise1$.next(Promise.resolve('c'), true)
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenNthCalledWith(5, 'reject', 'c,f,m')
     await sleep(30)
     promise3$.next(Promise.resolve('n'), true)
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenNthCalledWith(6, 'resolve', 'c,f,n')
     await sleep(30)
     promise2$.next(Promise.reject('g'), true)
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenNthCalledWith(7, 'finish', 'c,g,n')
     expect(consoleSpy).toHaveBeenNthCalledWith(8, 'reject', 'c,g,n')
   })
@@ -74,7 +74,7 @@ describe('combine operator test', async () => {
     observable1$.unsubscribe()
     observable2$.unsubscribe()
     observable3$.unsubscribe()
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'unsubscribe')
   })
 
@@ -114,7 +114,7 @@ describe('combine operator test', async () => {
   })
 
   // Tests for already finished streams
-  test('test combine with already finished streams', async () => {
+  test('test combine with already finished streams', () => {
     const { stream$: promise1$, observable$: observable1$ } = streamFactory()
     const { stream$: promise2$, observable$: observable2$ } = streamFactory()
     const { stream$: promise3$, observable$: observable3$ } = streamFactory()
@@ -145,7 +145,6 @@ describe('combine operator test', async () => {
 
     // Now complete the remaining stream
     promise3$.next('active3', true)
-    await sleep(1)
 
     // Should get all values including the pre-finished ones
     expect(result).toEqual(['finished1', 'finished2', 'active3'])
@@ -183,9 +182,7 @@ describe('combine operator test', async () => {
       completed = true
       console.log('all-finished-completed')
     })
-
-    await sleep(1)
-
+    await vi.runAllTimersAsync()
     // when all streams are already finished, the output stream should be finished
     expect(result).toEqual([])
     expect(completed).toBe(true)
@@ -215,7 +212,7 @@ describe('combine operator test', async () => {
       },
     )
 
-    await sleep(1)
+    await vi.runAllTimersAsync()
 
     // Should propagate the rejected status - only errorResult should have values
     expect(result).toEqual([])
@@ -224,7 +221,7 @@ describe('combine operator test', async () => {
   })
 
   // This test is commented out because combine may not handle finished/active stream combinations as expected
-  test('test combine with combination of finished and active streams', async () => {
+  test('test combine with combination of finished and active streams', () => {
     const { stream$: promise1$, observable$: observable1$ } = streamFactory()
     const { stream$: promise2$, observable$: observable2$ } = streamFactory()
     const { stream$: promise3$, observable$: observable3$ } = streamFactory()
@@ -253,15 +250,12 @@ describe('combine operator test', async () => {
       console.log('mixed-completed')
     })
 
-    await sleep(1)
-
     // Should not emit yet since one stream is still active
     expect(result).toEqual([])
     expect(completed).toBe(false)
 
     // Now complete the remaining stream
     promise3$.next('active3', true)
-    await sleep(1)
 
     // Should emit after all streams are complete
     expect(result).toEqual(['pre-finished1', 'pre-finished2', 'active3'])
@@ -271,7 +265,7 @@ describe('combine operator test', async () => {
   })
 
   // Tests for single stream and empty input
-  test('test combine with single stream', async () => {
+  test('test combine with single stream', () => {
     const { stream$: promise1$, observable$: observable1$ } = streamFactory()
 
     const stream$ = combine(observable1$)
@@ -283,13 +277,12 @@ describe('combine operator test', async () => {
     })
 
     promise1$.next('single-value', true)
-    await sleep(1)
 
     expect(result).toEqual(['single-value'])
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'single:', 'single-value')
   })
 
-  test('test combine with empty input', async () => {
+  test('test combine with empty input', () => {
     // Should handle empty input gracefully
     const stream$ = combine()
     let result: string[] = []
@@ -305,15 +298,13 @@ describe('combine operator test', async () => {
       console.log('empty-completed')
     })
 
-    await sleep(1)
-
     // Should not complete immediately with empty input
     expect(result).toEqual([])
     expect(completed).toBe(false)
     expect(consoleSpy).not.toHaveBeenCalled()
   })
 
-  test('test combine with streams that emit multiple values', async () => {
+  test('test combine with streams that emit multiple values', () => {
     const { stream$: promise1$, observable$: observable1$ } = streamFactory()
     const { stream$: promise2$, observable$: observable2$ } = streamFactory()
 
@@ -328,34 +319,29 @@ describe('combine operator test', async () => {
     // First values
     promise1$.next('a1')
     promise2$.next('b1')
-    await sleep(1)
 
     expect(results).toHaveLength(1)
     expect(results[0]).toEqual(['a1', 'b1'])
 
     // Update first stream
     promise1$.next('a2')
-    await sleep(1)
 
     expect(results).toHaveLength(2)
     expect(results[1]).toEqual(['a2', 'b1'])
 
     // Update second stream
     promise2$.next('b2')
-    await sleep(1)
 
     expect(results).toHaveLength(3)
     expect(results[2]).toEqual(['a2', 'b2'])
 
     // Complete both streams
     promise1$.next('a3', true)
-    await sleep(1)
 
     expect(results).toHaveLength(4)
     expect(results[3]).toEqual(['a3', 'b2'])
 
     promise2$.next('b3', true)
-    await sleep(1)
 
     expect(results).toHaveLength(5)
     expect(results[4]).toEqual(['a3', 'b3'])

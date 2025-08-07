@@ -79,7 +79,7 @@ describe('audit operator test', () => {
     source$.next('b')
     source$.next(Promise.reject('error'))
     source$.next('c')
-    await sleep(1)
+    await vi.runAllTimersAsync()
     trigger$.next('trigger2')
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'audited:', 'c')
 
@@ -202,7 +202,7 @@ describe('audit operator test', () => {
 
     // Send a rejected promise - should not update currentValue
     source$.next(Promise.reject('error'))
-    await sleep(1)
+    await vi.runAllTimersAsync()
 
     // Trigger should still emit the last resolved value, not the rejected one
     trigger$.next('trigger2')
@@ -220,9 +220,9 @@ describe('audit operator test', () => {
 
     // Send only rejected promises
     source$.next(Promise.reject('error1'))
-    await sleep(1)
+    await vi.runAllTimersAsync()
     source$.next(Promise.reject('error2'))
-    await sleep(1)
+    await vi.runAllTimersAsync()
 
     // Since no resolved values exist, should emit undefined
     trigger$.next('trigger')
@@ -241,10 +241,10 @@ describe('audit operator test', () => {
     // Send mixed values
     source$.next('success1')
     source$.next(Promise.reject('error1'))
-    await sleep(1)
+    await vi.runAllTimersAsync()
     source$.next('success2')
     source$.next(Promise.reject('error2'))
-    await sleep(1)
+    await vi.runAllTimersAsync()
 
     // Should emit the latest resolved value (success2)
     trigger$.next('trigger')
@@ -253,7 +253,7 @@ describe('audit operator test', () => {
     // Send more values with rejected at the end
     source$.next('success3')
     source$.next(Promise.reject('error3'))
-    await sleep(1)
+    await vi.runAllTimersAsync()
 
     // Should still emit success3, not the rejected value
     trigger$.next('trigger2')
@@ -273,7 +273,7 @@ describe('audit operator test', () => {
     // Send sequence: resolved -> rejected -> resolved
     source$.next('value1')
     source$.next(Promise.reject('should be ignored'))
-    await sleep(1)
+    await vi.runAllTimersAsync()
     source$.next('value2')
 
     // Should emit value2 (latest resolved), not the rejected promise
@@ -282,7 +282,7 @@ describe('audit operator test', () => {
 
     // Send only rejected value after some resolved values
     source$.next(Promise.reject('another rejection'))
-    await sleep(1)
+    await vi.runAllTimersAsync()
 
     // Should still emit value2 (last resolved value)
     trigger$.next('trigger2')
@@ -302,7 +302,7 @@ describe('audit operator test', () => {
 
     // Trigger errors should not affect audit's normal operation
     trigger$.next(Promise.reject('trigger error'))
-    await sleep(1)
+    await vi.runAllTimersAsync()
 
     expect(consoleSpy).not.toHaveBeenCalled()
 

@@ -160,7 +160,7 @@ describe('promiseAll operator', () => {
       // Update with rejection (async)
       stream1$.next('rapid3')
       stream2$.next(Promise.reject('rapid4'))
-      await sleep(1)
+      await vi.runAllTimersAsync()
       expect(consoleSpy).toHaveBeenNthCalledWith(2, 'rapid-error', 'rapid3,rapid4')
 
       // Back to sync values
@@ -347,7 +347,7 @@ describe('promiseAll operator', () => {
 
       stream1$.complete()
       stream2$.complete()
-      await sleep(1)
+      await vi.runAllTimersAsync()
       expect(consoleSpy).toHaveBeenCalledWith('all-complete')
     })
 
@@ -360,7 +360,7 @@ describe('promiseAll operator', () => {
 
       obs1$.unsubscribe()
       obs2$.unsubscribe()
-      await sleep(1)
+      await vi.runAllTimersAsync()
       expect(consoleSpy).toHaveBeenCalledWith('all-unsubscribe')
     })
 
@@ -408,7 +408,7 @@ describe('promiseAll operator', () => {
       stream1$.complete()
       stream2$.complete()
 
-      await sleep(1)
+      await vi.runAllTimersAsync()
       expect(completeCalled).toBe(true)
 
       // Verify that the result stream has completed
@@ -602,7 +602,7 @@ describe('promiseAll operator', () => {
       }).toThrow('promiseAll operator only accepts Stream or Observable as input')
     })
 
-    test('test promiseAll with empty input', async () => {
+    test('test promiseAll with empty input', () => {
       const stream$ = promiseAll()
       let completed = false
 
@@ -610,8 +610,6 @@ describe('promiseAll operator', () => {
         completed = true
         console.log('empty-completed')
       })
-
-      await sleep(1)
 
       // Empty concat should not complete
       expect(completed).toBe(false)
@@ -637,7 +635,7 @@ describe('promiseAll operator', () => {
       stream1$.complete()
       stream2$.complete()
 
-      await sleep(1)
+      await vi.runAllTimersAsync()
       expect(memoryCleanupCalled).toBe(true)
       expect(consoleSpy).toHaveBeenCalledWith('memory-cleanup')
     })
@@ -708,8 +706,6 @@ describe('promiseAll operator', () => {
       stream1$.next('pre-value1', true)
       stream2$.next('pre-value2', true)
 
-      await sleep(1)
-
       // Create promiseAll with already finished streams
       const result$ = promiseAll(obs1$, obs2$)
 
@@ -717,20 +713,19 @@ describe('promiseAll operator', () => {
         console.log('finished-init')
       })
 
-      await sleep(1)
+      await vi.runAllTimersAsync()
 
       // Should emit immediately with pre-existing values
       expect(consoleSpy).toHaveBeenCalledWith('finished-init')
     })
 
-    test('should handle mixed finished and active streams', async () => {
+    test('should handle mixed finished and active streams', () => {
       const { stream$: stream1$, observable$: obs1$ } = streamFactory()
       const { stream$: stream2$, observable$: obs2$ } = streamFactory()
       const { stream$: stream3$, observable$: obs3$ } = streamFactory()
 
       // Pre-finish first stream
       stream1$.next('finished-value', true)
-      await sleep(1)
 
       const result$ = promiseAll(obs1$, obs2$, obs3$)
       result$.then((values) => console.log('mixed-init', values.toString()))

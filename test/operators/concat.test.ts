@@ -28,7 +28,7 @@ describe('concat operator test', async () => {
      * ---a✅-------b✅----f❌ --n✅|-----
      */
     promise1$.next(Promise.resolve('a'))
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'resolve', 'a')
     await sleep(30)
     promise3$.next(Promise.resolve('l'))
@@ -37,18 +37,18 @@ describe('concat operator test', async () => {
     await sleep(30)
 
     promise1$.next(Promise.resolve('b'), true)
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'resolve', 'b')
     await sleep(30)
     promise3$.next(Promise.reject('m'))
     await sleep(30)
     promise2$.next(Promise.reject('f'), true)
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenNthCalledWith(3, 'reject', 'f')
     await sleep(30)
 
     promise3$.next(Promise.resolve('n'), true)
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenNthCalledWith(4, 'finish', 'n')
     expect(consoleSpy).toHaveBeenNthCalledWith(5, 'resolve', 'n')
   })
@@ -65,11 +65,11 @@ describe('concat operator test', async () => {
     promise2$.next(Promise.resolve('b'))
     promise2$.next(Promise.resolve('c'), true)
     expect(consoleSpy).toBeCalledTimes(0)
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'unsubscribe')
   })
 
-  test('test concat basic functionality with sequential emission', async () => {
+  test('test concat basic functionality with sequential emission', () => {
     const { stream$: promise1$, observable$: observable1$ } = streamFactory()
     const { stream$: promise2$, observable$: observable2$ } = streamFactory()
     const { stream$: promise3$, observable$: observable3$ } = streamFactory()
@@ -90,32 +90,26 @@ describe('concat operator test', async () => {
 
     // Emit from first stream
     promise1$.next('a')
-    await sleep(1)
     expect(results).toEqual(['a'])
 
     promise1$.next('b')
-    await sleep(1)
     expect(results).toEqual(['a', 'b'])
 
     // Second stream emits but should not be output yet (first stream not completed)
     promise2$.next('c')
-    await sleep(1)
     expect(results).toEqual(['a', 'b']) // 'c' should not be emitted yet
 
     // Complete first stream
     promise1$.next('final1', true)
-    await sleep(1)
     expect(results).toEqual(['a', 'b', 'final1'])
 
     // Previous 'c' is discarded, only new emissions from second stream count
     promise2$.next('d', true)
-    await sleep(1)
     expect(results).toEqual(['a', 'b', 'final1', 'd']) // 'c' is discarded!
 
     // Third stream should emit after second completes
     expect(consoleSpy).not.toHaveBeenCalledWith('concat-completed')
     promise3$.next('e', true)
-    await sleep(1)
     expect(results).toEqual(['a', 'b', 'final1', 'd', 'e'])
     expect(completed).toBe(true)
 
@@ -143,16 +137,14 @@ describe('concat operator test', async () => {
 
     // First stream emits normally then rejects
     promise1$.next('success1')
-    await sleep(1)
     expect(results).toEqual(['success1'])
 
     promise1$.next(Promise.reject('error1'), true)
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(errors).toEqual(['error1'])
 
     // Second stream should emit after first completes (even with error)
     promise2$.next('success2', true)
-    await sleep(1)
     expect(results).toEqual(['success1', 'success2'])
 
     expect(consoleSpy).toHaveBeenCalledWith('reject', 'error1')
@@ -170,7 +162,7 @@ describe('concat operator test', async () => {
     observable1$.unsubscribe()
     observable2$.unsubscribe()
     observable3$.unsubscribe()
-    await sleep(1)
+    await vi.runAllTimersAsync()
 
     expect(consoleSpy).toHaveBeenCalledWith('unsubscribe')
   })
@@ -203,7 +195,7 @@ describe('concat operator test', async () => {
     expect(() => concat(stream$, observable$)).not.toThrow()
   })
 
-  test('test concat with already finished streams', async () => {
+  test('test concat with already finished streams', () => {
     const { stream$: promise1$, observable$: observable1$ } = streamFactory()
     const { stream$: promise2$, observable$: observable2$ } = streamFactory()
 
@@ -219,14 +211,12 @@ describe('concat operator test', async () => {
       console.log('result', value)
     })
 
-    await sleep(1)
-
     // Already finished streams' previous data should not be emitted
     // concat should complete immediately since all streams are finished
     expect(results).toEqual([])
   })
 
-  test('test concat with single stream', async () => {
+  test('test concat with single stream', () => {
     const { stream$: promise1$, observable$: observable1$ } = streamFactory()
 
     const stream$ = concat(observable1$)
@@ -238,13 +228,12 @@ describe('concat operator test', async () => {
     })
 
     promise1$.next('only-value', true)
-    await sleep(1)
 
     expect(results).toEqual(['only-value'])
     expect(consoleSpy).toHaveBeenCalledWith('single', 'only-value')
   })
 
-  test('test concat with empty input', async () => {
+  test('test concat with empty input', () => {
     const stream$ = concat()
     let completed = false
 
@@ -253,14 +242,12 @@ describe('concat operator test', async () => {
       console.log('empty-completed')
     })
 
-    await sleep(1)
-
     // Empty concat should not complete
     expect(completed).toBe(false)
     expect(consoleSpy).not.toHaveBeenCalled()
   })
 
-  test('test concat with early stream unsubscribe', async () => {
+  test('test concat with early stream unsubscribe', () => {
     const { stream$: promise1$, observable$: observable1$ } = streamFactory()
     const { stream$: promise2$, observable$: observable2$ } = streamFactory()
     const { observable$: observable3$ } = streamFactory()
@@ -281,26 +268,23 @@ describe('concat operator test', async () => {
 
     // Emit from first stream
     promise1$.next('a')
-    await sleep(1)
     expect(results).toEqual(['a'])
 
     // Unsubscribe first stream while it's active
     observable1$.unsubscribe()
-    await sleep(1)
 
     // concat should NOT be unsubscribed, should continue to second stream
     expect(concatUnsubscribed).toBe(false)
 
     // Second stream should now be active and able to emit
     promise2$.next('b', true)
-    await sleep(1)
     expect(results).toEqual(['a', 'b'])
 
     // concat still should not be unsubscribed
     expect(concatUnsubscribed).toBe(false)
   })
 
-  test('test concat with mixed completed and active streams', async () => {
+  test('test concat with mixed completed and active streams', () => {
     const { stream$: promise1$, observable$: observable1$ } = streamFactory()
     const { stream$: promise2$, observable$: observable2$ } = streamFactory()
     const { stream$: promise3$, observable$: observable3$ } = streamFactory()
@@ -316,25 +300,20 @@ describe('concat operator test', async () => {
       console.log('mixed', value)
     })
 
-    await sleep(1)
-
     // Pre-completed data should not be emitted, concat cannot detect pre-completion
     expect(results).toEqual([])
 
     // Second stream should NOT be active because first stream completion wasn't detected
     promise2$.next('active2', true)
-    await sleep(1)
     // Second stream data should NOT be emitted because concat is still waiting for first stream
     expect(results).toEqual(['active2'])
 
     // Third stream should also NOT emit
     promise3$.next('active3', true)
-    await sleep(1)
     expect(results).toEqual(['active2', 'active3'])
 
     // Only when first stream emits new data after concat creation should it work
     promise1$.next('new-data-after-concat')
-    await sleep(1)
     expect(results).toEqual(['active2', 'active3'])
   })
 
@@ -360,26 +339,22 @@ describe('concat operator test', async () => {
 
     // Complex emission pattern: success, error, success
     promise1$.next('a')
-    await sleep(1)
     promise1$.next(Promise.reject('error-a'))
-    await sleep(1)
+    await vi.runAllTimersAsync()
     promise1$.next('b', true)
-    await sleep(1)
 
     expect(results).toEqual(['a', 'b'])
     expect(errors).toEqual(['error-a'])
 
     // Second stream: only success
     promise2$.next('c', true)
-    await sleep(1)
-
+    await vi.runAllTimersAsync()
     expect(results).toEqual(['a', 'b', 'c'])
 
     // Third stream: error then success
     promise3$.next(Promise.reject('error-c'))
-    await sleep(1)
+    await vi.runAllTimersAsync()
     promise3$.next('d', true)
-    await sleep(1)
 
     expect(results).toEqual(['a', 'b', 'c', 'd'])
     expect(errors).toEqual(['error-a', 'error-c'])
@@ -388,7 +363,7 @@ describe('concat operator test', async () => {
     expect(consoleSpy).toHaveBeenCalledWith('reject', 'error-c')
   })
 
-  test('test concat cleanup and memory management', async () => {
+  test('test concat cleanup and memory management', () => {
     const { stream$: promise1$, observable$: observable1$ } = streamFactory()
     const { stream$: promise2$, observable$: observable2$ } = streamFactory()
 
@@ -402,13 +377,10 @@ describe('concat operator test', async () => {
 
     // Emit some values
     promise1$.next('test1', true)
-    await sleep(1)
     promise2$.next('test2', true)
-    await sleep(1)
 
     // Unsubscribe should trigger cleanup
     stream$.unsubscribe()
-    await sleep(1)
 
     expect(unsubscribeCalled).toBe(true)
     expect(consoleSpy).toHaveBeenCalledWith('cleanup')

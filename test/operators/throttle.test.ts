@@ -20,7 +20,6 @@ describe('throttle operator test', async () => {
 
     // First emission should pass through immediately
     stream$.next(1)
-    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'throttled:', 1)
 
     // Rapid emissions within throttle period
@@ -65,7 +64,7 @@ describe('throttle operator test', async () => {
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 1)
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 3)
     expect(consoleSpy).toHaveBeenNthCalledWith(3, 6)
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenNthCalledWith(4, 7)
   })
 
@@ -78,18 +77,15 @@ describe('throttle operator test', async () => {
     })
 
     stream$.next('first')
-    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'spaced:', 'first')
 
     // Wait longer than throttle period
     await sleep(100)
     stream$.next('second')
-    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'spaced:', 'second')
 
     await sleep(100)
     stream$.next('third')
-    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(3, 'spaced:', 'third')
   })
 
@@ -104,7 +100,7 @@ describe('throttle operator test', async () => {
 
     // First emission should pass through
     stream$.next(Promise.reject('error1'))
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'rejected:', 'error1')
 
     // Rapid emissions within throttle period
@@ -118,7 +114,7 @@ describe('throttle operator test', async () => {
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'resolved:', 'success')
   })
 
-  test('test throttle with zero throttle time', async () => {
+  test('test throttle with zero throttle time', () => {
     const stream$ = $()
     const throttledStream$ = stream$.pipe(throttle(0))
 
@@ -128,15 +124,12 @@ describe('throttle operator test', async () => {
 
     // All emissions should pass through immediately
     stream$.next(1)
-    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'immediate:', 1)
 
     stream$.next(2)
-    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'immediate:', 2)
 
     stream$.next(3)
-    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(3, 'immediate:', 3)
   })
 
@@ -149,7 +142,6 @@ describe('throttle operator test', async () => {
     })
 
     stream$.next(1)
-    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'throttled:', 1)
 
     // Emit and then unsubscribe before throttle completes

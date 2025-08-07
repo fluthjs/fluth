@@ -1,5 +1,5 @@
 import { expect, describe, test, vi, beforeEach } from 'vitest'
-import { consoleSpy, sleep } from '../utils'
+import { consoleSpy } from '../utils'
 import { $ } from '../../index'
 
 describe('Observable finally method', () => {
@@ -17,10 +17,10 @@ describe('Observable finally method', () => {
     )
     promise1$.finally(() => console.log('finally'))
     promise$.next(Promise.resolve())
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'finally')
     promise$.next(Promise.reject())
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'finally')
   })
 })

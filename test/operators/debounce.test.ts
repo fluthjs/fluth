@@ -87,7 +87,7 @@ describe('debounce operator test', async () => {
     })
 
     stream$.next('immediate')
-    await sleep(1) // Give it a micro task to execute
+    await vi.runAllTimersAsync() // Give it a micro task to execute
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'zero-debounce:', 'immediate')
   })
 
@@ -100,7 +100,7 @@ describe('debounce operator test', async () => {
     })
 
     stream$.next('negative')
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'negative-debounce:', 'negative')
   })
 

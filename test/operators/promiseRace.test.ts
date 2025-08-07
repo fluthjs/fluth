@@ -28,7 +28,7 @@ describe('promiseRace operator test', async () => {
      * ---a✅------b✅------c❌|------
      */
     promise1$.next(Promise.resolve('a'))
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'resolve', 'a')
     await sleep(30)
     promise3$.next(Promise.resolve('l'))
@@ -37,7 +37,7 @@ describe('promiseRace operator test', async () => {
     await sleep(30)
 
     promise1$.next(Promise.resolve('b'))
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'resolve', 'b')
     await sleep(30)
     promise3$.next(Promise.reject('m'))
@@ -46,7 +46,7 @@ describe('promiseRace operator test', async () => {
     await sleep(30)
 
     promise1$.next(Promise.reject('c'), true)
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenNthCalledWith(3, 'finish', 'c')
     expect(consoleSpy).toHaveBeenNthCalledWith(4, 'reject', 'c')
   })
@@ -62,13 +62,12 @@ describe('promiseRace operator test', async () => {
     promise2$.next(2)
     promise3$.next(3)
     stream$.afterUnsubscribe(() => console.log('race unsubscribe'))
-    await sleep(1)
     observable1$.unsubscribe()
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'race unsubscribe')
   })
 
-  test('test race with second stream winning', async () => {
+  test('test race with second stream winning', () => {
     const { stream$: promise1$, observable$: observable1$ } = streamFactory()
     const { stream$: promise2$, observable$: observable2$ } = streamFactory()
     const { stream$: promise3$, observable$: observable3$ } = streamFactory()
@@ -78,18 +77,15 @@ describe('promiseRace operator test', async () => {
 
     // Second stream emits first
     promise2$.next('second wins')
-    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'winner:', 'second wins')
 
     // Other streams emit but should be ignored
     promise1$.next('first too late')
     promise3$.next('third too late')
-    await sleep(1)
     expect(consoleSpy).toHaveBeenCalledTimes(1)
 
     // Only the winning stream's subsequent emissions should be processed
     promise2$.next('second again')
-    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'winner:', 'second again')
   })
 
@@ -105,12 +101,11 @@ describe('promiseRace operator test', async () => {
 
     // First stream rejects first
     promise1$.next(Promise.reject('first error'))
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'rejected:', 'first error')
 
     // Second stream emits but should be ignored
     promise2$.next('second value')
-    await sleep(1)
     expect(consoleSpy).toHaveBeenCalledTimes(1)
   })
 
@@ -130,7 +125,7 @@ describe('promiseRace operator test', async () => {
     }).toThrow('promiseRace operator only accepts Stream or Observable as input')
   })
 
-  test('should handle empty input arrays', async () => {
+  test('should handle empty input arrays', () => {
     const result$ = promiseRace()
     let emitted = false
     let completed = false
@@ -144,22 +139,19 @@ describe('promiseRace operator test', async () => {
       console.log('empty-race-complete')
     })
 
-    await sleep(1)
-
     // Empty race should not emit or complete immediately
     expect(emitted).toBe(false)
     expect(completed).toBe(false)
     expect(consoleSpy).not.toHaveBeenCalled()
   })
 
-  test('should handle single stream race', async () => {
+  test('should handle single stream race', () => {
     const { stream$, observable$ } = streamFactory()
     const result$ = promiseRace(observable$)
 
     result$.then((value: string) => console.log('single-race:', value))
 
     stream$.next('only-one')
-    await sleep(1)
 
     expect(consoleSpy).toHaveBeenCalledWith('single-race:', 'only-one')
   })
@@ -173,7 +165,6 @@ describe('promiseRace operator test', async () => {
     stream1$.next('first-finished', true)
     stream2$.next('second-finished', true)
     stream3$.next('third-finished', true)
-    await sleep(1)
 
     const result$ = promiseRace(obs1$, obs2$, obs3$)
     let completeCalled = false
@@ -183,7 +174,7 @@ describe('promiseRace operator test', async () => {
       console.log('all-finished-race-complete')
     })
 
-    await sleep(1)
+    await vi.runAllTimersAsync()
 
     // Since all input streams are finished, the race should complete
     expect(completeCalled).toBe(true)
@@ -197,7 +188,6 @@ describe('promiseRace operator test', async () => {
 
     // Pre-finish one stream
     stream1$.next('pre-finished', true)
-    await sleep(1)
 
     const result$ = promiseRace(obs1$, obs2$, obs3$)
     result$.then((value: string) => console.log('mixed-race:', value))
@@ -209,7 +199,7 @@ describe('promiseRace operator test', async () => {
 
     // Third stream should be ignored
     stream3$.next('third-ignored')
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenCalledTimes(1)
   })
 
@@ -248,18 +238,18 @@ describe('promiseRace operator test', async () => {
 
     // First stream wins
     stream1$.next('winner')
-    await sleep(1)
+    await vi.runAllTimersAsync()
 
     // Complete the winning stream
     stream1$.complete()
-    await sleep(1)
+    await vi.runAllTimersAsync()
 
     expect(completeCalls).toBe(1)
     expect(consoleSpy).toHaveBeenCalledWith('race-complete', 1)
 
     // Complete the other stream (should not trigger additional complete)
     stream2$.complete()
-    await sleep(1)
+    await vi.runAllTimersAsync()
 
     expect(completeCalls).toBe(1)
   })
@@ -278,18 +268,16 @@ describe('promiseRace operator test', async () => {
 
     // First stream wins
     stream1$.next('winner')
-    await sleep(1)
 
     // Unsubscribe the winning stream
     obs1$.unsubscribe()
-    await sleep(1)
+    await vi.runAllTimersAsync()
 
     expect(unsubscribeCalls).toBe(1)
     expect(consoleSpy).toHaveBeenCalledWith('race-unsubscribe', 1)
 
     // Unsubscribe the other stream (should not trigger additional unsubscribe)
     obs2$.unsubscribe()
-    await sleep(1)
 
     expect(unsubscribeCalls).toBe(1)
   })
@@ -305,7 +293,6 @@ describe('promiseRace operator test', async () => {
     stream1$.next('first')
     stream1$.next('second')
     stream1$.next('third')
-    await sleep(1)
 
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'rapid:', 'first')
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'rapid:', 'second')
@@ -314,7 +301,7 @@ describe('promiseRace operator test', async () => {
     // Other stream should be completely ignored
     stream2$.next('ignored1')
     stream2$.next('ignored2')
-    await sleep(1)
+    await vi.runAllTimersAsync()
 
     expect(consoleSpy).toHaveBeenCalledTimes(3)
   })
@@ -331,27 +318,25 @@ describe('promiseRace operator test', async () => {
 
     // First stream wins with initial resolve
     stream1$.next('initial-resolve')
-    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'mixed-resolved:', 'initial-resolve')
 
     // Winner continues with rejection
     stream1$.next(Promise.reject('subsequent-reject'))
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'mixed-rejected:', 'subsequent-reject')
 
     // Winner resolves again
     stream1$.next('final-resolve')
-    await sleep(1)
     expect(consoleSpy).toHaveBeenNthCalledWith(3, 'mixed-resolved:', 'final-resolve')
 
     // Other stream emissions should be ignored
     stream2$.next('totally-ignored')
     stream2$.next(Promise.reject('also-ignored'))
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenCalledTimes(3)
   })
 
-  test('should handle large number of competing streams', async () => {
+  test('should handle large number of competing streams', () => {
     const streams = Array.from({ length: 10 }, () => streamFactory())
     const observables = streams.map(({ observable$ }) => observable$)
 
@@ -360,7 +345,6 @@ describe('promiseRace operator test', async () => {
 
     // Let the 5th stream win
     streams[5].stream$.next('stream-5-wins')
-    await sleep(1)
 
     expect(consoleSpy).toHaveBeenCalledWith('large-race-winner:', 'stream-5-wins')
 
@@ -370,17 +354,15 @@ describe('promiseRace operator test', async () => {
         stream$.next(`stream-${index}-ignored`)
       }
     })
-    await sleep(1)
 
     // Only the winner's subsequent emission should be processed
     streams[5].stream$.next('stream-5-again')
-    await sleep(1)
 
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'large-race-winner:', 'stream-5-again')
     expect(consoleSpy).toHaveBeenCalledTimes(2)
   })
 
-  test('should handle race result stream unsubscription', async () => {
+  test('should handle race result stream unsubscription', () => {
     const { stream$: stream1$, observable$: obs1$ } = streamFactory()
     const { observable$: obs2$ } = streamFactory()
 
@@ -393,7 +375,6 @@ describe('promiseRace operator test', async () => {
 
     // Winner emits
     stream1$.next('before-unsubscribe')
-    await sleep(1)
     expect(emissionCount).toBe(1)
 
     // Unsubscribe the result stream
@@ -401,11 +382,10 @@ describe('promiseRace operator test', async () => {
 
     // Further emissions should not be processed
     stream1$.next('after-unsubscribe')
-    await sleep(1)
     expect(emissionCount).toBe(1)
   })
 
-  test('should have correct type inference', async () => {
+  test('should have correct type inference', () => {
     const { stream$: stream1$, observable$: obs1$ } = streamFactory()
     const { stream$: stream2$, observable$: obs2$ } = streamFactory()
     const { stream$: stream3$, observable$: obs3$ } = streamFactory()
@@ -422,7 +402,6 @@ describe('promiseRace operator test', async () => {
     stream2$.next(42)
     stream3$.next(true)
 
-    await sleep(1)
     expect(consoleSpy).toHaveBeenCalledWith('type-test:', 'string', 'string-value')
   })
 })

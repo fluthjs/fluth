@@ -38,7 +38,7 @@ describe('plugins test', async () => {
     stream$.next(1)
     await sleep(99)
     expect(consoleSpy).not.toHaveBeenCalled()
-    await sleep(1)
+    await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenCalledWith(1)
   })
 })
