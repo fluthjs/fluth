@@ -5,18 +5,21 @@ import { PromiseStatus } from './types'
 
 export class Stream<T = any> extends Observable<T> {
   declare _v: T
-  constructor(data?: T) {
+  constructor(data?: T | PromiseLike<T>) {
     super()
-    if (data instanceof Promise) {
-      throw new Error('Stream data cannot be a Promise')
-    }
     this._root = this as Stream
-    this._v = data as T
-    this._rootPromise = Promise.resolve(data as T)
-    // new stream should be resolved
-    this.status = PromiseStatus.RESOLVED
-    // set cacheRootPromise for execute fn
-    this._cacheRootPromise = this._rootPromise
+    if (isPromiseLike(data)) {
+      this._cacheRootPromise = data
+      this.next(data)
+    } else {
+      this._root = this as Stream
+      this._v = data as T
+      this._rootPromise = Promise.resolve(data as T)
+      // new stream should be resolved
+      this.status = PromiseStatus.RESOLVED
+      // set cacheRootPromise for execute fn
+      this._cacheRootPromise = this._rootPromise
+    }
   }
 
   // value of stream node
@@ -62,7 +65,7 @@ export class Stream<T = any> extends Observable<T> {
 }
 
 export function $<T = any>(): Stream<T | undefined>
-export function $<T = any>(data: T): Stream<T>
-export function $<T = any>(data?: T) {
+export function $<T = any>(data: T | PromiseLike<T>): Stream<T>
+export function $<T = any>(data?: T | PromiseLike<T>) {
   return new Stream<T>(data)
 }

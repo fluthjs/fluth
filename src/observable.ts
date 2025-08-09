@@ -259,6 +259,7 @@ export class Observable<T = any> {
     this.#finally = undefined
     this.#unsubscribeCallbackList = []
     this.#finishCallbackList = []
+    this.#afterSetValueCallbackList = []
     this.#parent = null
     this._root = null
     // clear property if no child observer
