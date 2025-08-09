@@ -519,42 +519,6 @@ export class Observable<T = any> {
     }
   }
 
-  /**
-   * push immutable observer
-   * @param setter setter function
-   * @returns Observable
-   */
-  $then(setter: (value: T) => void | Promise<void>) {
-    return this.#thenObserver<T>({
-      onfulfilled: (value: T) => this.#set(value, setter),
-    })
-  }
-
-  /**
-   * push one time immutable observer
-   * @param setter setter function
-   * @returns Observable
-   */
-  $thenOnce(setter: (value: T) => void | Promise<void>) {
-    return this.#thenObserver<T>({
-      once: true,
-      onfulfilled: (value: T) => this.#set(value, setter),
-    })
-  }
-
-  /**
-   * push immutable observer, if previous then or catch has been resolved or rejected, will execute observer immediately
-   * @param setter setter function
-   * @returns Observable
-   */
-  $thenImmediate(setter: (value: T) => void | Promise<void>) {
-    if (!this.#parent) this.status = this.status === null ? PromiseStatus.RESOLVED : this.status
-    return this.#thenObserver<T>({
-      immediate: true,
-      onfulfilled: (value: T) => this.#set(value, setter),
-    })
-  }
-
   #runExecutePlugin(result: any) {
     const executeAll = this._root
       ? this._root.#plugin.executeAll.concat(this.#plugin.execute)
