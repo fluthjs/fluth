@@ -1,6 +1,10 @@
-[中文](./README.cn.md) | [English](./README.en.md)
-
 # Fluth
+
+<div align="center">
+  <img src="https://fluthjs.github.io/fluth-doc/logo.svg" alt="fluth-vue logo" width="120" height="120">
+
+  <p>A Promise-like asynchronous flow control library</p>
+</div>
 
 <div align="center">
 
@@ -11,8 +15,6 @@
 [![GitHub stars](https://img.shields.io/github/stars/fluthjs/fluth?style=flat)](https://github.com/fluthjs/fluth/stargazers)
 [![Vue](https://img.shields.io/badge/Vue-3.2.0+-4FC08D?style=flat&logo=vue.js)](https://vuejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-ready-blue?style=flat&logo=typescript)](https://www.typescriptlang.org/)
-
-**A Promise-like asynchronous flow control library**
 
 <div align="center">
 
