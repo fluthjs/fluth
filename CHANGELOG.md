@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.3.30](https://github.com/fluthjs/fluth/compare/v0.3.29...v0.3.30) (2025-08-09)
+
+
+### Features
+
+* add set operator for updating observable values ([9812ea1](https://github.com/fluthjs/fluth/commit/9812ea1bb4ddb8a1477663ffcc0bce6eb8b8c0ce))
+* enhance Stream constructor to accept PromiseLike values ([a6ddcf2](https://github.com/fluthjs/fluth/commit/a6ddcf297c62bd0d45bb3112eb7c8345d8d4954f))
+
 ### [0.3.29](https://github.com/fluthjs/fluth/compare/v0.3.28...v0.3.29) (2025-08-09)
 
 
