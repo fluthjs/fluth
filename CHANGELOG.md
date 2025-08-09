@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.3.29](https://github.com/fluthjs/fluth/compare/v0.3.28...v0.3.29) (2025-08-09)
+
+
+### Features
+
+* add map operator for transforming observable values ([a58a6a5](https://github.com/fluthjs/fluth/commit/a58a6a59ef68fbf9d8474c01ad2c201b1601b114))
+
 ### [0.3.28](https://github.com/fluthjs/fluth/compare/v0.3.27...v0.3.28) (2025-08-07)
 
 
