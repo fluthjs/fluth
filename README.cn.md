@@ -1,5 +1,3 @@
-[中文](./README.cn.md) | [English](./README.en.md)
-
 # Fluth
 
 <div align="center">
@@ -12,7 +10,7 @@
 [![Vue](https://img.shields.io/badge/Vue-3.2.0+-4FC08D?style=flat&logo=vue.js)](https://vuejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-ready-blue?style=flat&logo=typescript)](https://www.typescriptlang.org/)
 
-**A Promise-like asynchronous flow control library**
+**类 Promise 的异步流控制库**
 
 <div align="center">
 
@@ -28,17 +26,17 @@
 
 </div>
 
-## 🚀 Features
+## 🚀 特性
 
-- **🤞 Easy to Use**: Promise-like stream processing with chainable APIs
-- **🔄 Reactive Programming**: Observable-based data streams
-- **⚡ Async Control**: Powerful Promise-like async flow control
-- **🛠️ Rich Operators**: A wide range of transformation and combination operators
-- **🔌 Plugin System**: Extensible plugin mechanism for debugging and logging
-- **💾 Immutable Operations**: Immutable data updates powered by limu
-- **🎯 TypeScript**: Fully typed for a smooth developer experience
+- **🤞 简单易用** 类 promise 的流式数据处理，支持链式调用
+- **🔄 响应式编程**：基于 Observable 模式的流式数据处理
+- **⚡ 异步控制**：强大的 Promise-like 异步流控制能力
+- **🛠️ 丰富操作符**：提供丰富数据变换和组合操作符
+- **🔌 插件系统**：可扩展的插件机制，支持调试和打印
+- **💾 不可变操作**：基于 limu 的不可变数据修改
+- **🎯 TypeScript**：完全类型安全，提供流畅的开发体验
 
-## 📦 Installation
+## 📦 安装
 
 ```bash
 # npm
@@ -51,19 +49,19 @@ yarn add fluth
 pnpm add fluth
 ```
 
-## Quick Start
+## 快速开始
 
 ```typescript
 import { $ } from 'fluth'
 
-// Create a stream
+// 创建一个流
 const stream$ = $()
 
-// Listen for changes
+// 监听数据变化
 stream$.then((value) => {
-  console.log('received:', value)
+  console.log('接收到数据:', value)
 })
 
-// Emit value
+// 发送数据
 stream$.next('Hello Fluth!')
 ```
