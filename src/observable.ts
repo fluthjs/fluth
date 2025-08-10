@@ -332,7 +332,7 @@ export class Observable<T = any> {
    * @param callback callback function
    */
   afterUnsubscribe(callback: () => void) {
-    if (!this.#unsubscribeCallbackList.includes(callback))
+    if (!this.#unsubscribeCallbackList.includes(callback) && !this._finishFlag)
       this.#unsubscribeCallbackList.push(callback)
   }
   /**
@@ -348,7 +348,7 @@ export class Observable<T = any> {
    * @param callback callback function
    */
   afterSetValue(callback: (value: T) => void) {
-    if (!this.#afterSetValueCallbackList.includes(callback))
+    if (!this.#afterSetValueCallbackList.includes(callback) && !this._finishFlag)
       this.#afterSetValueCallbackList.push(callback)
   }
 
@@ -366,7 +366,8 @@ export class Observable<T = any> {
    * @param callback callback function
    */
   afterComplete(callback: (value: T, status: PromiseStatus) => void) {
-    if (!this.#finishCallbackList.includes(callback)) this.#finishCallbackList.push(callback)
+    if (!this.#finishCallbackList.includes(callback) && !this._finishFlag)
+      this.#finishCallbackList.push(callback)
   }
 
   /**

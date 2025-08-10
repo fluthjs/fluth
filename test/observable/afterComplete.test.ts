@@ -86,4 +86,23 @@ describe('Observable afterComplete and offComplete methods', () => {
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'finish')
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'then')
   })
+
+  test('should ignore afterComplete registered after stream finished', async () => {
+    const promise$ = $()
+    const promise1$ = promise$.then((v) => v)
+    const lateCallback = vi.fn()
+
+    // Finish first
+    promise$.next('v', true)
+    await vi.runAllTimersAsync()
+
+    // Register afterComplete after finish
+    promise1$.afterComplete(lateCallback)
+
+    // Emit again with finish; callback should not be called
+    promise$.next('vv', true)
+    await vi.runAllTimersAsync()
+
+    expect(lateCallback).not.toHaveBeenCalled()
+  })
 })

@@ -45,12 +45,27 @@ describe('Observable afterUnsubscribe and offUnsubscribe methods', () => {
     observable$.afterUnsubscribe(callback1)
     observable$.afterUnsubscribe(callback2)
 
-    // 尝试移除不存在的回调
+    // try to remove non-existent callback
     observable$.offUnsubscribe(nonExistentCallback)
 
     observable$.unsubscribe()
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'unsubscribe1')
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'unsubscribe2')
     expect(consoleSpy).toHaveBeenCalledTimes(2)
+  })
+
+  test('should ignore afterUnsubscribe registered after already unsubscribed', async () => {
+    const observable$ = $().then()
+    const lateCallback = vi.fn()
+
+    // Unsubscribe first
+    observable$.unsubscribe()
+
+    // Register afterUnsubscribe after finished/unsubscribed
+    observable$.afterUnsubscribe(lateCallback)
+
+    // Try to unsubscribe again; callback should not be called
+    observable$.unsubscribe()
+    expect(lateCallback).not.toHaveBeenCalled()
   })
 })

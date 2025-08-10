@@ -209,4 +209,21 @@ describe('Observable afterSetValue lifecycle', () => {
       { original: 10, doubled: 20 },
     ])
   })
+
+  test('should ignore afterSetValue registered after stream completed', async () => {
+    const { stream$, observable$ } = streamFactory()
+    const lateCallback = vi.fn()
+
+    // Complete the stream first
+    stream$.next('done', true)
+    await vi.runAllTimersAsync()
+
+    // Register afterSetValue after finish
+    observable$.afterSetValue(lateCallback)
+
+    // Emit more values; callback should not be called
+    stream$.next('later')
+    await vi.runAllTimersAsync()
+    expect(lateCallback).not.toHaveBeenCalled()
+  })
 })
