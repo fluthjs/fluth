@@ -94,6 +94,14 @@ export class Observable<T = any> {
   }
 
   /**
+   * get root plugin of observable node
+   * @returns root plugin
+   */
+  _getRootPlugin() {
+    return this._root ? this._root.#plugin : undefined
+  }
+
+  /**
    * use plugin
    * @param plugin plugin
    * @returns current observable

@@ -17,10 +17,16 @@ export const audit =
     let finished = false
     let currentValue: T | undefined = observable$._getProtectedProperty('_v') as T | undefined
     let pendingObservable$: Observable | undefined
-    const newObservable = (getGlobalFluthFactory()?.() || new Stream<T>()) as Stream<T>
+    let plugin = {
+      executeAll: observable$._getRootPlugin()?.executeAll || [],
+    }
+    const stream$ = (getGlobalFluthFactory()?.() || new Stream<T>()).use(plugin) as Stream<T>
 
     // Only track resolved values, ignore rejected ones
-    const dataObservable$ = observable$.then((value) => (currentValue = value))
+    const dataObservable$ = observable$.then((value) => {
+      currentValue = value
+      return undefined
+    })
 
     const triggerNext = () => {
       if (shouldAwait && observable$.status === PromiseStatus.PENDING) {
@@ -29,7 +35,13 @@ export const audit =
         }
         return
       } else {
-        newObservable.next(currentValue as T, finished)
+        const curRootExecutePlugin = observable$._getRootPlugin()?.executeAll || []
+        if (curRootExecutePlugin !== plugin.executeAll) {
+          stream$.remove(plugin)
+          plugin.executeAll = curRootExecutePlugin
+          stream$.use(plugin)
+        }
+        stream$.next(currentValue as T, finished)
         pendingObservable$ = undefined // Clear after resolution
       }
     }
@@ -39,7 +51,11 @@ export const audit =
     trigger$.afterComplete(() => {
       finished = true
       dataObservable$.unsubscribe()
+      stream$.remove(plugin)
+      setTimeout(() => {
+        stream$.complete()
+      })
     })
 
-    return newObservable.then() as Observable<T>
+    return stream$.then() as Observable<T>
   }

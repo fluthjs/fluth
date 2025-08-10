@@ -1,6 +1,6 @@
 import { expect, describe, test, vi, beforeEach } from 'vitest'
 import { consoleSpy, sleep, streamFactory } from '../utils'
-import { $, audit } from '../../index'
+import { $, audit, consoleAll } from '../../index'
 
 describe('audit operator test', () => {
   beforeEach(() => {
@@ -640,5 +640,23 @@ describe('audit operator test', () => {
     source$.next('immediate-value')
     trigger$.next('trigger-after-resolution')
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'audited:', 'immediate-value')
+  })
+
+  test('should inherit plugin from source', async () => {
+    const source$ = $(0).use(consoleAll())
+    const trigger$ = $()
+    source$.pipe(audit(trigger$)).then((v) => v + 1)
+
+    source$.next(1)
+    trigger$.next('trigger')
+
+    source$.next(2)
+    trigger$.next('trigger2')
+
+    trigger$.complete()
+
+    expect(consoleSpy).toHaveBeenNthCalledWith(1, 'resolve', 1)
+    expect(consoleSpy).toHaveBeenNthCalledWith(2, 'resolve', 1)
+    expect(consoleSpy).toHaveBeenNthCalledWith(3, 'resolve', 2)
   })
 })
