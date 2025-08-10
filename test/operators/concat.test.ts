@@ -53,6 +53,17 @@ describe('concat operator test', async () => {
     expect(consoleSpy).toHaveBeenNthCalledWith(5, 'resolve', 'n')
   })
 
+  test('test concat with streams init value', () => {
+    const { stream$: promise1$ } = streamFactory()
+    const { stream$: promise2$ } = streamFactory()
+    promise1$.next('a1')
+    promise2$.next('b1')
+
+    const stream$ = concat(promise1$, promise2$)
+
+    expect(stream$.value).toEqual('a1')
+  })
+
   test('test concat with future observable unsubscribe', async () => {
     const { stream$: promise1$, observable$: observable1$ } = streamFactory()
     const { stream$: promise2$, observable$: observable2$ } = streamFactory()

@@ -12,9 +12,12 @@ import { getGlobalFluthFactory } from '../utils'
  * @returns {Stream}
  */
 export const combine = <T extends (Stream | Observable)[]>(...args$: T) => {
-  const stream$ = (getGlobalFluthFactory()?.() || new Stream<StreamTupleValues<T>>()) as Stream<
-    StreamTupleValues<T>
-  >
+  const stream$ = (getGlobalFluthFactory()?.(
+    args$.map((arg$) => arg$._getProtectedProperty('_v')),
+  ) ||
+    new Stream<StreamTupleValues<T>>(
+      args$.map((arg$) => arg$._getProtectedProperty('_v')) as StreamTupleValues<T>,
+    )) as Stream<StreamTupleValues<T>>
   const payload: StreamTupleValues<T> = [] as any
   const promiseStatus = [...Array(args$.length)].map(() => PromiseStatus.PENDING)
   let finishCount = 0

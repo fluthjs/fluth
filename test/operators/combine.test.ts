@@ -64,6 +64,17 @@ describe('combine operator test', async () => {
     expect(consoleSpy).toHaveBeenNthCalledWith(8, 'reject', 'c,g,n')
   })
 
+  test('test combine with streams init value', () => {
+    const { stream$: promise1$ } = streamFactory()
+    const { stream$: promise2$ } = streamFactory()
+    promise1$.next('a1')
+    promise2$.next('b1')
+
+    const stream$ = combine(promise1$, promise2$)
+
+    expect(stream$.value).toEqual(['a1', 'b1'])
+  })
+
   test('test combine with all stream$ unsubscribe', async () => {
     const { observable$: observable1$ } = streamFactory()
     const { observable$: observable2$ } = streamFactory()
