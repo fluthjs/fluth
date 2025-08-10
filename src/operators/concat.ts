@@ -12,9 +12,9 @@ import { getGlobalFluthFactory } from '../utils'
  * @returns {Stream}
  */
 export const concat = <T extends (Stream | Observable)[]>(...args$: T) => {
-  const stream$ = (getGlobalFluthFactory()?.(args$?.[0]._getProtectedProperty('_v')) ||
+  const stream$ = (getGlobalFluthFactory()?.(args$?.[0]?._getProtectedProperty?.('_v')) ||
     new Stream<StreamTupleValues<T>[number]>(
-      args$?.[0]._getProtectedProperty('_v') as StreamTupleValues<T>[number],
+      args$?.[0]?._getProtectedProperty?.('_v') as StreamTupleValues<T>[number],
     )) as Stream<StreamTupleValues<T>[number]>
   const finishFlag = [...Array(args$.length)].map(() => false)
   const unsubscribeFlag = [...Array(args$.length)].map(() => false)
