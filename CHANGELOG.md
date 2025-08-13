@@ -2,6 +2,8 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.3.34](https://github.com/fluthjs/fluth/compare/v0.3.33...v0.3.34) (2025-08-13)
+
 ### [0.3.33](https://github.com/fluthjs/fluth/compare/v0.3.32...v0.3.33) (2025-08-13)
 
 
