@@ -222,6 +222,36 @@ describe('Observable edge cases', () => {
     }).not.toThrow()
   })
 
+  test('should handle $then with null/undefined setter', () => {
+    // Test $then with null/undefined setter
+    const { observable$ } = streamFactory()
+
+    expect(() => {
+      observable$.thenSet(null as any)
+      observable$.thenSet(undefined as any)
+    }).not.toThrow()
+  })
+
+  test('should handle $thenOnce with null/undefined setter', () => {
+    // Test $thenOnce with null/undefined setter
+    const { observable$ } = streamFactory()
+
+    expect(() => {
+      observable$.thenOnceSet(null as any)
+      observable$.thenOnceSet(undefined as any)
+    }).not.toThrow()
+  })
+
+  test('should handle $thenImmediate with null/undefined setter', () => {
+    // Test $thenImmediate with null/undefined setter
+    const { observable$ } = streamFactory()
+
+    expect(() => {
+      observable$.thenImmediateSet(null as any)
+      observable$.thenImmediateSet(undefined as any)
+    }).not.toThrow()
+  })
+
   test('should handle deep nesting without errors', () => {
     // Test deep nesting without errors
     const { observable$: level1 } = streamFactory()

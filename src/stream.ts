@@ -27,7 +27,7 @@ export class Stream<T = any> extends Observable<T> {
     return this._v
   }
 
-  set(setter: (state: T) => void, finishFlag = this._finishFlag) {
+  set(setter: (state: Exclude<T, undefined>) => void, finishFlag = this._finishFlag) {
     if (isObjectLike(this._v)) {
       if (isAsyncFunction(setter)) {
         const draft = createDraft(this._v)
@@ -36,7 +36,7 @@ export class Stream<T = any> extends Observable<T> {
           this.next(this._v as T, finishFlag)
         })
       } else {
-        this._v = produce(this._v, setter)
+        this._v = produce(this._v as Exclude<T, undefined>, setter)
         this.next(this._v as T, finishFlag)
       }
     }

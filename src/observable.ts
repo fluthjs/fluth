@@ -444,7 +444,8 @@ export class Observable<T = any> {
    */
 
   then<F = T>(
-    onFulfilled?: OnFulfilled<T, F>,
+    this: Observable<T> | Stream<T>,
+    onFulfilled?: OnFulfilled<this extends Stream ? T : T | undefined, F>,
     onRejected?: OnRejected,
     condition?: (value: T) => boolean,
     differ?: (value: T) => any,
@@ -458,13 +459,28 @@ export class Observable<T = any> {
   }
 
   /**
+   * push immutable observer
+   * @param setter setter function
+   * @returns Observable
+   */
+  thenSet(
+    this: Observable<T> | Stream<T>,
+    setter: (value: Exclude<T, undefined>) => void | Promise<void>,
+  ) {
+    return this.#thenObserver<T>({
+      onfulfilled: (value: T) => this.#set(value, setter),
+    })
+  }
+
+  /**
    * thenImmediate is like then, but will execute observer immediately if previous then or catch has been resolved or rejected
    * @param [onFulfilled] - Function to execute when the parent node is resolved (optional)
    * @param [onRejected] - Function to execute when the parent node is rejected (optional)
    * @returns Observable
    */
   thenImmediate<F = T>(
-    onFulfilled?: OnFulfilled<T, F>,
+    this: Observable<T> | Stream<T>,
+    onFulfilled?: OnFulfilled<this extends Stream ? T : T | undefined, F>,
     onRejected?: OnRejected,
     condition?: (value: T) => boolean,
     differ?: (value: T) => any,
@@ -479,16 +495,45 @@ export class Observable<T = any> {
   }
 
   /**
+   * push immutable observer, if previous then or catch has been resolved or rejected, will execute observer immediately
+   * @param setter setter function
+   * @returns Observable
+   */
+  thenImmediateSet(setter: (value: Exclude<T, undefined>) => void | Promise<void>) {
+    if (!this.#parent) this.status = this.status === null ? PromiseStatus.RESOLVED : this.status
+    return this.#thenObserver<T>({
+      immediate: true,
+      onfulfilled: (value: T) => this.#set(value, setter),
+    })
+  }
+
+  /**
    * push one time observer, will unsubscribe cur observer when execute
    * @param [onFulfilled] - Function to execute when the parent node is resolved (optional)
    * @param [onRejected] - Function to execute when the parent node is rejected (optional)
    * @returns
    */
-  thenOnce<F = T>(onFulfilled?: OnFulfilled<T, F>, onRejected?: OnRejected) {
+  thenOnce<F = T>(
+    this: Observable<T> | Stream<T>,
+    onFulfilled?: OnFulfilled<this extends Stream ? T : T | undefined, F>,
+    onRejected?: OnRejected,
+  ) {
     return this.#thenObserver<F>({
       once: true,
       onfulfilled: onFulfilled,
       onrejected: onRejected,
+    })
+  }
+
+  /**
+   * push one time immutable observer
+   * @param setter setter function
+   * @returns Observable
+   */
+  thenOnceSet(setter: (value: Exclude<T, undefined>) => void | Promise<void>) {
+    return this.#thenObserver<T>({
+      once: true,
+      onfulfilled: (value: T) => this.#set(value, setter),
     })
   }
 
@@ -515,14 +560,17 @@ export class Observable<T = any> {
     })
   }
 
-  #set(value: T, setter: (value: T) => void | PromiseLike<void>): PromiseLike<T> | T {
+  #set(
+    value: T,
+    setter: (value: Exclude<T, undefined>) => void | PromiseLike<void>,
+  ): PromiseLike<T> | T {
     if (isObjectLike(this._v)) {
       if (isAsyncFunction(setter)) {
         const draft = createDraft(value)
         return setter(draft).then(() => {
           return finishDraft(draft)
         })
-      } else return produce(this._v, setter)
+      } else return produce(this._v as Exclude<T, undefined>, setter)
     } else {
       return value
     }

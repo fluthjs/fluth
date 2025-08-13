@@ -211,7 +211,14 @@ describe('Observable concurrency and race condition edge cases', () => {
     stream.next('test')
     expect(consoleSpy).not.toHaveBeenCalled()
   })
-
+  test('should handle race condition between $then and unsubscribe', () => {
+    const stream = new Stream()
+    const observable = stream.then(() => 'test')
+    const child = observable.thenSet(() => console.log('$then executed'))
+    child.unsubscribe()
+    stream.next('test')
+    expect(consoleSpy).not.toHaveBeenCalled()
+  })
   test('should handle concurrent status changes', () => {
     const stream = new Stream()
     const observable = stream.then(() => console.log('executed'))
