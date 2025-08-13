@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.3.33](https://github.com/fluthjs/fluth/compare/v0.3.32...v0.3.33) (2025-08-13)
+
+
+### Features
+
+* add thenSet、thenImmediateSet、thenOnceSet  methods to Observable and Stream classes ([f6937d7](https://github.com/fluthjs/fluth/commit/f6937d7a7a73963c120f21f96294db5f4d031705))
+
+
+### Bug Fixes
+
+* update type definitions for onFulfilled in then methods of Observable class ([7ae395e](https://github.com/fluthjs/fluth/commit/7ae395e7e938731b7aaba6835db3b87d621b84e3))
+
 ### [0.3.32](https://github.com/fluthjs/fluth/compare/v0.3.31...v0.3.32) (2025-08-10)
 
 
