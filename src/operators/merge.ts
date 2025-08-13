@@ -1,6 +1,6 @@
 import { Observable } from '../observable'
 import { Stream } from '../stream'
-import { useUnsubscribeCallback } from '../utils'
+import { checkStreamOrObservableInput, useUnsubscribeCallback } from '../utils'
 import { StreamTupleValues } from '../types'
 import { getGlobalFluthFactory } from '../utils'
 
@@ -12,14 +12,14 @@ import { getGlobalFluthFactory } from '../utils'
  * @returns {Stream}
  */
 export const merge = <T extends (Stream | Observable)[]>(...args$: T) => {
+  // check input type
+  if (!checkStreamOrObservableInput(args$, true)) {
+    throw new Error('merge operator only accepts Stream or Observable as input')
+  }
+
   const stream$ = (getGlobalFluthFactory()?.() ||
     new Stream<StreamTupleValues<T>[number]>()) as Stream<StreamTupleValues<T>[number]>
   let finishCount = 0
-
-  // check input type
-  if (args$.some((arg$) => !(arg$ instanceof Stream) && !(arg$ instanceof Observable))) {
-    throw new Error('merge operator only accepts Stream or Observable as input')
-  }
 
   // check input empty
   if (args$.length === 0) {

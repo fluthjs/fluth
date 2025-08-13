@@ -331,7 +331,7 @@ describe('Global Factory Test', () => {
       const source$ = $()
       fork(source$)
 
-      expect(mockFactory).toHaveBeenCalledWith()
+      expect(mockFactory).toHaveBeenCalledWith(undefined)
       expect(mockFactory).toHaveBeenCalledTimes(1)
     })
 

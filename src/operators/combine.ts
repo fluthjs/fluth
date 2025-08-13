@@ -2,7 +2,7 @@ import { Observable } from '../observable'
 import { Stream } from '../stream'
 import { useUnsubscribeCallback } from '../utils'
 import { StreamTupleValues, PromiseStatus } from '../types'
-import { getGlobalFluthFactory } from '../utils'
+import { getGlobalFluthFactory, checkStreamOrObservableInput } from '../utils'
 
 /**
  * combine takes multiple streams or Observable, and return a stream that emits values from all the input streams.
@@ -12,22 +12,22 @@ import { getGlobalFluthFactory } from '../utils'
  * @returns {Stream}
  */
 export const combine = <T extends (Stream | Observable)[]>(...args$: T) => {
+  // check input type
+  if (!checkStreamOrObservableInput(args$, true)) {
+    throw new Error('combine operator only accepts Stream or Observable as input')
+  }
+
   const stream$ = (getGlobalFluthFactory()?.(
-    args$.map((arg$) => arg$?._getProtectedProperty?.('_v')) as StreamTupleValues<T>,
+    args$.map((arg$) => arg$._getProtectedProperty('_v')) as StreamTupleValues<T>,
   ) ||
     new Stream<StreamTupleValues<T>>(
-      args$.map((arg$) => arg$?._getProtectedProperty?.('_v')) as StreamTupleValues<T>,
+      args$.map((arg$) => arg$._getProtectedProperty('_v')) as StreamTupleValues<T>,
     )) as Stream<StreamTupleValues<T>>
   const payload: StreamTupleValues<T> = [] as any
   const promiseStatus = [...Array(args$.length)].map(() => PromiseStatus.PENDING)
   let finishCount = 0
   const { unsubscribeCallback } = useUnsubscribeCallback(stream$, args$.length)
   const completeCallback = () => (finishCount += 1)
-
-  // check input type
-  if (args$.some((arg$) => !(arg$ instanceof Stream) && !(arg$ instanceof Observable))) {
-    throw new Error('combine operator only accepts Stream or Observable as input')
-  }
 
   // if no input, return an empty stream
   if (args$.length === 0) {

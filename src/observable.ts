@@ -1,5 +1,5 @@
 import { produce, createDraft, finishDraft } from 'limu'
-import { Stream } from './stream'
+import type { Stream } from './stream'
 import { safeCallback, isObjectLike, isAsyncFunction, isPromiseLike } from './utils'
 import {
   OnFulfilled,

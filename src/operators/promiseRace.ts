@@ -1,7 +1,7 @@
 import { Observable } from '../observable'
 import { Stream } from '../stream'
 import { StreamTupleValues } from '../types'
-import { getGlobalFluthFactory } from '../utils'
+import { checkStreamOrObservableInput, getGlobalFluthFactory } from '../utils'
 
 /**
  * race takes multiple streams or Observable, and returns a stream that emits the first value of all the input streams.
@@ -11,16 +11,16 @@ import { getGlobalFluthFactory } from '../utils'
  * @returns {Stream}
  */
 export const promiseRace = <T extends (Stream | Observable)[]>(...args$: T) => {
+  // check input type
+  if (!checkStreamOrObservableInput(args$, true)) {
+    throw new Error('promiseRace operator only accepts Stream or Observable as input')
+  }
+
   const stream$ = (getGlobalFluthFactory()?.() ||
     new Stream<StreamTupleValues<T>[number]>()) as Stream<StreamTupleValues<T>[number]>
   let finishFlag = false
   let finishCount = 0
   let firstIndex: number | null = null
-
-  // check input type
-  if (!args$.every((arg$) => arg$ instanceof Stream || arg$ instanceof Observable)) {
-    throw new Error('promiseRace operator only accepts Stream or Observable as input')
-  }
 
   // check input empty
   if (args$.length === 0) {

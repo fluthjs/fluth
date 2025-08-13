@@ -2,7 +2,7 @@ import { Observable } from '../observable'
 import { Stream } from '../stream'
 import { useUnsubscribeCallback } from '../utils'
 import { StreamTupleValues, PromiseStatus } from '../types'
-import { getGlobalFluthFactory } from '../utils'
+import { getGlobalFluthFactory, checkStreamOrObservableInput } from '../utils'
 
 /**
  * @description
@@ -13,17 +13,17 @@ import { getGlobalFluthFactory } from '../utils'
  * @returns {Stream}
  */
 export const finish = <T extends (Stream | Observable)[]>(...args$: T) => {
+  // check input type
+  if (!checkStreamOrObservableInput(args$, true)) {
+    throw new Error('finish operator only accepts Stream or Observable as input')
+  }
+
   const stream$ = (getGlobalFluthFactory()?.() || new Stream<StreamTupleValues<T>>()) as Stream<
     StreamTupleValues<T>
   >
   const payload: StreamTupleValues<T> = [] as any
   let finishCount = 0
   let rejectFlag = false
-
-  // check input type
-  if (args$.some((arg$) => !(arg$ instanceof Stream) && !(arg$ instanceof Observable))) {
-    throw new Error('finish operator only accepts Stream or Observable as input')
-  }
 
   // if no input, return an empty stream
   if (args$.length === 0) {

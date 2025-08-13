@@ -1,6 +1,6 @@
 import { Observable } from '../observable'
 import { Stream } from '../stream'
-import { getGlobalFluthFactory } from '../utils'
+import { getGlobalFluthFactory, checkStreamOrObservableInput } from '../utils'
 
 /**
  * fork takes a stream or Observable, and returns a stream that emits the same value as the input stream.
@@ -13,13 +13,14 @@ import { getGlobalFluthFactory } from '../utils'
  **/
 
 export const fork = <T>(arg$: Stream<T> | Observable<T>, autoUnsubscribe = true): Stream<T> => {
-  const stream$ = (getGlobalFluthFactory()?.() || new Stream<T>()) as Stream<T>
-  let finishFlag = false
-
   // check input type
-  if (!(arg$ instanceof Stream) && !(arg$ instanceof Observable)) {
+  if (!checkStreamOrObservableInput(arg$)) {
     throw new Error('fork operator only accepts Stream or Observable as input')
   }
+
+  const stream$ = (getGlobalFluthFactory()?.(arg$._getProtectedProperty('_v')) ||
+    new Stream<T>(arg$._getProtectedProperty('_v') as T)) as Stream<T>
+  let finishFlag = false
 
   // if arg$ is finished, should not fork
   if (arg$._getProtectedProperty('_finishFlag')) {

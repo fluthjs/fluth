@@ -2,7 +2,7 @@ import { Observable } from '../observable'
 import { Stream } from '../stream'
 import { finish } from './finish'
 import { PromiseStatus } from '../types'
-import { getGlobalFluthFactory } from '../utils'
+import { checkStreamOrObservableInput, getGlobalFluthFactory } from '../utils'
 
 /**
  * partition takes a stream or Observable, and a predicate function that takes value and index as arguments.
@@ -20,15 +20,15 @@ export const partition = <T>(
   predicate: (this: any, value: any, status: PromiseStatus, index: number) => boolean,
   thisArg?: any,
 ) => {
+  // check input type
+  if (!checkStreamOrObservableInput(stream$)) {
+    throw new Error('partition operator only accepts Stream or Observable as input')
+  }
+
   const selectedStream$ = (getGlobalFluthFactory()?.() || new Stream<T>()) as Stream<T>
   const unselectedStream$ = (getGlobalFluthFactory()?.() || new Stream<T>()) as Stream<T>
   let finishFlag = false
   let index = 1
-
-  // check input type
-  if (!(stream$ instanceof Stream) && !(stream$ instanceof Observable)) {
-    throw new Error('partition operator only accepts Stream or Observable as input')
-  }
 
   // check input finished
   if (stream$._getProtectedProperty('_finishFlag')) {

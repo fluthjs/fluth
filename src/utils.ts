@@ -1,5 +1,6 @@
 import { isObject, isMap, isSet } from 'limu/lib/support/util'
-import { Stream } from './stream'
+import type { Stream } from './stream'
+import { Observable } from './observable'
 
 export const safeCallback = (callback: any, errorHandler?: (error: any) => void) => {
   return (...args: any[]) => {
@@ -37,6 +38,14 @@ export const isAsyncFunction = (fn: any): fn is (...args: any[]) => PromiseLike<
     typeof fn === 'function' &&
     (Object.prototype.toString.call(fn) === '[object AsyncFunction]' || isPromiseLike(fn))
   )
+}
+
+export const checkStreamOrObservableInput = (arg$: any, isArray = false) => {
+  if (isArray) {
+    return Array.isArray(arg$) && arg$.every((arg) => arg instanceof Observable)
+  } else {
+    return arg$ instanceof Observable
+  }
 }
 
 export const useUnsubscribeCallback = (stream$: Stream, length: number) => {

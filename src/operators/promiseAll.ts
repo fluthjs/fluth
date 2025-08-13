@@ -1,8 +1,11 @@
 import { Observable } from '../observable'
 import { Stream } from '../stream'
 import { StreamTupleValues, PromiseStatus } from '../types'
-import { useUnsubscribeCallback } from '../utils'
-import { getGlobalFluthFactory } from '../utils'
+import {
+  getGlobalFluthFactory,
+  useUnsubscribeCallback,
+  checkStreamOrObservableInput,
+} from '../utils'
 
 /**
  * Internal implementation function for promiseAll variants
@@ -14,6 +17,11 @@ const promiseAllImpl = <T extends (Stream | Observable)[]>(
   args$: T,
   shouldAwait = true,
 ): Stream<StreamTupleValues<T>> => {
+  // check input type
+  if (!checkStreamOrObservableInput(args$, true)) {
+    throw new Error('promiseAll operator only accepts Stream or Observable as input')
+  }
+
   const stream$ = (getGlobalFluthFactory()?.() || new Stream<StreamTupleValues<T>>()) as Stream<
     StreamTupleValues<T>
   >
@@ -35,11 +43,6 @@ const promiseAllImpl = <T extends (Stream | Observable)[]>(
         ;(promiseStatus as PromiseStatus[])[index] = PromiseStatus.PENDING
       })
     }
-  }
-
-  // check input type
-  if (!args$.every((arg$) => arg$ instanceof Stream || arg$ instanceof Observable)) {
-    throw new Error('promiseAll operator only accepts Stream or Observable as input')
   }
 
   // check input empty

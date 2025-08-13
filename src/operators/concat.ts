@@ -1,7 +1,7 @@
 import { Observable } from '../observable'
 import { Stream } from '../stream'
 import { StreamTupleValues, PromiseStatus } from '../types'
-import { getGlobalFluthFactory } from '../utils'
+import { getGlobalFluthFactory, checkStreamOrObservableInput } from '../utils'
 
 /**
  * concat takes multiple streams or Observable, and return a stream that emits values in the order of the input streams.
@@ -12,17 +12,17 @@ import { getGlobalFluthFactory } from '../utils'
  * @returns {Stream}
  */
 export const concat = <T extends (Stream | Observable)[]>(...args$: T) => {
-  const stream$ = (getGlobalFluthFactory()?.(args$?.[0]?._getProtectedProperty?.('_v')) ||
+  // check input type
+  if (!checkStreamOrObservableInput(args$, true)) {
+    throw new Error('concat operator only accepts Stream or Observable as input')
+  }
+
+  const stream$ = (getGlobalFluthFactory()?.(args$[0]?._getProtectedProperty('_v')) ||
     new Stream<StreamTupleValues<T>[number]>(
-      args$?.[0]?._getProtectedProperty?.('_v') as StreamTupleValues<T>[number],
+      args$[0]?._getProtectedProperty('_v') as StreamTupleValues<T>[number],
     )) as Stream<StreamTupleValues<T>[number]>
   const finishFlag = [...Array(args$.length)].map(() => false)
   const unsubscribeFlag = [...Array(args$.length)].map(() => false)
-
-  // check input type
-  if (args$.some((arg$) => !(arg$ instanceof Stream) && !(arg$ instanceof Observable))) {
-    throw new Error('concat operator only accepts Stream or Observable as input')
-  }
 
   // check input empty
   if (args$.length === 0) {
