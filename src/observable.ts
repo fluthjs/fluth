@@ -445,7 +445,7 @@ export class Observable<T = any> {
 
   then<F = T>(
     this: Observable<T> | Stream<T>,
-    onFulfilled?: OnFulfilled<this extends Stream ? T : T | undefined, F>,
+    onFulfilled?: OnFulfilled<T, F>,
     onRejected?: OnRejected,
     condition?: (value: T) => boolean,
     differ?: (value: T) => any,
@@ -480,7 +480,7 @@ export class Observable<T = any> {
    */
   thenImmediate<F = T>(
     this: Observable<T> | Stream<T>,
-    onFulfilled?: OnFulfilled<this extends Stream ? T : T | undefined, F>,
+    onFulfilled?: OnFulfilled<T, F>,
     onRejected?: OnRejected,
     condition?: (value: T) => boolean,
     differ?: (value: T) => any,
@@ -515,7 +515,7 @@ export class Observable<T = any> {
    */
   thenOnce<F = T>(
     this: Observable<T> | Stream<T>,
-    onFulfilled?: OnFulfilled<this extends Stream ? T : T | undefined, F>,
+    onFulfilled?: OnFulfilled<T, F>,
     onRejected?: OnRejected,
   ) {
     return this.#thenObserver<F>({
