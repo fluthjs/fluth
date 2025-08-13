@@ -3,7 +3,7 @@
 <div align="center">
   <img src="https://fluthjs.github.io/fluth-doc/logo.svg" alt="fluth-vue logo" width="120" height="120">
 
-  <p style="margin-top: 20px;">类 Promise 的异步流控制库</p>
+  <p style="margin-top: 20px;">类 Promise 的响应式流</p>
 </div>
 
 <div align="center">

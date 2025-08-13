@@ -3,7 +3,7 @@
 <div align="center">
   <img src="https://fluthjs.github.io/fluth-doc/logo.svg" alt="fluth-vue logo" width="120" height="120">
 
-  <p style="margin-top: 20px;">A Promise-like asynchronous flow control library</p>
+  <p style="margin-top: 20px;">A Promise-like Reactive Stream Library</p>
 </div>
 
 <div align="center">
