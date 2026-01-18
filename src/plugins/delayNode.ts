@@ -4,7 +4,7 @@ import { isPromiseLike } from '../utils'
  * @param delayTime
  * @returns executePlugin
  */
-export const delayExec = (delayTime: number) => ({
+export const delayNode = (delayTime: number) => ({
   execute: ({ result }: { result: PromiseLike<any> | any }) => {
     return new Promise((resolve) => {
       if (result instanceof Promise || isPromiseLike(result)) {

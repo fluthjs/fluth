@@ -1,6 +1,6 @@
 import { expect, describe, test, vi, beforeEach } from 'vitest'
 import { consoleSpy, sleep } from '../utils'
-import { $, delayExec, debounce, consoleNode } from '../../index'
+import { $, delayNode, debounce, consoleNode } from '../../index'
 
 describe('consoleNode plugins test', async () => {
   beforeEach(() => {
@@ -30,7 +30,7 @@ describe('consoleNode plugins test', async () => {
   })
 
   test('test remove consoleNode plugin', async () => {
-    const plugin = delayExec(100)
+    const plugin = delayNode(100)
     const stream$ = $().use(plugin)
     stream$.then((value) => {
       console.log(value)

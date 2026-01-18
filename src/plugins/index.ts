@@ -4,4 +4,5 @@ export { consoleAll } from './consoleAll'
 export { debugNode } from './debugNode'
 export { debugAll } from './debugAll'
 
-export { delayExec } from './delayExec'
+export { delayNode } from './delayNode'
+export { delayAll } from './delayAll'
