@@ -12,7 +12,7 @@ export const debugNode = (
 ) => ({
   execute: ({ result }: { result: PromiseLike<any> | any }) => {
     // empty node skip console log
-    if (result instanceof Promise || isPromiseLike(result)) {
+    if (isPromiseLike(result)) {
       result.then(
         (data) => {
           // eslint-disable-next-line

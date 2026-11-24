@@ -17,7 +17,7 @@ export const debugAll = (
     onrejected,
     root,
   }: {
-    result: Promise<any> | any
+    result: PromiseLike<any> | any
     status: PromiseStatus | null
     onfulfilled?: OnFulfilled
     onrejected?: OnRejected
@@ -30,7 +30,7 @@ export const debugAll = (
       return result
     }
     // empty node skip console log
-    if (result instanceof Promise || isPromiseLike(result)) {
+    if (isPromiseLike(result)) {
       result.then(
         (data) => {
           // eslint-disable-next-line

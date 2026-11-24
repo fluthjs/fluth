@@ -7,7 +7,7 @@ import { isPromiseLike } from '../utils'
 export const delayNode = (delayTime: number) => ({
   execute: ({ result }: { result: PromiseLike<any> | any }) => {
     return new Promise((resolve, reject) => {
-      if (result instanceof Promise || isPromiseLike(result)) {
+      if (isPromiseLike(result)) {
         result.then(
           (value) => {
             setTimeout(() => {

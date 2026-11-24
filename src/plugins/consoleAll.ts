@@ -33,7 +33,7 @@ export const consoleAll = (
     }
 
     // log the result
-    if (result instanceof Promise || isPromiseLike(result)) {
+    if (isPromiseLike(result)) {
       result.then(
         (value) => {
           if (ignoreUndefined && value === undefined) {

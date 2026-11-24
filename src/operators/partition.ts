@@ -19,7 +19,7 @@ export const partition = <T>(
   stream$: Stream<T> | Observable<T>,
   predicate: (this: any, value: any, status: PromiseStatus, index: number) => boolean,
   thisArg?: any,
-) => {
+): [Stream<T>, Stream<T>] => {
   // check input type
   if (!checkStreamOrObservableInput(stream$)) {
     throw new Error('partition operator only accepts Stream or Observable as input')

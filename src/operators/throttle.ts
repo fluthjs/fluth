@@ -6,30 +6,32 @@ import { Observable } from '../observable'
  * @param throttleTime
  * @returns Observable
  */
-export const throttle = (throttleTime: number) => (observable$: Observable) => {
-  let lastTime = 0
-  let timeout: ReturnType<typeof setTimeout> | null = null
-  const newObservable$ = observable$.then(undefined, undefined, () => {
-    const now = Date.now()
-    if (timeout) {
-      clearTimeout(timeout)
-      timeout = null
-    }
-    if (!lastTime || now - lastTime >= throttleTime) {
-      lastTime = Date.now()
-      return true
-    } else {
-      const remaining = throttleTime - (now - lastTime)
-      timeout = setTimeout(() => {
-        newObservable$.execute()
+export const throttle =
+  <T>(throttleTime: number) =>
+  (observable$: Observable<T>): Observable<T> => {
+    let lastTime = 0
+    let timeout: ReturnType<typeof setTimeout> | null = null
+    const newObservable$ = observable$.then(undefined, undefined, () => {
+      const now = Date.now()
+      if (timeout) {
+        clearTimeout(timeout)
+        timeout = null
+      }
+      if (!lastTime || now - lastTime >= throttleTime) {
         lastTime = Date.now()
-      }, remaining)
-      return false
-    }
-  })
-  newObservable$.afterUnsubscribe(() => {
-    if (timeout) clearTimeout(timeout)
-    timeout = null
-  })
-  return newObservable$
-}
+        return true
+      } else {
+        const remaining = throttleTime - (now - lastTime)
+        timeout = setTimeout(() => {
+          newObservable$.execute()
+          lastTime = Date.now()
+        }, remaining)
+        return false
+      }
+    })
+    newObservable$.afterUnsubscribe(() => {
+      if (timeout) clearTimeout(timeout)
+      timeout = null
+    })
+    return newObservable$ as Observable<T>
+  }
