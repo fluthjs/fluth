@@ -153,4 +153,30 @@ describe('throttle operator test', async () => {
     // Should not emit the throttled value after unsubscribe
     expect(consoleSpy).toHaveBeenCalledTimes(1)
   })
+
+  test('test throttle unsubscribe should clear pending timer', async () => {
+    vi.clearAllTimers()
+    const stream$ = $()
+    const throttledStream$ = stream$.pipe(throttle(100))
+    const executeSpy = vi.spyOn(throttledStream$, 'execute')
+    const clearTimeoutSpy = vi.spyOn(globalThis, 'clearTimeout')
+    throttledStream$.then((value) => console.log('throttled:', value))
+
+    stream$.next(1)
+    await sleep(10)
+    stream$.next(2)
+    await sleep(10)
+    expect(vi.getTimerCount()).toBe(1)
+
+    clearTimeoutSpy.mockClear()
+    throttledStream$.unsubscribe()
+    expect(clearTimeoutSpy).toHaveBeenCalledTimes(1)
+    expect(vi.getTimerCount()).toBe(0)
+
+    await sleep(200)
+    expect(executeSpy).not.toHaveBeenCalled()
+    expect(consoleSpy).toHaveBeenCalledTimes(1)
+    expect(consoleSpy).toHaveBeenCalledWith('throttled:', 1)
+    clearTimeoutSpy.mockRestore()
+  })
 })

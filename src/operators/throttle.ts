@@ -1,4 +1,5 @@
 import { Observable } from '../observable'
+import { debugLog } from '../utils'
 
 /**
  * @description throttle operator, last time will emit
@@ -27,6 +28,12 @@ export const throttle = (throttleTime: number) => (observable$: Observable) => {
       return false
     }
   })
-  newObservable$.afterUnsubscribe(() => (timeout = null))
+  newObservable$.afterUnsubscribe(() => {
+    if (timeout) {
+      debugLog('throttle: unsubscribe, clear pending timer')
+      clearTimeout(timeout)
+    }
+    timeout = null
+  })
   return newObservable$
 }

@@ -41,4 +41,19 @@ describe('plugins test', async () => {
     await vi.runAllTimersAsync()
     expect(consoleSpy).toHaveBeenCalledWith(1)
   })
+
+  test('test delayNode should pass through upstream promise reject', async () => {
+    const stream$ = $().use(delayNode(100))
+    const child$ = stream$.then(
+      (value) => console.log('resolve', value),
+      (error) => console.log('reject', error),
+    )
+
+    stream$.next(Promise.reject('error'))
+    await sleep(0)
+    expect(stream$.status).toBe('rejected')
+    expect(stream$.value).toBe('error')
+    expect(consoleSpy).toHaveBeenCalledWith('reject', 'error')
+    expect(child$.status).toBe('resolved')
+  })
 })

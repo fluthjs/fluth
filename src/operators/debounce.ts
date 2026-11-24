@@ -1,4 +1,5 @@
 import { Observable } from '../observable'
+import { debugLog } from '../utils'
 
 /**
  * @description debounce operator, first time will not emit immediately
@@ -28,6 +29,12 @@ export const debounce = (debounceTime: number) => (observable$: Observable) => {
 
     return false
   })
-  newObservable$.afterUnsubscribe(() => (timer = null))
+  newObservable$.afterUnsubscribe(() => {
+    if (timer) {
+      debugLog('debounce: unsubscribe, clear pending timer')
+      clearTimeout(timer)
+    }
+    timer = null
+  })
   return newObservable$
 }

@@ -16,6 +16,13 @@ export const safeCallback = (callback: any, errorHandler?: (error: any) => void)
   }
 }
 
+/**
+ * opt-in debug log, enable by `globalThis.__FLUTH_DEBUG__ = true`, silent by default
+ */
+export const debugLog = (...args: any[]) => {
+  if ((globalThis as any).__FLUTH_DEBUG__) console.debug('[fluth]', ...args)
+}
+
 export const safeConcat = <T>(...args: (T[] | undefined)[]) => {
   return args.map((arg) => arg || []).flat()
 }

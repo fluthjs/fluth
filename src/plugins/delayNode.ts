@@ -1,4 +1,4 @@
-import { isPromiseLike } from '../utils'
+import { debugLog, isPromiseLike } from '../utils'
 /**
  * @description delay execute plugin
  * @param delayTime
@@ -6,13 +6,19 @@ import { isPromiseLike } from '../utils'
  */
 export const delayNode = (delayTime: number) => ({
   execute: ({ result }: { result: PromiseLike<any> | any }) => {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       if (result instanceof Promise || isPromiseLike(result)) {
-        result.then((value) => {
-          setTimeout(() => {
-            resolve(value)
-          }, delayTime)
-        })
+        result.then(
+          (value) => {
+            setTimeout(() => {
+              resolve(value)
+            }, delayTime)
+          },
+          (error) => {
+            debugLog('delayNode: upstream promise rejected, pass through reject')
+            reject(error)
+          },
+        )
       } else {
         setTimeout(() => {
           resolve(result)
