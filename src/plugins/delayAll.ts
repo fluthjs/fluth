@@ -26,13 +26,18 @@ export const delayAll = (delayTime: number) => ({
       return result
     }
 
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       if (result instanceof Promise || isPromiseLike(result)) {
-        result.then((value) => {
-          setTimeout(() => {
-            resolve(value)
-          }, delayTime)
-        })
+        result.then(
+          (value) => {
+            setTimeout(() => {
+              resolve(value)
+            }, delayTime)
+          },
+          (error) => {
+            reject(error)
+          },
+        )
       } else {
         setTimeout(() => {
           resolve(result)

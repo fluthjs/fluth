@@ -390,4 +390,27 @@ describe('debounce operator test', async () => {
     await sleep(110)
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'leak-test:', 'final')
   })
+
+  test('test debounce unsubscribe should clear pending timer', async () => {
+    vi.clearAllTimers()
+    const stream$ = $()
+    const debouncedStream$ = stream$.pipe(debounce(100))
+    const executeSpy = vi.spyOn(debouncedStream$, 'execute')
+    const clearTimeoutSpy = vi.spyOn(globalThis, 'clearTimeout')
+    debouncedStream$.then((value) => console.log('debounced:', value))
+
+    stream$.next(1)
+    await sleep(10)
+    expect(vi.getTimerCount()).toBe(1)
+
+    clearTimeoutSpy.mockClear()
+    debouncedStream$.unsubscribe()
+    expect(clearTimeoutSpy).toHaveBeenCalledTimes(1)
+    expect(vi.getTimerCount()).toBe(0)
+
+    await sleep(200)
+    expect(executeSpy).not.toHaveBeenCalled()
+    expect(consoleSpy).not.toHaveBeenCalled()
+    clearTimeoutSpy.mockRestore()
+  })
 })

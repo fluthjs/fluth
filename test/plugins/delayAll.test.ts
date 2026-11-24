@@ -143,4 +143,20 @@ describe('delayAll plugin test', async () => {
     // Only the last value should be processed due to observable behavior
     expect(results).toEqual([3])
   })
+
+  test('test delayAll should pass through upstream promise reject', async () => {
+    const stream$ = $().use(delayAll(100))
+    const child$ = stream$.then(
+      (value) => console.log('resolve', value),
+      (error) => console.log('reject', error),
+    )
+
+    stream$.next(Promise.reject('error'))
+    await sleep(0)
+    expect(stream$.status).toBe('rejected')
+    expect(stream$.value).toBe('error')
+    await sleep(100)
+    expect(consoleSpy).toHaveBeenCalledWith('reject', 'error')
+    expect(child$.status).toBe('resolved')
+  })
 })

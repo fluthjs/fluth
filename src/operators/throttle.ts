@@ -27,6 +27,9 @@ export const throttle = (throttleTime: number) => (observable$: Observable) => {
       return false
     }
   })
-  newObservable$.afterUnsubscribe(() => (timeout = null))
+  newObservable$.afterUnsubscribe(() => {
+    if (timeout) clearTimeout(timeout)
+    timeout = null
+  })
   return newObservable$
 }

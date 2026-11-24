@@ -28,6 +28,9 @@ export const debounce = (debounceTime: number) => (observable$: Observable) => {
 
     return false
   })
-  newObservable$.afterUnsubscribe(() => (timer = null))
+  newObservable$.afterUnsubscribe(() => {
+    if (timer) clearTimeout(timer)
+    timer = null
+  })
   return newObservable$
 }
