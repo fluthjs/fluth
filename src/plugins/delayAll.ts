@@ -27,7 +27,7 @@ export const delayAll = (delayTime: number) => ({
     }
 
     return new Promise((resolve, reject) => {
-      if (result instanceof Promise || isPromiseLike(result)) {
+      if (isPromiseLike(result)) {
         result.then(
           (value) => {
             setTimeout(() => {

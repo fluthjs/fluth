@@ -6,31 +6,33 @@ import { Observable } from '../observable'
  * @param debounceTime
  * @returns Observable
  */
-export const debounce = (debounceTime: number) => (observable$: Observable) => {
-  let timer: number | null = null
-  let execute = false
-  const newObservable$ = observable$.then(undefined, undefined, () => {
-    // if execute is true, it means the debounce time has reached, so we need to execute the observable
-    if (execute) {
-      execute = false
-      return true
-    }
+export const debounce =
+  <T>(debounceTime: number) =>
+  (observable$: Observable<T>): Observable<T> => {
+    let timer: ReturnType<typeof setTimeout> | null = null
+    let execute = false
+    const newObservable$ = observable$.then(undefined, undefined, () => {
+      // if execute is true, it means the debounce time has reached, so we need to execute the observable
+      if (execute) {
+        execute = false
+        return true
+      }
 
-    if (timer) {
-      clearTimeout(timer)
-    }
+      if (timer) {
+        clearTimeout(timer)
+      }
 
-    timer = setTimeout(() => {
+      timer = setTimeout(() => {
+        timer = null
+        execute = true
+        newObservable$.execute()
+      }, debounceTime)
+
+      return false
+    })
+    newObservable$.afterUnsubscribe(() => {
+      if (timer) clearTimeout(timer)
       timer = null
-      execute = true
-      newObservable$.execute()
-    }, debounceTime)
-
-    return false
-  })
-  newObservable$.afterUnsubscribe(() => {
-    if (timer) clearTimeout(timer)
-    timer = null
-  })
-  return newObservable$
-}
+    })
+    return newObservable$ as Observable<T>
+  }

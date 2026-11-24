@@ -7,12 +7,12 @@ import { Observable } from '../observable'
  */
 export const delay =
   <T>(delayTime: number) =>
-  (observable$: Observable<T>) => {
+  (observable$: Observable<T>): Observable<T> => {
     return observable$.then((value) => {
-      return new Promise((resolve) => {
+      return new Promise<T>((resolve) => {
         setTimeout(() => {
           resolve(value)
         }, delayTime)
       })
-    }) as unknown as Observable<T>
+    }) as Observable<T>
   }

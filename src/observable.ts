@@ -120,15 +120,13 @@ export class Observable<T = any> {
       throw new Error('observable node can not use thenAll or executeAll plugin')
     }
 
-    const pluginKeys = Object.keys(curPlugin) as (keyof Plugin<TextEncoderStream>)[]
+    const pluginKeys = Object.keys(curPlugin) as (keyof Plugin<T>)[]
 
     pluginKeys.forEach((key) => {
       const item = curPlugin[key]
-      if (this.#plugin && item)
-        this.#plugin[key] = [
-          ...new Set([...(this.#plugin[key] as any[]), ...(Array.isArray(item) ? item : [item])]),
-        ]
-      curPlugin[key] = [item as any]
+      if (this.#plugin && item.length) {
+        this.#plugin[key] = [...new Set([...(this.#plugin[key] as any[]), ...item])] as any
+      }
     })
 
     return this
@@ -681,7 +679,7 @@ export class Observable<T = any> {
       if (this._root?._rootPromise !== rootPromise) return
       this.#executeFinish(differResult, presetValue)
     }
-    if (result instanceof Promise || isPromiseLike(result)) {
+    if (isPromiseLike(result)) {
       // promise handler
       const promise = handlePromiseResult(result)
       // finally handler when promise is resolved or rejected
@@ -690,7 +688,7 @@ export class Observable<T = any> {
           .finally(() => {
             try {
               const finallyResult = this.#finally?.() as any
-              if (finallyResult instanceof Promise || isPromiseLike(finallyResult)) {
+              if (isPromiseLike(finallyResult)) {
                 return handlePromiseResult(finallyResult)
               }
             } catch (error) {
@@ -716,7 +714,7 @@ export class Observable<T = any> {
       if (this.#finally) {
         try {
           const finallyResult = this.#finally?.() as any
-          if (finallyResult instanceof Promise || isPromiseLike(finallyResult)) {
+          if (isPromiseLike(finallyResult)) {
             return handlePromiseResult(finallyResult).finally(handleExecuteFinish)
           }
         } catch (error) {

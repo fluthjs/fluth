@@ -1,6 +1,7 @@
-import { isObject, isMap, isSet } from 'limu/lib/support/util'
 import type { Stream } from './stream'
 import { Observable } from './observable'
+
+const OBJECT_LIKE_TAGS = new Set(['[object Object]', '[object Map]', '[object Set]'])
 
 export const safeCallback = (callback: any, errorHandler?: (error: any) => void) => {
   return (...args: any[]) => {
@@ -21,15 +22,16 @@ export const safeConcat = <T>(...args: (T[] | undefined)[]) => {
 }
 
 export const isObjectLike = (value: any): value is object => {
-  return Array.isArray(value) || isObject(value) || isMap(value) || isSet(value)
+  if (value === null || typeof value !== 'object') return false
+  if (Array.isArray(value)) return true
+  return OBJECT_LIKE_TAGS.has(Object.prototype.toString.call(value))
 }
 
-export const isPromiseLike = <T>(payload: T | PromiseLike<T>): payload is PromiseLike<T> => {
+export const isPromiseLike = <T = any>(payload: unknown): payload is PromiseLike<T> => {
   return (
-    payload &&
-    typeof payload === 'object' &&
-    'then' in payload &&
-    typeof payload.then === 'function'
+    payload !== null &&
+    (typeof payload === 'object' || typeof payload === 'function') &&
+    typeof (payload as PromiseLike<T>).then === 'function'
   )
 }
 
