@@ -1,5 +1,5 @@
 import { OnFulfilled, OnRejected, PromiseStatus } from '../types'
-import { debugLog, isPromiseLike } from '../utils'
+import { isPromiseLike } from '../utils'
 /**
  * @description delay all nodes executeAll plugin
  * @param delayTime delay time in milliseconds
@@ -35,7 +35,6 @@ export const delayAll = (delayTime: number) => ({
             }, delayTime)
           },
           (error) => {
-            debugLog('delayAll: upstream promise rejected, pass through reject')
             reject(error)
           },
         )

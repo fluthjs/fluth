@@ -1,4 +1,4 @@
-import { debugLog, isPromiseLike } from '../utils'
+import { isPromiseLike } from '../utils'
 /**
  * @description delay execute plugin
  * @param delayTime
@@ -15,7 +15,6 @@ export const delayNode = (delayTime: number) => ({
             }, delayTime)
           },
           (error) => {
-            debugLog('delayNode: upstream promise rejected, pass through reject')
             reject(error)
           },
         )
