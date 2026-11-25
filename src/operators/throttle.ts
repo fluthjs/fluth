@@ -17,12 +17,21 @@ export const throttle =
         clearTimeout(timeout)
         timeout = null
       }
+      // Natural completion via upstream finishFlag: flush the final value instead of swallowing it
+      if (
+        newObservable$._getProtectedProperty('_finishFlag') &&
+        !newObservable$._getProtectedProperty('_unsubscribeFlag')
+      ) {
+        lastTime = now
+        return true
+      }
       if (!lastTime || now - lastTime >= throttleTime) {
         lastTime = Date.now()
         return true
       } else {
         const remaining = throttleTime - (now - lastTime)
         timeout = setTimeout(() => {
+          timeout = null
           newObservable$.execute()
           lastTime = Date.now()
         }, remaining)

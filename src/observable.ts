@@ -308,14 +308,24 @@ export class Observable<T = any> {
       }
     }
 
-    if (this.status === PromiseStatus.PENDING) return
+    if (this.status === PromiseStatus.PENDING) {
+      if (active && this.#unsubscribeCallbackList.length) {
+        const callbacks = this.#unsubscribeCallbackList.slice()
+        this.#unsubscribeCallbackList = []
+        callbacks.forEach((fn) => safeCallback(fn)())
+      }
+      return
+    }
     if (active) {
       this.#finishCallbackList.forEach((fn) => safeCallback(fn)(this._v, this.status))
       this._finishFlag = true
     }
 
-    if (this.#unsubscribeCallbackList.length)
-      this.#unsubscribeCallbackList.forEach((fn) => safeCallback(fn)())
+    if (this.#unsubscribeCallbackList.length) {
+      const callbacks = this.#unsubscribeCallbackList.slice()
+      this.#unsubscribeCallbackList = []
+      callbacks.forEach((fn) => safeCallback(fn)())
+    }
 
     this.#clean()
 
@@ -588,6 +598,7 @@ export class Observable<T = any> {
       onfulfilled: this.#resolve,
       onrejected: this.#reject,
       unsubscribe: () => this.#unsubscribeObservable(),
+      observable: this,
     }
 
     // use reduce from left to right to compose plugins

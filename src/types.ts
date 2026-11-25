@@ -17,6 +17,7 @@ export type executePlugin<T> = (params: {
   onfulfilled?: OnFulfilled
   onrejected?: OnRejected
   unsubscribe: () => void
+  observable: Observable<T>
 }) => Promise<any> | any
 
 /**

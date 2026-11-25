@@ -413,4 +413,49 @@ describe('debounce operator test', async () => {
     expect(consoleSpy).not.toHaveBeenCalled()
     clearTimeoutSpy.mockRestore()
   })
+
+  test('test debounce should flush final value when upstream emits with finishFlag', async () => {
+    vi.clearAllTimers()
+    const stream$ = $<number>()
+    const debouncedStream$ = stream$.pipe(debounce(100))
+    const results: number[] = []
+    let completed = false
+
+    const child$ = debouncedStream$.then((value) => {
+      results.push(value)
+    })
+    child$.afterComplete(() => {
+      completed = true
+    })
+
+    stream$.next(1)
+    await sleep(30)
+    expect(results).toEqual([])
+    expect(vi.getTimerCount()).toBe(1)
+
+    stream$.next(2, true)
+
+    expect(results).toEqual([2])
+    expect(completed).toBe(true)
+    expect(vi.getTimerCount()).toBe(0)
+
+    await sleep(200)
+    expect(results).toEqual([2])
+  })
+
+  test('test debounce should emit single value with finishFlag immediately without dangling timer', async () => {
+    vi.clearAllTimers()
+    const stream$ = $<string>()
+    const debouncedStream$ = stream$.pipe(debounce(100))
+    const results: string[] = []
+
+    debouncedStream$.then((value) => {
+      results.push(value)
+    })
+
+    stream$.next('only', true)
+
+    expect(results).toEqual(['only'])
+    expect(vi.getTimerCount()).toBe(0)
+  })
 })

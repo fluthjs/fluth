@@ -56,4 +56,45 @@ describe('plugins test', async () => {
     expect(consoleSpy).toHaveBeenCalledWith('reject', 'error')
     expect(child$.status).toBe('resolved')
   })
+
+  test('test delayNode unsubscribe should clear pending timers and skip callback', async () => {
+    vi.clearAllTimers()
+    const stream$ = $<number>().use(delayNode(1000))
+    const callback = vi.fn()
+    stream$.then(callback)
+
+    stream$.next(1)
+    await sleep(10)
+    stream$.next(2)
+    expect(vi.getTimerCount()).toBe(2)
+
+    stream$.unsubscribe()
+    expect(vi.getTimerCount()).toBe(0)
+
+    await sleep(2000)
+    expect(callback).not.toHaveBeenCalled()
+  })
+
+  test('test delayNode unsubscribe before upstream promise settles should not schedule timer', async () => {
+    vi.clearAllTimers()
+    let resolveUpstream!: (value: number) => void
+    const upstream = new Promise<number>((resolve) => {
+      resolveUpstream = resolve
+    })
+
+    const stream$ = $<number>().use(delayNode(1000))
+    const callback = vi.fn()
+    stream$.then(callback)
+
+    stream$.next(upstream)
+    stream$.unsubscribe()
+
+    resolveUpstream(42)
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(vi.getTimerCount()).toBe(0)
+    await sleep(2000)
+    expect(callback).not.toHaveBeenCalled()
+  })
 })
