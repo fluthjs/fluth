@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 import { consoleSpy, sleep } from '../utils'
 import { $, consoleNode, consoleAll, delayNode, delayAll } from '../../index'

@@ -54,7 +54,7 @@ describe('Observable pipe method edge cases', () => {
     // Test pipe method with operator that throws error
     const stream = new Stream()
     const observable = new Observable(stream)
-    const errorOperator = (obs: Observable) => {
+    const errorOperator = () => {
       throw new Error('Operator error')
     }
 
@@ -97,7 +97,7 @@ describe('Observable pipe method edge cases', () => {
     // Test pipe method with operator that creates new observable
     const stream = new Stream()
     const observable = new Observable(stream)
-    const newObservableOperator = (obs: Observable) => {
+    const newObservableOperator = () => {
       const newObs = new Observable(stream)
       newObs.then(() => console.log('new observable'))
       return newObs
