@@ -16,10 +16,9 @@ export const skipUntil =
     const newObservable$ = observable$.then(undefined, undefined, () => enabled) as Observable<T>
 
     // enable once, and then unsubscribe the trigger listener
-    let enableListener$: Observable | undefined
-    enableListener$ = trigger$.then(() => {
+    const enableListener$: Observable = trigger$.then(() => {
       enabled = true
-      enableListener$?.unsubscribe()
+      enableListener$.unsubscribe()
     })
 
     // cleanup when downstream unsubscribes or when trigger completes

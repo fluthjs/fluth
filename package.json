@@ -3,19 +3,32 @@
   "version": "0.3.34",
   "description": "A Promise-like Reactive Stream Library",
   "author": "yiludege <https://github.com/yiludege>",
-  "repository": "https://github.com/fluthjs/fluth",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fluthjs/fluth.git"
+  },
   "homepage": "https://fluthjs.github.io/fluth-doc/index.html",
-  "main": "./dist/cjs/index.js",
-  "module": "./dist/mjs/index.js",
-  "types": "./dist/mjs/index.d.ts",
+  "type": "commonjs",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
   "files": [
     "dist"
   ],
   "exports": {
     ".": {
-      "import": "./dist/mjs/index.js",
-      "require": "./dist/cjs/index.js"
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.cjs"
+      }
     }
+  },
+  "engines": {
+    "node": ">=18"
   },
   "keywords": [
     "fluth",
@@ -25,11 +38,14 @@
   "sideEffects": false,
   "license": "MIT",
   "scripts": {
-    "dev": "tsc -w -p tsconfig.cjs.json -p tsconfig.mjs.json",
-    "build": "rm -rf dist && tsc -p tsconfig.cjs.json && tsc -p tsconfig.mjs.json",
+    "dev": "tsup --watch",
+    "build": "rm -rf dist && tsup",
     "test": "vitest run",
     "check": "tsc --noEmit",
     "lint": "eslint --cache --fix",
+    "lint:check": "eslint",
+    "check:pkg": "publint --strict && attw --pack .",
+    "test:smoke": "node -e 'import(\"fluth\").then(({ $, Stream }) => { const s = $({ n: 1 }); let out; s.then(v => { out = v.n }); s.set(d => { d.n = 42 }); if (!(s instanceof Stream) || out !== 42) process.exit(1); console.log(\"ESM OK:\", out); })' && node -e 'const { $, Stream } = require(\"fluth\"); const s = $({ n: 1 }); let out; s.then(v => { out = v.n }); s.set(d => { d.n = 42 }); if (!(s instanceof Stream) || out !== 42) process.exit(1); console.log(\"CJS OK:\", out);'",
     "coverage": "vitest run --coverage",
     "release": "standard-version",
     "release-major": "standard-version --release-as major",
@@ -37,6 +53,7 @@
     "release-patch": "standard-version --release-as patch"
   },
   "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.5",
     "@commitlint/cli": "^19.4.0",
     "@commitlint/config-conventional": "^19.2.2",
     "@eslint/js": "^9.9.0",
@@ -47,7 +64,9 @@
     "jsdom": "^25.0.1",
     "lint-staged": "^15.2.9",
     "prettier": "^3.3.3",
+    "publint": "^0.3.25",
     "standard-version": "^9.5.0",
+    "tsup": "^9.0.0",
     "typescript": "^5.5.4",
     "typescript-eslint": "^8.2.0",
     "vitest": "2.0.5"

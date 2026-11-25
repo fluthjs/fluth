@@ -17,7 +17,7 @@ export const audit =
     let finished = false
     let currentValue: T | undefined = observable$._getProtectedProperty('_v') as T | undefined
     let pendingObservable$: Observable | undefined
-    let plugin = {
+    const plugin = {
       executeAll: observable$._getRootPlugin()?.executeAll || [],
     }
     const stream$ = (getGlobalFluthFactory()?.() || new Stream<T>()).use(plugin) as Stream<T>
