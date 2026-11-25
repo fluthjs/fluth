@@ -35,13 +35,6 @@ export const isPromiseLike = <T = any>(payload: unknown): payload is PromiseLike
   )
 }
 
-export const isAsyncFunction = (fn: any): fn is (...args: any[]) => PromiseLike<any> => {
-  return (
-    typeof fn === 'function' &&
-    (Object.prototype.toString.call(fn) === '[object AsyncFunction]' || isPromiseLike(fn))
-  )
-}
-
 export const checkStreamOrObservableInput = (arg$: any, isArray = false) => {
   if (isArray) {
     return Array.isArray(arg$) && arg$.every((arg) => arg instanceof Observable)

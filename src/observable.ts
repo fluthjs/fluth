@@ -1,6 +1,6 @@
-import { produce, createDraft, finishDraft } from 'limu'
+import { createDraft, finishDraft } from 'limu'
 import type { Stream } from './stream'
-import { safeCallback, isObjectLike, isAsyncFunction, isPromiseLike } from './utils'
+import { safeCallback, isObjectLike, isPromiseLike } from './utils'
 import {
   OnFulfilled,
   OnRejected,
@@ -463,7 +463,7 @@ export class Observable<T = any> {
    */
   thenSet(
     this: Observable<T> | Stream<T>,
-    setter: (value: Exclude<T, undefined>) => void | Promise<void>,
+    setter: (value: Exclude<T, undefined>) => void | PromiseLike<void>,
   ) {
     return this.#thenObserver<T>({
       onfulfilled: (value: T) => this.#set(value, setter),
@@ -497,7 +497,7 @@ export class Observable<T = any> {
    * @param setter setter function
    * @returns Observable
    */
-  thenImmediateSet(setter: (value: Exclude<T, undefined>) => void | Promise<void>) {
+  thenImmediateSet(setter: (value: Exclude<T, undefined>) => void | PromiseLike<void>) {
     if (!this.#parent) this.status = this.status === null ? PromiseStatus.RESOLVED : this.status
     return this.#thenObserver<T>({
       immediate: true,
@@ -528,7 +528,7 @@ export class Observable<T = any> {
    * @param setter setter function
    * @returns Observable
    */
-  thenOnceSet(setter: (value: Exclude<T, undefined>) => void | Promise<void>) {
+  thenOnceSet(setter: (value: Exclude<T, undefined>) => void | PromiseLike<void>) {
     return this.#thenObserver<T>({
       once: true,
       onfulfilled: (value: T) => this.#set(value, setter),
@@ -562,13 +562,25 @@ export class Observable<T = any> {
     value: T,
     setter: (value: Exclude<T, undefined>) => void | PromiseLike<void>,
   ): PromiseLike<T> | T {
-    if (isObjectLike(this._v)) {
-      if (isAsyncFunction(setter)) {
-        const draft = createDraft(value)
-        return setter(draft).then(() => {
-          return finishDraft(draft)
-        })
-      } else return produce(this._v as Exclude<T, undefined>, setter)
+    if (isObjectLike(value)) {
+      const draft = createDraft(value)
+      let ret: void | PromiseLike<void>
+      try {
+        ret = setter(draft as Exclude<T, undefined>)
+      } catch (err) {
+        finishDraft(draft)
+        throw err
+      }
+      if (isPromiseLike(ret)) {
+        return ret.then(
+          () => finishDraft(draft) as T,
+          (err) => {
+            finishDraft(draft)
+            throw err
+          },
+        )
+      }
+      return finishDraft(draft) as T
     } else {
       return value
     }
