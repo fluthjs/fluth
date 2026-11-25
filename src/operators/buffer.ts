@@ -21,24 +21,51 @@ export const buffer =
 
     const dataObservable$ = observable$.then((value) => tempValue.push(value))
 
+    const onPendingRejected = () => {
+      pendingObservable$ = undefined
+      if (finished) {
+        newObservable.complete()
+      }
+    }
+
     const triggerNext = () => {
       if (shouldAwait && observable$.status === PromiseStatus.PENDING) {
         if (!pendingObservable$) {
-          pendingObservable$ = observable$.thenOnce(triggerNext)
+          pendingObservable$ = observable$.thenOnce(triggerNext, onPendingRejected)
         }
         return
       }
-      newObservable.next([...tempValue], finished)
-      pendingObservable$ = undefined // Clear after resolution
+      const values = [...tempValue]
       tempValue.length = 0
+      pendingObservable$ = undefined // Clear after resolution
+      newObservable.next(values, finished)
     }
 
-    trigger$.then(triggerNext)
+    const triggerSub$ = trigger$.then(triggerNext)
 
-    trigger$.afterComplete(() => {
+    const onTriggerComplete = (_value: unknown, status: PromiseStatus) => {
       finished = true
+      if (
+        (trigger$._getProtectedProperty('_unsubscribeFlag') || status !== PromiseStatus.RESOLVED) &&
+        !pendingObservable$
+      ) {
+        newObservable.complete()
+      }
+    }
+
+    trigger$.afterComplete(onTriggerComplete)
+
+    const output$ = newObservable.then()
+
+    output$.afterUnsubscribe(() => {
       dataObservable$.unsubscribe()
+      triggerSub$.unsubscribe()
+      pendingObservable$?.unsubscribe()
+      pendingObservable$ = undefined
+      trigger$.offComplete(onTriggerComplete)
+      tempValue.length = 0
+      newObservable.complete()
     })
 
-    return newObservable.then()
+    return output$
   }

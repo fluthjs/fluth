@@ -28,10 +28,17 @@ export const audit =
       return undefined
     })
 
+    const onPendingRejected = () => {
+      pendingObservable$ = undefined
+      if (finished) {
+        stream$.complete()
+      }
+    }
+
     const triggerNext = () => {
       if (shouldAwait && observable$.status === PromiseStatus.PENDING) {
         if (!pendingObservable$) {
-          pendingObservable$ = observable$.thenOnce(triggerNext)
+          pendingObservable$ = observable$.thenOnce(triggerNext, onPendingRejected)
         }
         return
       } else {
@@ -41,21 +48,36 @@ export const audit =
           plugin.executeAll = curRootExecutePlugin
           stream$.use(plugin)
         }
-        stream$.next(currentValue as T, finished)
         pendingObservable$ = undefined // Clear after resolution
+        stream$.next(currentValue as T, finished)
       }
     }
 
-    trigger$.then(triggerNext)
+    const triggerSub$ = trigger$.then(triggerNext)
 
-    trigger$.afterComplete(() => {
+    const onTriggerComplete = (_value: unknown, status: PromiseStatus) => {
       finished = true
-      dataObservable$.unsubscribe()
-      stream$.remove(plugin)
-      setTimeout(() => {
+      if (
+        (trigger$._getProtectedProperty('_unsubscribeFlag') || status !== PromiseStatus.RESOLVED) &&
+        !pendingObservable$
+      ) {
         stream$.complete()
-      })
+      }
+    }
+
+    trigger$.afterComplete(onTriggerComplete)
+
+    const output$ = stream$.then() as Observable<T>
+
+    output$.afterUnsubscribe(() => {
+      dataObservable$.unsubscribe()
+      triggerSub$.unsubscribe()
+      pendingObservable$?.unsubscribe()
+      pendingObservable$ = undefined
+      trigger$.offComplete(onTriggerComplete)
+      stream$.remove(plugin)
+      stream$.complete()
     })
 
-    return stream$.then() as Observable<T>
+    return output$
   }
