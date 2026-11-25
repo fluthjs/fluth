@@ -659,4 +659,136 @@ describe('audit operator test', () => {
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'resolve', 1)
     expect(consoleSpy).toHaveBeenNthCalledWith(3, 'resolve', 2)
   })
+
+  // ========== Regression Tests (Cleanup, Pending Reject, Trigger Complete) ==========
+
+  test('should unsubscribe internal trigger, source, and pending subscriptions on downstream unsubscribe', async () => {
+    const sourceChildren: any[] = []
+    const triggerChildren: any[] = []
+    const source$ = $().use({
+      then: [(_unsub, obs) => sourceChildren.push(obs)],
+    })
+    const trigger$ = $().use({
+      then: [(_unsub, obs) => triggerChildren.push(obs)],
+    })
+
+    const audited$ = source$.pipe(audit(trigger$))
+    const onValue = vi.fn()
+    audited$.then(onValue)
+
+    // Create a pendingObservable$ as well
+    let resolvePending!: (v: string) => void
+    source$.next(
+      new Promise<string>((resolve) => {
+        resolvePending = resolve
+      }),
+    )
+    trigger$.next('trigger-while-pending')
+
+    expect(sourceChildren.length).toBe(2) // dataObservable$ + pendingObservable$
+    expect(triggerChildren.length).toBe(1) // triggerSub$
+
+    // Downstream unsubscribe should clean up all internal subscriptions
+    audited$.unsubscribe()
+
+    expect(sourceChildren.every((obs) => obs._getProtectedProperty('_unsubscribeFlag'))).toBe(true)
+    expect(triggerChildren.every((obs) => obs._getProtectedProperty('_unsubscribeFlag'))).toBe(true)
+
+    // Subsequent emissions on source and trigger should not invoke callbacks
+    resolvePending('late-resolved')
+    await vi.runAllTimersAsync()
+    source$.next('after-unsub')
+    trigger$.next('trigger-after-unsub')
+    expect(onValue).not.toHaveBeenCalled()
+  })
+
+  test('should recover after pending source rejects when shouldAwait is true', async () => {
+    const source$ = $()
+    const trigger$ = $()
+    const audited$ = source$.pipe(audit(trigger$, true))
+    const results: unknown[] = []
+
+    audited$.then((value) => {
+      results.push(value)
+    })
+
+    source$.next('initial')
+
+    const pendingReject = new Promise((_, reject) => {
+      setTimeout(() => reject('pending-error'), 50)
+    })
+    source$.next(pendingReject)
+
+    // Trigger while source is pending
+    trigger$.next('trigger-while-pending')
+    expect(results).toEqual([])
+
+    // Wait for pending promise to reject; pendingObservable$ must be cleared
+    await sleep(60)
+    expect(results).toEqual([])
+
+    // Subsequent resolved value + trigger should emit normally
+    source$.next('recovered')
+    trigger$.next('trigger-after-recovery')
+    expect(results).toEqual(['recovered'])
+  })
+
+  test('should complete synchronously when trigger$.complete() is called', () => {
+    const source$ = $()
+    const trigger$ = $()
+    const audited$ = source$.pipe(audit(trigger$))
+    const onComplete = vi.fn()
+
+    audited$.afterComplete(onComplete)
+    source$.next('value')
+    trigger$.complete()
+
+    expect(onComplete).toHaveBeenCalledTimes(1)
+  })
+
+  test('should await pending source before completing on trigger$.next(val, true)', async () => {
+    const source$ = $()
+    const trigger$ = $()
+    const audited$ = source$.pipe(audit(trigger$, true))
+    const results: unknown[] = []
+    const onComplete = vi.fn()
+
+    audited$.then((value) => results.push(value))
+    audited$.afterComplete(onComplete)
+
+    const slowPromise = new Promise((resolve) => {
+      setTimeout(() => resolve('slow-final'), 100)
+    })
+    source$.next(slowPromise)
+    trigger$.next('final', true)
+
+    // Must not complete prematurely before pending source resolves
+    await sleep(10)
+    expect(results).toEqual([])
+    expect(onComplete).not.toHaveBeenCalled()
+
+    await sleep(100)
+    expect(results).toEqual(['slow-final'])
+    expect(onComplete).toHaveBeenCalledTimes(1)
+  })
+
+  test('should complete when trigger finishes while pending source later rejects', async () => {
+    const source$ = $()
+    const trigger$ = $()
+    const audited$ = source$.pipe(audit(trigger$, true))
+    const onComplete = vi.fn()
+
+    audited$.afterComplete(onComplete)
+
+    const slowReject = new Promise((_, reject) => {
+      setTimeout(() => reject('slow-error'), 50)
+    })
+    source$.next(slowReject)
+    trigger$.next('final', true)
+
+    expect(onComplete).not.toHaveBeenCalled()
+
+    await sleep(60)
+    expect(onComplete).toHaveBeenCalledTimes(1)
+  })
 })

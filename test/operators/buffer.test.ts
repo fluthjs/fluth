@@ -435,4 +435,116 @@ describe('buffer operator test', async () => {
     trigger$.next('trigger2')
     expect(consoleSpy).toHaveBeenNthCalledWith(2, 'buffer values:', ['immediate2'])
   })
+
+  // ========== Regression Tests (Cleanup, Pending Reject, Trigger Complete) ==========
+
+  test('should unsubscribe internal trigger, source, and pending subscriptions on downstream unsubscribe', async () => {
+    const sourceChildren: any[] = []
+    const triggerChildren: any[] = []
+    const source$ = $().use({
+      then: [(_unsub, obs) => sourceChildren.push(obs)],
+    })
+    const trigger$ = $().use({
+      then: [(_unsub, obs) => triggerChildren.push(obs)],
+    })
+
+    const buffered$ = source$.pipe(buffer(trigger$))
+    const onValue = vi.fn()
+    buffered$.then(onValue)
+
+    // Create a pendingObservable$ as well
+    let resolvePending!: (v: string) => void
+    source$.next(
+      new Promise<string>((resolve) => {
+        resolvePending = resolve
+      }),
+    )
+    trigger$.next('trigger-while-pending')
+
+    expect(sourceChildren.length).toBe(2) // dataObservable$ + pendingObservable$
+    expect(triggerChildren.length).toBe(1) // triggerSub$
+
+    // Downstream unsubscribe should clean up all internal subscriptions
+    buffered$.unsubscribe()
+
+    expect(sourceChildren.every((obs) => obs._getProtectedProperty('_unsubscribeFlag'))).toBe(true)
+    expect(triggerChildren.every((obs) => obs._getProtectedProperty('_unsubscribeFlag'))).toBe(true)
+
+    // Subsequent emissions should not invoke callbacks
+    resolvePending('late-resolved')
+    await vi.runAllTimersAsync()
+    source$.next('after-unsub')
+    trigger$.next('trigger-after-unsub')
+    expect(onValue).not.toHaveBeenCalled()
+  })
+
+  test('should recover after pending source rejects when shouldAwait is true', async () => {
+    const source$ = $()
+    const trigger$ = $()
+    const buffered$ = source$.pipe(buffer(trigger$, true))
+    const results: unknown[][] = []
+
+    buffered$.then((values) => {
+      results.push(values)
+    })
+
+    source$.next(1)
+
+    const pendingReject = new Promise((_, reject) => {
+      setTimeout(() => reject('pending-error'), 50)
+    })
+    source$.next(pendingReject)
+
+    // Trigger while source is pending
+    trigger$.next('trigger-while-pending')
+    expect(results).toEqual([])
+
+    // Wait for pending promise to reject; pendingObservable$ must be cleared
+    await sleep(60)
+    expect(results).toEqual([])
+
+    // Subsequent resolved value + trigger should emit buffered values normally
+    source$.next(2)
+    trigger$.next('trigger-after-recovery')
+    expect(results).toEqual([[1, 2]])
+  })
+
+  test('should complete output stream when trigger$.complete() is called', () => {
+    const source$ = $()
+    const trigger$ = $()
+    const buffered$ = source$.pipe(buffer(trigger$))
+    const onComplete = vi.fn()
+
+    buffered$.afterComplete(onComplete)
+    source$.next(1)
+    trigger$.complete()
+
+    expect(onComplete).toHaveBeenCalledTimes(1)
+  })
+
+  test('should await pending source before emitting and completing on trigger$.next(val, true)', async () => {
+    const source$ = $()
+    const trigger$ = $()
+    const buffered$ = source$.pipe(buffer(trigger$, true))
+    const results: unknown[][] = []
+    const onComplete = vi.fn()
+
+    buffered$.then((values) => results.push(values))
+    buffered$.afterComplete(onComplete)
+
+    source$.next(1)
+    const slowPromise = new Promise((resolve) => {
+      setTimeout(() => resolve('slow-final'), 100)
+    })
+    source$.next(slowPromise)
+    trigger$.next('final', true)
+
+    await sleep(10)
+    expect(results).toEqual([])
+    expect(onComplete).not.toHaveBeenCalled()
+
+    await sleep(100)
+    expect(results).toEqual([[1, 'slow-final']])
+    expect(onComplete).toHaveBeenCalledTimes(1)
+  })
 })
