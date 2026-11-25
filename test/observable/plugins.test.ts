@@ -206,4 +206,21 @@ describe('Observable plugins methods (use, remove)', () => {
     await sleep(20)
     expect(executed).toBe(true)
   })
+
+  test('should apply context.set on first trigger in execute plugin', () => {
+    const stream$ = $<{ count: number }>()
+    const child$ = stream$.then((v) => v).use({
+      execute: (context) =>
+        context.set((draft) => {
+          draft.count = 99
+        }),
+    })
+
+    const original = { count: 1 }
+    stream$.next(original)
+
+    expect(child$.value).toEqual({ count: 99 })
+    expect(child$.value).not.toBe(original)
+    expect(original.count).toBe(1)
+  })
 })

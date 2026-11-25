@@ -1,6 +1,6 @@
-import { produce, createDraft, finishDraft } from 'limu'
+import { createDraft, finishDraft } from 'limu'
 import { Observable } from './observable'
-import { isObjectLike, isPromiseLike, isAsyncFunction } from './utils'
+import { isObjectLike, isPromiseLike } from './utils'
 import { PromiseStatus } from './types'
 
 export class Stream<T = any> extends Observable<T> {
@@ -27,16 +27,32 @@ export class Stream<T = any> extends Observable<T> {
     return this._v
   }
 
-  set(setter: (state: Exclude<T, undefined>) => void, finishFlag = this._finishFlag) {
+  set(
+    setter: (state: Exclude<T, undefined>) => void | PromiseLike<void>,
+    finishFlag = this._finishFlag,
+  ) {
     if (isObjectLike(this._v)) {
-      if (isAsyncFunction(setter)) {
-        const draft = createDraft(this._v)
-        setter(draft).then(() => {
-          this._v = finishDraft(draft)
-          this.next(this._v as T, finishFlag)
-        })
+      const draft = createDraft(this._v)
+      let ret: void | PromiseLike<void>
+      try {
+        ret = setter(draft as Exclude<T, undefined>)
+      } catch (err) {
+        finishDraft(draft)
+        throw err
+      }
+      if (isPromiseLike(ret)) {
+        ret.then(
+          () => {
+            this._v = finishDraft(draft) as T
+            this.next(this._v as T, finishFlag)
+          },
+          (err) => {
+            finishDraft(draft)
+            throw err
+          },
+        )
       } else {
-        this._v = produce(this._v as Exclude<T, undefined>, setter)
+        this._v = finishDraft(draft) as T
         this.next(this._v as T, finishFlag)
       }
     }

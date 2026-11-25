@@ -48,4 +48,18 @@ describe('Stream set method', () => {
     expect(value?.key2 === promise$.value?.key2).toBeFalsy()
     expect(value?.key1 === promise$.value?.key1).toBeTruthy()
   })
+
+  test('test set with plain function returning Promise', async () => {
+    const original = { count: 1 }
+    const promise$ = $(original)
+    promise$.set((draft) =>
+      Promise.resolve().then(() => {
+        draft.count = 42
+      }),
+    )
+    await sleep(1)
+    expect(promise$.value).toEqual({ count: 42 })
+    expect(promise$.value).not.toBe(original)
+    expect(original.count).toBe(1)
+  })
 })

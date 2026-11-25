@@ -37,6 +37,21 @@ describe('Observable immutable methods ($then, $thenOnce, $thenImmediate)', () =
     expect(promise$.value?.key2.key22 === promise1$.value?.key2.key22).toBeFalsy()
   })
 
+  test('test thenSet with plain function returning Promise', async () => {
+    const stream$ = $<{ count: number }>()
+    const child$ = stream$.thenSet((draft) =>
+      Promise.resolve().then(() => {
+        draft.count = 42
+      }),
+    )
+    const original = { count: 1 }
+    stream$.next(original)
+    await sleep(1)
+    expect(child$.value).toEqual({ count: 42 })
+    expect(child$.value).not.toBe(original)
+    expect(original.count).toBe(1)
+  })
+
   test('test thenOnceSet', async () => {
     const promise$ = $<{ num: number; key: object }>()
     const promise1$ = promise$.thenOnceSet((value) => {
