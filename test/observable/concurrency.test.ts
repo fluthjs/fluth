@@ -348,4 +348,77 @@ describe('Observable concurrency and race condition edge cases', () => {
     expect(grandChild.value).toBe('grandchild-result')
     expect(consoleSpy).toHaveBeenCalledWith('grandchild-executed', 'slow-child-result')
   })
+
+  test('should not duplicate sibling dispatch when child callback calls next() synchronously', () => {
+    const stream = new Stream<number>()
+    const c1Values: number[] = []
+    const c2Values: number[] = []
+    const g1Values: number[] = []
+
+    const c1 = stream.then((v) => {
+      c1Values.push(v)
+      if (v === 1) stream.next(2)
+      return v * 10
+    })
+    c1.then((v) => {
+      g1Values.push(v)
+    })
+    stream.then((v) => {
+      c2Values.push(v)
+    })
+
+    stream.next(1)
+
+    expect(stream.value).toBe(2)
+    expect(c1Values).toEqual([1, 2])
+    expect(c2Values).toEqual([2])
+    expect(c1.value).toBe(20)
+    expect(g1Values).toEqual([20])
+  })
+
+  test('should not duplicate sibling dispatch when afterSetValue calls next() synchronously', () => {
+    const stream = new Stream<number>()
+    const c1Values: number[] = []
+    const c2Values: number[] = []
+
+    stream.afterSetValue((v) => {
+      if (v === 1) stream.next(2)
+    })
+    stream.then((v) => {
+      c1Values.push(v)
+    })
+    stream.then((v) => {
+      c2Values.push(v)
+    })
+
+    stream.next(1)
+
+    expect(stream.value).toBe(2)
+    expect(c1Values).toEqual([2])
+    expect(c2Values).toEqual([2])
+  })
+
+  test('should not continue stale dispatch when child afterSetValue calls next() synchronously', () => {
+    const stream = new Stream<number>()
+    const g1Values: number[] = []
+    const c2Values: number[] = []
+
+    const c1 = stream.then((v) => v * 10)
+    c1.afterSetValue((v) => {
+      if (v === 10) stream.next(2)
+    })
+    c1.then((v) => {
+      g1Values.push(v)
+    })
+    stream.then((v) => {
+      c2Values.push(v)
+    })
+
+    stream.next(1)
+
+    expect(stream.value).toBe(2)
+    expect(c1.value).toBe(20)
+    expect(g1Values).toEqual([20])
+    expect(c2Values).toEqual([2])
+  })
 })

@@ -603,8 +603,12 @@ export class Observable<T = any> {
    * and execute all children observer
    * @param differResult
    * @param presetValue
+   * @param rootPromise
    */
-  #executeFinish(differResult = false, presetValue?: any) {
+  #executeFinish(differResult: boolean, presetValue: any, rootPromise: PromiseLike<any>) {
+    // Save root reference before #unsubscribeObservable may clear this._root via #clean()
+    const root = this._root
+    if (root?._rootPromise !== rootPromise) return
     // finish flag check
     if (this._root?._finishFlag) {
       this.#finishCallbackList.forEach((fn) => safeCallback(fn)(this._v, this.status))
@@ -628,9 +632,10 @@ export class Observable<T = any> {
     // execute children observer, when node is pending and call unsubscribe，after resolve or reject
     // the new emit data should not be received by children.
     if (this.#children?.length && !this._unsubscribeFlag) {
-      this.#children
-        .slice()
-        .forEach((child) => child._executeObserver(this._cacheRootPromise, presetValue, false))
+      for (const child of this.#children.slice()) {
+        if (root?._rootPromise !== rootPromise) return
+        child._executeObserver(rootPromise, presetValue, false)
+      }
     }
   }
 
@@ -677,7 +682,7 @@ export class Observable<T = any> {
       )
     const handleExecuteFinish = () => {
       if (this._root?._rootPromise !== rootPromise) return
-      this.#executeFinish(differResult, presetValue)
+      this.#executeFinish(differResult, presetValue, rootPromise)
     }
     if (isPromiseLike(result)) {
       // promise handler
@@ -701,6 +706,7 @@ export class Observable<T = any> {
           .finally(handleExecuteFinish)
       else promise.finally(handleExecuteFinish)
     } else {
+      if (this._root?._rootPromise !== rootPromise) return
       // if skipResult is true, node should not process result
       if (!skipResult) {
         this.status = PromiseStatus.RESOLVED
@@ -708,23 +714,27 @@ export class Observable<T = any> {
           differResult = safeCallback(this.#differ)(this._v) === safeCallback(this.#differ)(result)
         this._v = result
         this.#afterSetValueCallbackList.forEach((fn) => safeCallback(fn)(result))
+        if (this._root?._rootPromise !== rootPromise) return
       }
 
       // finally handler when not promise
       if (this.#finally) {
         try {
           const finallyResult = this.#finally?.() as any
+          if (this._root?._rootPromise !== rootPromise) return
           if (isPromiseLike(finallyResult)) {
             return handlePromiseResult(finallyResult).finally(handleExecuteFinish)
           }
         } catch (error) {
           console.error(error)
+          if (this._root?._rootPromise !== rootPromise) return
           this.status = PromiseStatus.REJECTED
           this._v = error as any
           this.#afterSetValueCallbackList.forEach((fn) => safeCallback(fn)(error))
         }
       }
-      this.#executeFinish(differResult, presetValue)
+      if (this._root?._rootPromise !== rootPromise) return
+      this.#executeFinish(differResult, presetValue, rootPromise)
     }
   }
 
@@ -744,10 +754,14 @@ export class Observable<T = any> {
   ) {
     this._cacheRootPromise = rootPromise
     try {
-      const result = this.#runExecutePlugin(nodeProcessor())
+      const processorResult = nodeProcessor()
+      if (this._root?._rootPromise !== rootPromise) return
+      const result = this.#runExecutePlugin(processorResult)
+      if (this._root?._rootPromise !== rootPromise) return
       this.#executeResult(result, status, rootPromise)
     } catch (error) {
       console.error(error)
+      if (this._root?._rootPromise !== rootPromise) return
       this.status = PromiseStatus.REJECTED
       // plugin run in safeCallback so error only happen in nodeProcess
       // once error happen, plugin should process error as Promise.reject
