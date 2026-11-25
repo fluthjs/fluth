@@ -27,9 +27,9 @@ const promiseAllImpl = <T extends (Stream | Observable)[]>(
   >
   const payload: StreamTupleValues<T> = [] as any
   const promiseStatus: PromiseStatus[] = [...Array(args$.length)].map(() => PromiseStatus.PENDING)
+  const finishedFlags: boolean[] = [...Array(args$.length)].map(() => false)
   let finishCount = 0
   const { unsubscribeCallback } = useUnsubscribeCallback(stream$, args$.length)
-  const completeCallback = () => (finishCount += 1)
 
   const next = () => {
     if (promiseStatus.every((status) => status !== PromiseStatus.PENDING)) {
@@ -40,7 +40,9 @@ const promiseAllImpl = <T extends (Stream | Observable)[]>(
         finishCount === args$.length,
       )
       promiseStatus.forEach((_, index) => {
-        ;(promiseStatus as PromiseStatus[])[index] = PromiseStatus.PENDING
+        if (!finishedFlags[index]) {
+          ;(promiseStatus as PromiseStatus[])[index] = PromiseStatus.PENDING
+        }
       })
     }
   }
@@ -61,9 +63,14 @@ const promiseAllImpl = <T extends (Stream | Observable)[]>(
 
   args$.forEach((arg$, index) => {
     if (arg$._getProtectedProperty('_finishFlag')) {
+      finishedFlags[index] = true
       finishCount += 1
       payload[index] = arg$._getProtectedProperty('_v') as StreamTupleValues<T>[number]
-      promiseStatus[index] = PromiseStatus.RESOLVED
+      promiseStatus[index] = arg$.status ?? PromiseStatus.RESOLVED
+    }
+    const completeCallback = () => {
+      finishedFlags[index] = true
+      finishCount += 1
     }
     arg$.afterUnsubscribe(unsubscribeCallback)
     arg$.afterComplete(completeCallback)
@@ -91,6 +98,7 @@ const promiseAllImpl = <T extends (Stream | Observable)[]>(
   stream$.afterComplete(() => {
     payload.length = 0
     promiseStatus.length = 0
+    finishedFlags.length = 0
   })
 
   Promise.resolve().then(() => {

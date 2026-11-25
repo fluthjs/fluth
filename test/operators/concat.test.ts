@@ -396,4 +396,64 @@ describe('concat operator test', async () => {
     expect(unsubscribeCalled).toBe(true)
     expect(consoleSpy).toHaveBeenCalledWith('cleanup')
   })
+
+  test('should not emit from third stream when second completes before first finishes', () => {
+    const { stream$: stream1$, observable$: observable1$ } = streamFactory()
+    const { stream$: stream2$, observable$: observable2$ } = streamFactory()
+    const { stream$: stream3$, observable$: observable3$ } = streamFactory()
+
+    const stream$ = concat(observable1$, observable2$, observable3$)
+    const results: string[] = []
+    let completed = false
+
+    stream$.then((value: string) => {
+      results.push(value)
+    })
+    stream$.afterComplete(() => {
+      completed = true
+    })
+
+    stream1$.next('A1')
+    // Second stream completes while first stream is still active
+    stream2$.complete()
+    // Third stream must NOT emit before first stream finishes
+    stream3$.next('C_EARLY')
+    expect(results).toEqual(['A1'])
+    expect(completed).toBe(false)
+
+    // Finish first stream, then third stream can emit and complete output
+    stream1$.next('A2', true)
+    expect(results).toEqual(['A1', 'A2'])
+    expect(completed).toBe(false)
+
+    stream3$.next('C_VALID', true)
+    expect(results).toEqual(['A1', 'A2', 'C_VALID'])
+    expect(completed).toBe(true)
+  })
+
+  test('should not unsubscribe output when third stream unsubscribes after second completes while first is active', async () => {
+    const { stream$: stream1$, observable$: observable1$ } = streamFactory()
+    const { stream$: stream2$, observable$: observable2$ } = streamFactory()
+    const { observable$: observable3$ } = streamFactory()
+
+    const stream$ = concat(observable1$, observable2$, observable3$)
+    const results: string[] = []
+    let unsubscribed = false
+
+    stream$.then((value: string) => {
+      results.push(value)
+    })
+    stream$.afterUnsubscribe(() => {
+      unsubscribed = true
+    })
+
+    stream2$.complete()
+    observable3$.unsubscribe()
+    await vi.runAllTimersAsync()
+
+    // First stream is still active, so concat output must remain subscribed
+    expect(unsubscribed).toBe(false)
+    stream1$.next('A1')
+    expect(results).toEqual(['A1'])
+  })
 })
