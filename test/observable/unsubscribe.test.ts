@@ -104,4 +104,32 @@ describe('Observable unsubscribe method', () => {
     expect((observable1$ as any)._cacheRootPromise).toBeNull()
     expect((observable11$ as any)._cacheRootPromise).toBeNull()
   })
+
+  test('should not re-execute pending unsubscribed node on subsequent parent next()', async () => {
+    let resolveFirst!: (value: number) => void
+    const firstPromise = new Promise<number>((resolve) => {
+      resolveFirst = resolve
+    })
+
+    const s$ = $<number>()
+    const handler = vi.fn(() => firstPromise)
+    const downstream = vi.fn()
+
+    const child$ = s$.then(handler)
+    child$.then(downstream)
+
+    s$.next(1)
+    child$.unsubscribe()
+    s$.next(2)
+
+    resolveFirst(10)
+    await Promise.resolve()
+    await Promise.resolve()
+
+    s$.next(3)
+
+    expect(handler).toHaveBeenCalledTimes(1)
+    expect(handler).toHaveBeenCalledWith(1)
+    expect(downstream).not.toHaveBeenCalled()
+  })
 })

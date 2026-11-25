@@ -301,14 +301,14 @@ export class Observable<T = any> {
    * @param active active flag, indicate #unsubscribeObservable is called by active or not
    */
   #unsubscribeObservable(active = false) {
-    if (this.status === PromiseStatus.PENDING) return
-
     if (this.#parent) {
       const idx = this.#parent.#children.indexOf(this)
       if (idx !== -1) {
         this.#parent.#children.splice(idx, 1)[0]
       }
     }
+
+    if (this.status === PromiseStatus.PENDING) return
     if (active) {
       this.#finishCallbackList.forEach((fn) => safeCallback(fn)(this._v, this.status))
       this._finishFlag = true
@@ -770,7 +770,13 @@ export class Observable<T = any> {
     presetValue?: any,
     active = false,
   ) {
-    if (!rootPromise || this._root?._pauseFlag || rootPromise !== this._root?._rootPromise) return
+    if (
+      this._unsubscribeFlag ||
+      !rootPromise ||
+      this._root?._pauseFlag ||
+      rootPromise !== this._root?._rootPromise
+    )
+      return
 
     const status = this.status
     this.status = PromiseStatus.PENDING
