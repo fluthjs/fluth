@@ -179,4 +179,56 @@ describe('throttle operator test', async () => {
     expect(consoleSpy).toHaveBeenCalledWith('throttled:', 1)
     clearTimeoutSpy.mockRestore()
   })
+
+  test('test throttle should flush final value when upstream emits with finishFlag inside window', async () => {
+    vi.clearAllTimers()
+    const stream$ = $<number>()
+    const throttledStream$ = stream$.pipe(throttle(100))
+    const results: number[] = []
+    let completed = false
+
+    const child$ = throttledStream$.then((value) => {
+      results.push(value)
+    })
+    child$.afterComplete(() => {
+      completed = true
+    })
+
+    stream$.next(1)
+    expect(results).toEqual([1])
+
+    await sleep(30)
+    stream$.next(2)
+    expect(vi.getTimerCount()).toBe(1)
+
+    await sleep(20)
+    stream$.next(3, true)
+
+    expect(results).toEqual([1, 3])
+    expect(completed).toBe(true)
+    expect(vi.getTimerCount()).toBe(0)
+
+    await sleep(200)
+    expect(results).toEqual([1, 3])
+  })
+
+  test('test throttle should reset timeout handle after timer fires', async () => {
+    vi.clearAllTimers()
+    const stream$ = $<number>()
+    const throttledStream$ = stream$.pipe(throttle(100))
+    const results: number[] = []
+    throttledStream$.then((value) => results.push(value))
+
+    stream$.next(1)
+    await sleep(20)
+    stream$.next(2)
+    await sleep(100)
+    expect(results).toEqual([1, 2])
+    expect(vi.getTimerCount()).toBe(0)
+
+    const clearTimeoutSpy = vi.spyOn(globalThis, 'clearTimeout')
+    throttledStream$.unsubscribe()
+    expect(clearTimeoutSpy).not.toHaveBeenCalled()
+    clearTimeoutSpy.mockRestore()
+  })
 })

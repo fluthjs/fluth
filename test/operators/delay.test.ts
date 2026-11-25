@@ -83,4 +83,23 @@ describe('delay operator test', async () => {
     // Should not emit
     expect(consoleSpy).not.toHaveBeenCalled()
   })
+
+  test('test delay unsubscribe should clear all active timers', async () => {
+    vi.clearAllTimers()
+    const stream$ = $<number>()
+    const delayedStream$ = stream$.pipe(delay(1000))
+    const callback = vi.fn()
+    delayedStream$.then(callback)
+
+    stream$.next(1)
+    await sleep(10)
+    stream$.next(2)
+    expect(vi.getTimerCount()).toBe(2)
+
+    delayedStream$.unsubscribe()
+    expect(vi.getTimerCount()).toBe(0)
+
+    await sleep(2000)
+    expect(callback).not.toHaveBeenCalled()
+  })
 })

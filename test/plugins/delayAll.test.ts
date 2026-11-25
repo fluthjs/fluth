@@ -159,4 +159,47 @@ describe('delayAll plugin test', async () => {
     expect(consoleSpy).toHaveBeenCalledWith('reject', 'error')
     expect(child$.status).toBe('resolved')
   })
+
+  test('test delayAll unsubscribe should clear pending timers on root and child nodes', async () => {
+    vi.clearAllTimers()
+    const stream$ = $<number>().use(delayAll(1000))
+    const callback = vi.fn()
+    const child$ = stream$.then((v) => v + 1)
+    child$.then(callback)
+
+    stream$.next(1)
+    expect(vi.getTimerCount()).toBe(1)
+
+    // Unsubscribe while root delay timer is pending
+    stream$.unsubscribe()
+    expect(vi.getTimerCount()).toBe(0)
+
+    await sleep(3000)
+    expect(callback).not.toHaveBeenCalled()
+  })
+
+  test('test delayAll child unsubscribe should clear only its own timer without affecting siblings', async () => {
+    vi.clearAllTimers()
+    const stream$ = $<number>().use(delayAll(100))
+    const cb1 = vi.fn()
+    const cb2 = vi.fn()
+
+    const child1$ = stream$.then((v) => v + 1)
+    child1$.then(cb1)
+    const child2$ = stream$.then((v) => v + 2)
+    child2$.then(cb2)
+
+    stream$.next(1)
+    await sleep(100) // root resolves; child1$ and child2$ each start a 100ms delay timer
+    expect(vi.getTimerCount()).toBe(2)
+
+    child1$.unsubscribe()
+    expect(vi.getTimerCount()).toBe(1)
+
+    await sleep(100)
+    expect(cb1).not.toHaveBeenCalled()
+    expect(cb2).toHaveBeenCalledWith(3)
+    await sleep(100)
+    expect(vi.getTimerCount()).toBe(0)
+  })
 })

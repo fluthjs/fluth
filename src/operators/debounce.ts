@@ -20,6 +20,15 @@ export const debounce =
 
       if (timer) {
         clearTimeout(timer)
+        timer = null
+      }
+
+      // Natural completion via upstream finishFlag: flush the final value instead of swallowing it
+      if (
+        newObservable$._getProtectedProperty('_finishFlag') &&
+        !newObservable$._getProtectedProperty('_unsubscribeFlag')
+      ) {
+        return true
       }
 
       timer = setTimeout(() => {
