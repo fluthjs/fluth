@@ -772,5 +772,62 @@ describe('promiseAll operator', () => {
       expect(statusLog).toContain('during-pending-resolved')
       expect(statusLog).toContain('after-resolved-resolved')
     })
+
+    test('should keep emitting when one input stream finishes and another continues emitting', () => {
+      const { stream$: stream1$, observable$: obs1$ } = streamFactory()
+      const { stream$: stream2$, observable$: obs2$ } = streamFactory()
+
+      const resultAwait$ = promiseAll(obs1$, obs2$)
+      const resultNoAwait$ = promiseAllNoAwait(obs1$, obs2$)
+      const awaitResults: unknown[][] = []
+      const noAwaitResults: unknown[][] = []
+
+      resultAwait$.then((values) => awaitResults.push(values))
+      resultNoAwait$.then((values) => noAwaitResults.push(values))
+
+      stream1$.next(1, true)
+      stream2$.next(20)
+      stream2$.next(30)
+      stream2$.next(40, true)
+
+      expect(awaitResults).toEqual([
+        [1, 20],
+        [1, 30],
+        [1, 40],
+      ])
+      expect(noAwaitResults).toEqual([
+        [1, 20],
+        [1, 30],
+        [1, 40],
+      ])
+    })
+
+    test('should preserve rejected status for pre-finished input streams', async () => {
+      const { stream$: stream1$ } = streamFactory()
+      const { stream$: stream2$, observable$: obs2$ } = streamFactory()
+
+      stream1$.next(Promise.reject('pre-rejected'), true)
+      await vi.runAllTimersAsync()
+
+      const result$ = promiseAll(stream1$, obs2$)
+      const resolved: unknown[][] = []
+      const rejected: unknown[][] = []
+
+      result$.then(
+        (values) => resolved.push(values),
+        (errors) => rejected.push(errors),
+      )
+
+      stream2$.next('ok1')
+      await vi.runAllTimersAsync()
+      stream2$.next('ok2', true)
+      await vi.runAllTimersAsync()
+
+      expect(resolved).toEqual([])
+      expect(rejected).toEqual([
+        ['pre-rejected', 'ok1'],
+        ['pre-rejected', 'ok2'],
+      ])
+    })
   })
 })

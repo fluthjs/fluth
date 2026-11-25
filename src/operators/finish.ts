@@ -24,6 +24,7 @@ export const finish = <T extends (Stream | Observable)[]>(...args$: T) => {
   const payload: StreamTupleValues<T> = [] as any
   let finishCount = 0
   let rejectFlag = false
+  let emitted = false
 
   // if no input, return an empty stream
   if (args$.length === 0) {
@@ -31,12 +32,9 @@ export const finish = <T extends (Stream | Observable)[]>(...args$: T) => {
   }
 
   const { unsubscribeCallback } = useUnsubscribeCallback(stream$, args$.length)
-  const completeCallback = (_v: any, status: PromiseStatus) => {
-    finishCount += 1
-    if (status === PromiseStatus.REJECTED) rejectFlag = true
-  }
   const next = () => {
-    if (finishCount === args$.length) {
+    if (!emitted && finishCount === args$.length) {
+      emitted = true
       stream$.next(rejectFlag ? Promise.reject([...payload]) : [...payload], true)
     }
   }
@@ -47,6 +45,17 @@ export const finish = <T extends (Stream | Observable)[]>(...args$: T) => {
       payload[index] = arg$._getProtectedProperty('_v') as StreamTupleValues<T>[number]
       finishCount += 1
       if (arg$.status === PromiseStatus.REJECTED) rejectFlag = true
+    }
+
+    const completeCallback = (value: any, status: PromiseStatus) => {
+      if (!(index in payload)) {
+        payload[index] = value
+      }
+      finishCount += 1
+      if (status === PromiseStatus.REJECTED) rejectFlag = true
+      if (finishCount === args$.length) {
+        Promise.resolve().then(() => next())
+      }
     }
 
     arg$.afterUnsubscribe(unsubscribeCallback)

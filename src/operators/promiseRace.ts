@@ -52,8 +52,15 @@ export const promiseRace = <T extends (Stream | Observable)[]>(...args$: T) => {
       }
     }
     const completeCallback = () => {
+      finishCount += 1
       if (firstIndex === index) {
         finishFlag = true
+      } else if (firstIndex === null && finishCount === args$.length) {
+        Promise.resolve().then(() => {
+          if (firstIndex === null && finishCount === args$.length) {
+            stream$.complete()
+          }
+        })
       }
     }
 

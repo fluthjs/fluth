@@ -404,4 +404,52 @@ describe('promiseRace operator test', async () => {
 
     expect(consoleSpy).toHaveBeenCalledWith('type-test:', 'string', 'string-value')
   })
+
+  test('should complete when all input streams complete without emitting', async () => {
+    const { stream$: stream1$, observable$: obs1$ } = streamFactory()
+    const { stream$: stream2$, observable$: obs2$ } = streamFactory()
+
+    const result$ = promiseRace(obs1$, obs2$)
+    let emitted = false
+    let completed = false
+
+    result$.then(
+      () => {
+        emitted = true
+      },
+      () => {
+        emitted = true
+      },
+    )
+    result$.afterComplete(() => {
+      completed = true
+    })
+
+    stream1$.complete()
+    await vi.runAllTimersAsync()
+    expect(completed).toBe(false)
+
+    stream2$.complete()
+    await vi.runAllTimersAsync()
+    expect(emitted).toBe(false)
+    expect(completed).toBe(true)
+  })
+
+  test('should still emit when remaining stream finishes with a value after another pre-finished', async () => {
+    const { stream$: stream1$, observable$: obs1$ } = streamFactory()
+    const { stream$: stream2$, observable$: obs2$ } = streamFactory()
+
+    stream1$.complete()
+    const result$ = promiseRace(obs1$, obs2$)
+    const values: string[] = []
+
+    result$.then((value: string) => {
+      values.push(value)
+    })
+
+    stream2$.next('winner-value', true)
+    await vi.runAllTimersAsync()
+
+    expect(values).toEqual(['winner-value'])
+  })
 })

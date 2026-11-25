@@ -29,8 +29,11 @@ export const concat = <T extends (Stream | Observable)[]>(...args$: T) => {
     return stream$
   }
 
+  const isPreviousFinished = (index: number) =>
+    index === 0 || finishFlag.slice(0, index).every(Boolean)
+
   const next = (data: any, promiseStatus: PromiseStatus, index: number) => {
-    if (index === 0 || finishFlag[index - 1]) {
+    if (isPreviousFinished(index)) {
       stream$.next(
         promiseStatus === PromiseStatus.RESOLVED ? data : Promise.reject(data),
         finishFlag.every((flag) => flag),
@@ -47,7 +50,7 @@ export const concat = <T extends (Stream | Observable)[]>(...args$: T) => {
 
     const unsubscribeCallback = () => {
       unsubscribeFlag[index] = true
-      if ((index === 0 || finishFlag[index - 1]) && !finishFlag[index]) {
+      if (isPreviousFinished(index) && !finishFlag[index]) {
         setTimeout(() => stream$.unsubscribe())
       }
     }

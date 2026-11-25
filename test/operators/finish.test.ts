@@ -380,4 +380,85 @@ describe('finish operator test', async () => {
     expect(result).toEqual(['pre-finished', 'final-active', 'last-stream'])
     expect(consoleSpy).toHaveBeenNthCalledWith(1, 'mixed:', 'pre-finished,final-active,last-stream')
   })
+
+  test('should emit and complete when last remaining stream completes without a new emission', async () => {
+    const { stream$: promise1$, observable$: observable1$ } = streamFactory()
+    const { stream$: promise2$, observable$: observable2$ } = streamFactory()
+
+    const stream$ = finish(observable1$, observable2$)
+    const results: string[][] = []
+    let completed = false
+
+    stream$.then((value: string[]) => {
+      results.push(value)
+    })
+    stream$.afterComplete(() => {
+      completed = true
+    })
+
+    promise1$.next('a', true)
+    promise2$.next('b')
+    expect(results).toEqual([])
+    expect(completed).toBe(false)
+
+    // Complete second stream directly without emitting a new value
+    promise2$.complete()
+    await vi.runAllTimersAsync()
+
+    expect(results).toEqual([['a', 'b']])
+    expect(completed).toBe(true)
+  })
+
+  test('should reject and complete when streams complete directly and one ended rejected', async () => {
+    const { stream$: promise1$, observable$: observable1$ } = streamFactory()
+    const { stream$: promise2$, observable$: observable2$ } = streamFactory()
+
+    const stream$ = finish(observable1$, observable2$)
+    const resolved: string[][] = []
+    const rejected: string[][] = []
+    let completed = false
+
+    stream$.then(
+      (value: string[]) => resolved.push(value),
+      (error: string[]) => rejected.push(error),
+    )
+    stream$.afterComplete(() => {
+      completed = true
+    })
+
+    promise1$.next(Promise.reject('err1'))
+    promise2$.next('ok2')
+    await vi.runAllTimersAsync()
+
+    promise1$.complete()
+    promise2$.complete()
+    await vi.runAllTimersAsync()
+
+    expect(resolved).toEqual([])
+    expect(rejected).toEqual([['err1', 'ok2']])
+    expect(completed).toBe(true)
+  })
+
+  test('should complete when last remaining stream completes without ever emitting', async () => {
+    const { stream$: promise1$, observable$: observable1$ } = streamFactory()
+    const { stream$: promise2$, observable$: observable2$ } = streamFactory()
+
+    const stream$ = finish(observable1$, observable2$)
+    const results: unknown[][] = []
+    let completed = false
+
+    stream$.then((value) => {
+      results.push(value)
+    })
+    stream$.afterComplete(() => {
+      completed = true
+    })
+
+    promise1$.next('a', true)
+    promise2$.complete()
+    await vi.runAllTimersAsync()
+
+    expect(results).toEqual([['a', undefined]])
+    expect(completed).toBe(true)
+  })
 })
