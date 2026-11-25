@@ -31,10 +31,16 @@ export class Stream<T = any> extends Observable<T> {
     if (isObjectLike(this._v)) {
       if (isAsyncFunction(setter)) {
         const draft = createDraft(this._v)
-        setter(draft).then(() => {
-          this._v = finishDraft(draft)
-          this.next(this._v as T, finishFlag)
-        })
+        setter(draft).then(
+          () => {
+            this._v = finishDraft(draft)
+            this.next(this._v as T, finishFlag)
+          },
+          (error) => {
+            finishDraft(draft)
+            this.next(Promise.reject(error), finishFlag)
+          },
+        )
       } else {
         this._v = produce(this._v as Exclude<T, undefined>, setter)
         this.next(this._v as T, finishFlag)
@@ -57,7 +63,12 @@ export class Stream<T = any> extends Observable<T> {
   next(payload: T | PromiseLike<T>, finishFlag = this._finishFlag) {
     const isPromiseLikePayload = isPromiseLike(payload)
     const promise = isPromiseLikePayload ? payload : Promise.resolve(payload)
-    if (this._rootPromise === promise || this._finishFlag) return
+    if (this._rootPromise === promise || this._finishFlag || this._pauseFlag) {
+      if (isPromiseLikePayload) {
+        promise.then(() => undefined, () => undefined)
+      }
+      return
+    }
     this._rootPromise = promise
     this._finishFlag = finishFlag
     this._executeObserver(promise, payload)

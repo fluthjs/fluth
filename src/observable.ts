@@ -592,7 +592,12 @@ export class Observable<T = any> {
 
     // use reduce from left to right to compose plugins
     return executeAll.reduce((prevResult, plugin) => {
-      return safeCallback(() => plugin({ ...context, result: prevResult }))() ?? prevResult
+      const nextResult =
+        safeCallback(() => plugin({ ...context, result: prevResult }))() ?? prevResult
+      if (nextResult !== prevResult && isPromiseLike(prevResult)) {
+        prevResult.then(() => undefined, () => undefined)
+      }
+      return nextResult
     }, context.result)
   }
 
