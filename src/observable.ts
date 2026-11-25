@@ -679,6 +679,23 @@ export class Observable<T = any> {
       if (this._root?._rootPromise !== rootPromise) return
       this.#executeFinish(differResult, presetValue)
     }
+    const applyFinallyRejection = (error: any) => {
+      if (this._root?._rootPromise !== rootPromise) return
+      this.status = PromiseStatus.REJECTED
+      this._v = error
+      presetValue = undefined
+      this.#afterSetValueCallbackList.forEach((fn) => safeCallback(fn)(error))
+    }
+    const handleFinallyResult = (finallyResult: PromiseLike<any>) =>
+      new Promise<void>((resolve) =>
+        finallyResult.then(
+          () => resolve(),
+          (error) => {
+            applyFinallyRejection(error)
+            resolve()
+          },
+        ),
+      )
     if (isPromiseLike(result)) {
       // promise handler
       const promise = handlePromiseResult(result)
@@ -686,16 +703,15 @@ export class Observable<T = any> {
       if (this.#finally)
         promise
           .finally(() => {
+            if (this._root?._rootPromise !== rootPromise) return
             try {
               const finallyResult = this.#finally?.() as any
               if (isPromiseLike(finallyResult)) {
-                return handlePromiseResult(finallyResult)
+                return handleFinallyResult(finallyResult)
               }
             } catch (error) {
-              if (this._root?._rootPromise !== rootPromise) return
-              this._v = error as any
-              this.#afterSetValueCallbackList.forEach((fn) => safeCallback(fn)(error))
-              this.status = PromiseStatus.REJECTED
+              console.error(error)
+              applyFinallyRejection(error)
             }
           })
           .finally(handleExecuteFinish)
@@ -715,16 +731,15 @@ export class Observable<T = any> {
         try {
           const finallyResult = this.#finally?.() as any
           if (isPromiseLike(finallyResult)) {
-            return handlePromiseResult(finallyResult).finally(handleExecuteFinish)
+            handleFinallyResult(finallyResult).finally(handleExecuteFinish)
+            return
           }
         } catch (error) {
           console.error(error)
-          this.status = PromiseStatus.REJECTED
-          this._v = error as any
-          this.#afterSetValueCallbackList.forEach((fn) => safeCallback(fn)(error))
+          applyFinallyRejection(error)
         }
       }
-      this.#executeFinish(differResult, presetValue)
+      handleExecuteFinish()
     }
   }
 

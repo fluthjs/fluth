@@ -124,8 +124,9 @@ describe('PromiseLike Support', () => {
         .finally(() => makeThenable('finally-thenable') as any)
         .then((v) => console.log(`sync:${v}`))
       syncStream$.next('init')
+      expect(consoleSpy).not.toHaveBeenCalled()
       await sleep(20)
-      expect(consoleSpy).toHaveBeenCalledWith('sync:finally-thenable')
+      expect(consoleSpy).toHaveBeenCalledWith('sync:init')
 
       consoleSpy.mockClear()
       const asyncStream$ = $<string>()
@@ -135,7 +136,7 @@ describe('PromiseLike Support', () => {
         .then((v) => console.log(`async:${v}`))
       asyncStream$.next('init')
       await sleep(30)
-      expect(consoleSpy).toHaveBeenCalledWith('async:finally-thenable')
+      expect(consoleSpy).toHaveBeenCalledWith('async:upstream')
     })
 
     test('should handle cross-iframe Promise in stream and observable', async () => {
